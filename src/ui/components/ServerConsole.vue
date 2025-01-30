@@ -1,52 +1,6 @@
-<template>
-  <div class="server-console">
-    <div class="console-header">
-      <div class="console-title">Development Server</div>
-      <div class="console-controls">
-        <button 
-          class="console-button copy-button"
-          @click="copyLogs"
-          title="Copy logs to clipboard"
-        >
-          Copy Logs
-        </button>
-        <button 
-          class="console-button"
-          :class="{ 'running': isServerRunning }"
-          @click="toggleServer"
-        >
-          {{ isServerRunning ? 'Stop Server' : 'Start Server' }}
-        </button>
-      </div>
-    </div>
-    <div 
-      class="console-output" 
-      ref="outputRef"
-      @scroll="handleScroll"
-    >
-      <div 
-        v-for="(line, index) in logLines" 
-        :key="index"
-        class="console-line"
-        :class="getLineClass(line)"
-      >
-        <span class="line-prefix">></span>
-        {{ line }}
-      </div>
-    </div>
-    <div 
-      v-if="!autoScroll" 
-      class="new-logs-indicator"
-      @click="scrollToBottom"
-    >
-      New logs available ↓
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
 import type { GinkoPlugin } from '../../types/GinkoPlugin'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 
 const props = defineProps<{
   plugin: GinkoPlugin
@@ -61,132 +15,141 @@ let unsubscribe: (() => void) | null = null
 // Add initial server status check
 onMounted(() => {
   if (props.plugin) {
-    isServerRunning.value = props.plugin.devServer !== null;
-    
+    isServerRunning.value = props.plugin.devServer !== null
+
     // Get existing logs first
-    logLines.value = props.plugin.getServerLogs().map(message => {
-      const timestamp = new Date().toLocaleTimeString();
-      return `[${timestamp}] ${message.trim()}`;
-    });
+    logLines.value = props.plugin.getServerLogs().map((message) => {
+      const timestamp = new Date().toLocaleTimeString()
+      return `[${timestamp}] ${message.trim()}`
+    })
 
     // Then setup subscription for new logs
-    setupServerSubscription();
-    
+    setupServerSubscription()
+
     // Scroll to bottom after loading history
-    setTimeout(scrollToBottom, 0);
+    setTimeout(scrollToBottom, 0)
   }
 })
 
-const getLineClass = (line: string) => {
-  if (line.includes('error') || line.includes('Error:')) return 'error-line'
-  if (line.includes('warning') || line.includes('Warning:')) return 'warning-line'
-  if (line.includes('success') || line.includes('Local:')) return 'success-line'
+function getLineClass(line: string) {
+  if (line.includes('error') || line.includes('Error:'))
+    return 'error-line'
+  if (line.includes('warning') || line.includes('Warning:'))
+    return 'warning-line'
+  if (line.includes('success') || line.includes('Local:'))
+    return 'success-line'
   return ''
 }
 
-const handleScroll = () => {
-  if (!outputRef.value) return;
-  
-  const { scrollTop, scrollHeight, clientHeight } = outputRef.value;
-  const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 10;
-  autoScroll.value = isAtBottom;
+function handleScroll() {
+  if (!outputRef.value)
+    return
+
+  const { scrollTop, scrollHeight, clientHeight } = outputRef.value
+  const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 10
+  autoScroll.value = isAtBottom
 }
 
-const scrollToBottom = () => {
+function scrollToBottom() {
   if (outputRef.value) {
-    outputRef.value.scrollTop = outputRef.value.scrollHeight;
-    autoScroll.value = true;
+    outputRef.value.scrollTop = outputRef.value.scrollHeight
+    autoScroll.value = true
   }
 }
 
-const addLogLine = (message: string) => {
-  const timestamp = new Date().toLocaleTimeString();
-  logLines.value.push(`[${timestamp}] ${message.trim()}`);
+function addLogLine(message: string) {
+  const timestamp = new Date().toLocaleTimeString()
+  logLines.value.push(`[${timestamp}] ${message.trim()}`)
   if (logLines.value.length > 1000) {
-    logLines.value = logLines.value.slice(-1000);
+    logLines.value = logLines.value.slice(-1000)
   }
   if (autoScroll.value) {
-    setTimeout(scrollToBottom, 0);
+    setTimeout(scrollToBottom, 0)
   }
 }
 
-const copyLogs = async () => {
+async function copyLogs() {
   try {
-    const text = logLines.value.join('\n');
-    await navigator.clipboard.writeText(text);
+    const text = logLines.value.join('\n')
+    await navigator.clipboard.writeText(text)
     // Show temporary visual feedback instead
-    const button = document.querySelector('.copy-button') as HTMLButtonElement;
+    const button = document.querySelector('.copy-button') as HTMLButtonElement
     if (button) {
-      const originalText = button.textContent;
-      button.textContent = 'Copied!';
-      button.classList.add('copied');
+      const originalText = button.textContent
+      button.textContent = 'Copied!'
+      button.classList.add('copied')
       setTimeout(() => {
-        button.textContent = originalText;
-        button.classList.remove('copied');
-      }, 2000);
+        button.textContent = originalText
+        button.classList.remove('copied')
+      }, 2000)
     }
-  } catch (error) {
-    console.error('Copy failed:', error);
+  }
+  catch (error) {
+    console.error('Copy failed:', error)
     // Show error in button instead
-    const button = document.querySelector('.copy-button') as HTMLButtonElement;
+    const button = document.querySelector('.copy-button') as HTMLButtonElement
     if (button) {
-      const originalText = button.textContent;
-      button.textContent = 'Copy failed';
-      button.classList.add('copy-error');
+      const originalText = button.textContent
+      button.textContent = 'Copy failed'
+      button.classList.add('copy-error')
       setTimeout(() => {
-        button.textContent = originalText;
-        button.classList.remove('copy-error');
-      }, 2000);
+        button.textContent = originalText
+        button.classList.remove('copy-error')
+      }, 2000)
     }
   }
 }
 
-const toggleServer = async () => {
+async function toggleServer() {
   if (!props.plugin) {
-    addLogLine('Error: Plugin not available');
-    return;
+    addLogLine('Error: Plugin not available')
+    return
   }
-  
+
   try {
     if (isServerRunning.value) {
-      addLogLine('Stopping server...');
-      await props.plugin.stopDevServer();
-      isServerRunning.value = false;
-      addLogLine('Server stopped');
-    } else {
-      addLogLine('Starting server...');
-      await props.plugin.startDevServer();
-      isServerRunning.value = true;
-      addLogLine('Server starting...');
+      addLogLine('Stopping server...')
+      await props.plugin.stopDevServer()
+      isServerRunning.value = false
+      addLogLine('Server stopped')
     }
-  } catch (error) {
-    addLogLine(`Error: ${error.message}`);
-    console.error('Server operation failed:', error);
+    else {
+      addLogLine('Starting server...')
+      await props.plugin.startDevServer()
+      isServerRunning.value = true
+      addLogLine('Server starting...')
+    }
+  }
+  catch (error) {
+    addLogLine(`Error: ${error.message}`)
+    console.error('Server operation failed:', error)
   }
 }
 
-const setupServerSubscription = () => {
+function setupServerSubscription() {
   if (!props.plugin) {
-    addLogLine('Error: Plugin not available for log subscription');
-    return;
+    addLogLine('Error: Plugin not available for log subscription')
+    return
   }
-  
+
   try {
     unsubscribe = props.plugin.subscribeToServerLogs((message: string) => {
-      addLogLine(message);
-      
+      addLogLine(message)
+
       // Update server status based on messages
       if (message.includes('Dev server started')) {
-        isServerRunning.value = true;
-      } else if (message.includes('Dev server stopped') || message.includes('Dev server exited')) {
-        isServerRunning.value = false;
+        isServerRunning.value = true
       }
-    });
-    
-    addLogLine('Log subscription established');
-  } catch (error) {
-    addLogLine(`Error setting up log subscription: ${error.message}`);
-    console.error('Log subscription failed:', error);
+      else if (message.includes('Dev server stopped') || message.includes('Dev server exited')) {
+        isServerRunning.value = false
+      }
+    })
+
+    addLogLine('Log subscription established')
+  }
+  catch (error) {
+    addLogLine(`Error setting up log subscription: ${error.message}`)
+    console.error('Log subscription failed:', error)
   }
 }
 
@@ -194,20 +157,68 @@ const setupServerSubscription = () => {
 watch(() => props.plugin, (newPlugin) => {
   if (newPlugin) {
     if (unsubscribe) {
-      unsubscribe();
+      unsubscribe()
     }
-    setupServerSubscription();
-    isServerRunning.value = newPlugin.devServer !== null;
+    setupServerSubscription()
+    isServerRunning.value = newPlugin.devServer !== null
   }
 }, { immediate: true })
 
 onUnmounted(() => {
   if (unsubscribe) {
-    unsubscribe();
-    addLogLine('Log subscription cleaned up');
+    unsubscribe()
+    addLogLine('Log subscription cleaned up')
   }
 })
 </script>
+
+<template>
+  <div class="server-console">
+    <div class="console-header">
+      <div class="console-title">
+        Development Server
+      </div>
+      <div class="console-controls">
+        <button
+          class="console-button copy-button"
+          title="Copy logs to clipboard"
+          @click="copyLogs"
+        >
+          Copy Logs
+        </button>
+        <button
+          class="console-button"
+          :class="{ running: isServerRunning }"
+          @click="toggleServer"
+        >
+          {{ isServerRunning ? 'Stop Server' : 'Start Server' }}
+        </button>
+      </div>
+    </div>
+    <div
+      ref="outputRef"
+      class="console-output"
+      @scroll="handleScroll"
+    >
+      <div
+        v-for="(line, index) in logLines"
+        :key="index"
+        class="console-line"
+        :class="getLineClass(line)"
+      >
+        <span class="line-prefix">></span>
+        {{ line }}
+      </div>
+    </div>
+    <div
+      v-if="!autoScroll"
+      class="new-logs-indicator"
+      @click="scrollToBottom"
+    >
+      New logs available ↓
+    </div>
+  </div>
+</template>
 
 <style>
 .server-console {
@@ -338,4 +349,4 @@ onUnmounted(() => {
   color: var(--text-error);
   border-color: var(--text-error);
 }
-</style> 
+</style>

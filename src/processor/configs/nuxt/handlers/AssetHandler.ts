@@ -1,11 +1,12 @@
-import { FileSystemService } from '../../../services/FileSystemService'
-import { CacheService } from '../../../services/CacheService'
+import type { GinkoSettings } from '../../../../composables/useGinkoSettings'
+import type { FileHandler } from '../NuxtTaskProcessor'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import { imageMeta } from 'image-meta'
 import { useGinkoProcessor } from '../../../../composables/useGinkoProcessor'
-import { FileHandler } from '../NuxtTaskProcessor'
-import path from 'path'
-import { useGinkoSettings, type GinkoSettings } from '../../../../composables/useGinkoSettings'
-import { imageMeta } from 'image-meta';
-import fs from 'fs/promises';
+import { useGinkoSettings } from '../../../../composables/useGinkoSettings'
+import { CacheService } from '../../../services/CacheService'
+import { FileSystemService } from '../../../services/FileSystemService'
 
 export class AssetHandler implements FileHandler {
   private fileSystem: FileSystemService
@@ -20,15 +21,16 @@ export class AssetHandler implements FileHandler {
 
   private async getImageDimensions(sourcePath: string) {
     try {
-      const imageBuffer = await fs.readFile(sourcePath);
-      const meta = imageMeta(imageBuffer);
+      const imageBuffer = await fs.readFile(sourcePath)
+      const meta = imageMeta(imageBuffer)
       return {
         width: meta.width || 0,
-        height: meta.height || 0
-      };
-    } catch (error) {
-      console.warn(`Failed to get image dimensions for ${sourcePath}:`, error);
-      return undefined;
+        height: meta.height || 0,
+      }
+    }
+    catch (error) {
+      console.warn(`Failed to get image dimensions for ${sourcePath}:`, error)
+      return undefined
     }
   }
 
@@ -42,17 +44,17 @@ export class AssetHandler implements FileHandler {
         case 'rebuild': {
           const { outputRelativePath, uid } = await this.fileSystem.getAssetOutputPath(sourceRelativePath)
           const sourcePath = path.join(settings.sourceDirectoryPath, sourceRelativePath)
-          
+
           await this.fileSystem.copyFile(sourcePath, path.join(settings.outputDirectoryPath, outputRelativePath))
-          
+
           // Get image dimensions before adding to cache
-          const size = await this.getImageDimensions(sourcePath);
-          
+          const size = await this.getImageDimensions(sourcePath)
+
           await this.cacheService.addCacheItem({
             id: uid,
             sourcePaths: [sourceRelativePath],
             targetPath: outputRelativePath,
-            size // Add the size property
+            size, // Add the size property
           })
           break
         }
@@ -85,18 +87,18 @@ export class AssetHandler implements FileHandler {
           // Delete the old file
           await this.fileSystem.deleteFile(cacheItem.targetPath)
           this.cacheService.removeCacheItem(sourceRelativePath)
-          
+
           // Copy the new file
           await this.fileSystem.copyFile(sourcePath, path.join(settings.outputDirectoryPath, outputRelativePath))
-          
+
           // Get image dimensions before adding to cache
-          const size = await this.getImageDimensions(sourcePath);
-          
+          const size = await this.getImageDimensions(sourcePath)
+
           this.cacheService.addCacheItem({
             id: uid,
             sourcePaths: [sourceRelativePath],
             targetPath: outputRelativePath,
-            size // Add the size property
+            size, // Add the size property
           })
           await ginkoProcessor.rebuildMarkdown()
           break
@@ -113,7 +115,8 @@ export class AssetHandler implements FileHandler {
           break
         }
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.warn(`Error handling asset operation ${actionType} for ${sourceRelativePath}:`, error)
       throw error
     }

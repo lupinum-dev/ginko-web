@@ -1,5 +1,5 @@
+import type { FileHandler } from '../NuxtTaskProcessor'
 import { FileSystemService } from '../../../services/FileSystemService'
-import { FileHandler } from '../NuxtTaskProcessor'
 
 export class OtherHandler implements FileHandler {
   private fileSystem: FileSystemService
@@ -9,7 +9,6 @@ export class OtherHandler implements FileHandler {
   }
 
   async handle(actionType: string, sourcePath: string, oldPath?: string): Promise<void> {
-    return
+
   }
-   
 }

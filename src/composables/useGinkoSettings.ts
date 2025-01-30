@@ -1,5 +1,5 @@
+import type { GinkoSettings } from '../../utils/types'
 import { createContext } from 'unctx'
-import { GinkoSettings } from '../../utils/types'
 
 // Create a context for GinkoSettings
 const settingsContext = createContext<GinkoSettings>()
@@ -15,8 +15,8 @@ export function initializeGinkoSettings(
   if (!settingsContext.tryUse()) {
     settingsContext.set(settings)
   }
-  
-  return settingsContext.use()
-} 
 
-export type { GinkoSettings } 
+  return settingsContext.use()
+}
+
+export type { GinkoSettings }

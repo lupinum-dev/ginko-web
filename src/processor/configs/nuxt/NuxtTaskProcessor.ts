@@ -1,15 +1,14 @@
-import { TaskProcessor } from '../../types/framework'
-import { BatchedTask } from '../../types/ginko'
+import type { BatchCompletionHandler, TaskProcessor } from '../../types/framework'
+import type { BatchedTask } from '../../types/ginko'
+import { nuxtFileTypes } from './fileTypes'
 import { AssetHandler } from './handlers/AssetHandler'
 import { GalleryHandler } from './handlers/GalleryHandler'
 import { MarkdownHandler } from './handlers/MarkdownHandler'
 import { MetaHandler } from './handlers/MetaHandler'
 import { OtherHandler } from './handlers/OtherHandler'
-import { nuxtFileTypes } from './fileTypes'
-import { BatchCompletionHandler } from '../../types/framework'
 
 export interface FileHandler extends BatchCompletionHandler {
-  handle(eventType: string, sourcePath: string, oldPath?: string): Promise<void>
+  handle: (eventType: string, sourcePath: string, oldPath?: string) => Promise<void>
 }
 
 export class NuxtTaskProcessor implements TaskProcessor {
@@ -21,7 +20,7 @@ export class NuxtTaskProcessor implements TaskProcessor {
       ['galleryFile', new GalleryHandler()],
       ['meta', new MetaHandler()],
       ['markdown', new MarkdownHandler()],
-      ['other', new OtherHandler()]
+      ['other', new OtherHandler()],
     ])
   }
 
@@ -31,37 +30,37 @@ export class NuxtTaskProcessor implements TaskProcessor {
       action: batch.action,
       fileType: batch.fileType,
       paths: batch.files,
-      oldPath: batch.oldPath
+      oldPath: batch.oldPath,
     })
 
     try {
       // Sort meta files by path length - longest first for deletes, shortest first for other actions
       const filesToProcess = batch.fileType === 'meta'
-        ? [...batch.files].sort((a, b) => a.length - b.length  // Shortest first for other actions
+        ? [...batch.files].sort((a, b) => a.length - b.length, // Shortest first for other actions
           )
         : batch.files
 
       for (const path of filesToProcess) {
         await this.processFile(path, batch.action, batch.oldPath)
       }
-      
+
       const duration = (performance.now() - startTime).toFixed(2)
       console.log('🟢 Completed Nuxt task:', {
         action: batch.action,
         fileType: batch.fileType,
         processedFiles: batch.files.length,
-        duration: `${duration}ms`
+        duration: `${duration}ms`,
       })
 
       // Call completion handler if it exists
       const fileType = this.detectFileType(batch.files[0])
       const handler = this.handlers.get(fileType)
-      
+
       if (handler?.afterCompletion) {
         await handler.afterCompletion(batch)
       }
-      
-    } catch (error) {
+    }
+    catch (error) {
       console.error('🔴 Error processing Nuxt task:', error)
       throw error
     }
@@ -70,7 +69,7 @@ export class NuxtTaskProcessor implements TaskProcessor {
   private async processFile(sourcePath: string, action: string, oldPath?: string): Promise<void> {
     const fileType = this.detectFileType(sourcePath)
     const handler = this.handlers.get(fileType)
-    
+
     if (!handler) {
       throw new Error(`No handler found for file type: ${fileType}`)
     }
@@ -82,4 +81,4 @@ export class NuxtTaskProcessor implements TaskProcessor {
     const fileType = nuxtFileTypes.find(type => type.check(path))
     return fileType?.type || 'other'
   }
-} 
+}

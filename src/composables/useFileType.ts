@@ -1,13 +1,13 @@
+import type { Framework } from '../types/framework'
 import { FileTypeDetector } from '../services/FileTypeDetector'
-import { Framework } from '../types/framework'
 
 let fileTypeDetector: FileTypeDetector | null = null
 
-export const initializeFileTypeDetector = (framework: Framework) => {
+export function initializeFileTypeDetector(framework: Framework) {
   fileTypeDetector = new FileTypeDetector(framework)
 }
 
-export const useFileType = () => {
+export function useFileType() {
   if (!fileTypeDetector) {
     throw new Error('FileTypeDetector not initialized. Call initializeFileTypeDetector first.')
   }
@@ -20,6 +20,6 @@ export const useFileType = () => {
       const type1 = detector.detectFileType(path1)
       const type2 = detector.detectFileType(path2)
       return type1 === type2
-    }
+    },
   }
 }

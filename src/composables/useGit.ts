@@ -1,56 +1,61 @@
-import { ref } from 'vue';
-import { GitService, GitChange, GitCommit } from '../services/GitService';
-import { useGinkoSettings } from './useGinkoSettings';
+import type { GitChange, GitCommit } from '../services/GitService'
+import { ref } from 'vue'
+import { GitService } from '../services/GitService'
+import { useGinkoSettings } from './useGinkoSettings'
 
-let gitService: GitService | null = null;
+let gitService: GitService | null = null
 
 export function useGit() {
-  const { settings } = useGinkoSettings();
-  
+  const { settings } = useGinkoSettings()
+
   if (!gitService && settings?.outputDirectoryPath) {
-    gitService = new GitService(settings.outputDirectoryPath);
+    gitService = new GitService(settings.outputDirectoryPath)
   }
 
-  const currentBranch = ref('');
-  const changes = ref<GitChange[]>([]);
-  const recentCommits = ref<GitCommit[]>([]);
-  const loading = ref(false);
+  const currentBranch = ref('')
+  const changes = ref<GitChange[]>([])
+  const recentCommits = ref<GitCommit[]>([])
+  const loading = ref(false)
 
   const refresh = async () => {
     if (!gitService) {
-      throw new Error('Git service not initialized');
+      throw new Error('Git service not initialized')
     }
 
-    loading.value = true;
+    loading.value = true
     try {
       const [branchName, statusChanges, commits] = await Promise.all([
         gitService.getCurrentBranch(),
         gitService.getStatus(),
-        gitService.getRecentCommits()
-      ]);
-      
-      currentBranch.value = branchName;
-      changes.value = statusChanges;
-      recentCommits.value = commits;
-    } finally {
-      loading.value = false;
+        gitService.getRecentCommits(),
+      ])
+
+      currentBranch.value = branchName
+      changes.value = statusChanges
+      recentCommits.value = commits
     }
-  };
+    finally {
+      loading.value = false
+    }
+  }
 
   const pull = async () => {
-    if (!gitService) throw new Error('Git service not initialized');
-    return gitService.pull();
-  };
+    if (!gitService)
+      throw new Error('Git service not initialized')
+    return gitService.pull()
+  }
 
   const push = async () => {
-    if (!gitService) throw new Error('Git service not initialized');
-    return gitService.push();
-  };
+    if (!gitService)
+      throw new Error('Git service not initialized')
+    return gitService.push()
+  }
 
   const commit = async (message: string) => {
-    if (!gitService) throw new Error('Git service not initialized');
-    return gitService.commit(message);
-  };
+    if (!gitService)
+      throw new Error('Git service not initialized')
+    return gitService.commit(message)
+  }
 
   return {
     currentBranch,
@@ -60,6 +65,6 @@ export function useGit() {
     refresh,
     pull,
     push,
-    commit
-  };
-} 
+    commit,
+  }
+}

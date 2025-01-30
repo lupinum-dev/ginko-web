@@ -1,15 +1,15 @@
-import { App } from 'obsidian'
-import { GinkoSettings } from '../../utils/types'
-import { Framework } from '../types/framework'
-import { FileTypeDetector } from './FileTypeDetector'
-import { TaskQueue } from './TaskQueue'
+import type { App } from 'obsidian'
+import type { GinkoSettings } from '../../utils/types'
+import type { Framework } from '../types/framework'
+import type { FileAction } from '../types/ginko'
+import { useFileType } from '../composables/useFileType'
 import { BatchProcessor } from './BatchProcessor'
-import { FileAction } from '../types/ginko'
 import { CacheService } from './CacheService'
 import { FileSystemService } from './FileSystemService'
-import { useFileType } from '../composables/useFileType'
+import { FileTypeDetector } from './FileTypeDetector'
+import { TaskQueue } from './TaskQueue'
 
-type RebuildType = 'assets' | 'markdown' | 'all';
+type RebuildType = 'assets' | 'markdown' | 'all'
 
 export class GinkoProcessor {
   private batchTimeout: NodeJS.Timeout | null = null
@@ -24,7 +24,7 @@ export class GinkoProcessor {
   constructor(
     private app: App,
     private settings: GinkoSettings,
-    framework: Framework = 'nuxt'
+    framework: Framework = 'nuxt',
   ) {
     this.fileTypeDetector = new FileTypeDetector(framework)
     this.taskQueue = new TaskQueue()
@@ -40,7 +40,7 @@ export class GinkoProcessor {
       action,
       fileType,
       timestamp: Date.now(),
-      oldPath
+      oldPath,
     })
 
     this.scheduleBatchProcessing()
@@ -57,7 +57,8 @@ export class GinkoProcessor {
   }
 
   private async processBatch(): Promise<void> {
-    if (this.isProcessing || !this.taskQueue.hasPendingTasks()) return
+    if (this.isProcessing || !this.taskQueue.hasPendingTasks())
+      return
 
     try {
       this.isProcessing = true
@@ -66,80 +67,83 @@ export class GinkoProcessor {
       if (this.taskQueue.hasPendingTasks()) {
         this.scheduleBatchProcessing()
       }
-    } finally {
+    }
+    finally {
       this.isProcessing = false
     }
   }
 
   private async rebuildByType(type: RebuildType): Promise<void> {
     try {
-      const { detectFileType } = useFileType();
-      
+      const { detectFileType } = useFileType()
+
       // Clear existing queue and cache if rebuilding all
-      this.taskQueue.clear();
+      this.taskQueue.clear()
       if (type === 'all') {
-        this.cacheService.clearCache();
-        await this.fileSystemService.resetOutputDirectory();
+        this.cacheService.clearCache()
+        await this.fileSystemService.resetOutputDirectory()
       }
-      
+
       // Get target path from settings
       if (!this.settings.outputDirectoryPath) {
         throw new Error('Output directory path is not set in settings.')
       }
-      const targetPath = this.settings.outputDirectoryPath;
+      const targetPath = this.settings.outputDirectoryPath
 
       // Get all files from the vault
-      const files = this.app.vault.getFiles();
-      
-      console.log(`🔄 Checking files for ${type} rebuild. Found ${files.length} files`);
-      
+      const files = this.app.vault.getFiles()
+
+      console.log(`🔄 Checking files for ${type} rebuild. Found ${files.length} files`)
+
       // Process each file
       for (const file of files) {
         // Skip files in the target output directory
         if (file.path.startsWith(targetPath)) {
-          if (type === 'all') console.log(`⏭️ Skipping output file: ${file.path}`);
-          continue;
+          if (type === 'all')
+            console.log(`⏭️ Skipping output file: ${file.path}`)
+          continue
         }
-        
-        const fileType = detectFileType(file.path);
-        const shouldProcess = type === 'all' || 
-          (type === 'assets' && (fileType === 'asset' || fileType === 'gallery')) ||
-          (type === 'markdown' && fileType === 'markdown');
+
+        const fileType = detectFileType(file.path)
+        const shouldProcess = type === 'all'
+          || (type === 'assets' && (fileType === 'asset' || fileType === 'gallery'))
+          || (type === 'markdown' && fileType === 'markdown')
 
         if (shouldProcess) {
-          await this.addTask(file.path, 'rebuild');
-          console.log(`${this.getLogEmoji(type)} Adding ${type} rebuild task for: ${file.path}`);
+          await this.addTask(file.path, 'rebuild')
+          console.log(`${this.getLogEmoji(type)} Adding ${type} rebuild task for: ${file.path}`)
         }
       }
-      
+
       // Force immediate processing
-      await this.processBatch();
-      
-      console.log(`✅ ${type.charAt(0).toUpperCase() + type.slice(1)} rebuild tasks completed`);
-    } catch (error) {
-      console.error(`❌ Error during ${type} rebuild:`, error);
-      throw error;
+      await this.processBatch()
+
+      console.log(`✅ ${type.charAt(0).toUpperCase() + type.slice(1)} rebuild tasks completed`)
+    }
+    catch (error) {
+      console.error(`❌ Error during ${type} rebuild:`, error)
+      throw error
     }
   }
 
   private getLogEmoji(type: RebuildType): string {
     switch (type) {
-      case 'assets': return '📦';
-      case 'markdown': return '📝';
-      case 'all': return '🔄';
-      default: return '📎';
+      case 'assets': return '📦'
+      case 'markdown': return '📝'
+      case 'all': return '🔄'
+      default: return '📎'
     }
   }
 
   public async rebuildAssets(): Promise<void> {
-    await this.rebuildByType('assets');
+    await this.rebuildByType('assets')
   }
 
   public async rebuildMarkdown(): Promise<void> {
-    await this.rebuildByType('markdown');
+    await this.rebuildByType('markdown')
   }
 
   public async rebuild(): Promise<void> {
-    await this.rebuildByType('all');
+    await this.rebuildByType('all')
   }
-} 
+}

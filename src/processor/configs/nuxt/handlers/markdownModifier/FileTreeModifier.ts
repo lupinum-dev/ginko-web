@@ -1,4 +1,4 @@
-import { ContentModifier } from '../../markdownModifier'
+import type { ContentModifier } from '../../markdownModifier'
 
 interface FileTreeOptions {
   title?: string
@@ -9,7 +9,7 @@ interface FileTreeOptions {
 
 export class FileTreeModifier implements ContentModifier {
   // Match file tree block with specific opening and closing patterns
-  private readonly FILE_TREE_REGEX = /^([~`]{3,4})dirtree(?:{([^}]*)})?\n([\s\S]*?)^\1(?:\n|$)/gm
+  private readonly FILE_TREE_REGEX = /^([~`]{3,4})dirtree(?:\{([^}]*)\})?\n([\s\S]*?)^\1(?:\n|$)/gm
 
   modify(content: string): string {
     return content.replace(this.FILE_TREE_REGEX, (_, fence, options, treeContent) => {
@@ -21,14 +21,14 @@ export class FileTreeModifier implements ContentModifier {
 
   private parseOptions(optionsStr: string): FileTreeOptions {
     const options: FileTreeOptions = {}
-    
+
     // Match key-value pairs within the options string
-    const matches = optionsStr.match(/(\w+)=["']([^"']*?)["']/g) || []
-    
-    matches.forEach(match => {
+    const matches = optionsStr.match(/(\w+)=["']([^"']*)["']/g) || []
+
+    matches.forEach((match) => {
       const [key, value] = match.split('=')
       const cleanValue = value.replace(/['"]/g, '')
-      
+
       switch (key) {
         case 'title':
           options.title = cleanValue
@@ -44,7 +44,7 @@ export class FileTreeModifier implements ContentModifier {
           break
       }
     })
-    
+
     return options
   }
 
@@ -62,7 +62,7 @@ export class FileTreeModifier implements ContentModifier {
 
     // Add two spaces of indentation for the tree content under the 'tree:' key
     const treeContent = tree
-      .map(line => '  ' + line)  // Add base indentation under 'tree:'
+      .map(line => `  ${line}`) // Add base indentation under 'tree:'
       .join('\n')
 
     return `::file-tree

@@ -1,15 +1,17 @@
-import { promises as fs } from 'fs'
-import path from 'path'
-import crypto from 'crypto'
+import type { GinkoSettings } from '../composables/useGinkoSettings'
+import crypto from 'node:crypto'
+import { promises as fs } from 'node:fs'
+import path from 'node:path'
 import matter from 'gray-matter'
-import { useGinkoSettings, type GinkoSettings } from '../composables/useGinkoSettings'
+import { useGinkoSettings } from '../composables/useGinkoSettings'
 
 export class FileSystemService {
   async exists(filePath: string): Promise<boolean> {
     try {
       await fs.access(filePath)
       return true
-    } catch {
+    }
+    catch {
       return false
     }
   }
@@ -21,7 +23,8 @@ export class FileSystemService {
   async readFile(filePath: string): Promise<Buffer> {
     try {
       return await fs.readFile(filePath)
-    } catch (error) {
+    }
+    catch (error) {
       throw this.wrapError('read', filePath, undefined, error)
     }
   }
@@ -33,7 +36,8 @@ export class FileSystemService {
       }
       await this.ensureDir(path.dirname(targetPath))
       await fs.copyFile(sourcePath, targetPath)
-    } catch (error) {
+    }
+    catch (error) {
       throw this.wrapError('copy', sourcePath, targetPath, error)
     }
   }
@@ -59,7 +63,8 @@ export class FileSystemService {
       if (await this.exists(filePath)) {
         await fs.unlink(filePath)
       }
-    } catch (error) {
+    }
+    catch (error) {
       throw this.wrapError('delete', filePath, undefined, error)
     }
   }
@@ -68,7 +73,8 @@ export class FileSystemService {
     try {
       await this.ensureDir(path.dirname(filePath))
       await fs.writeFile(filePath, data)
-    } catch (error) {
+    }
+    catch (error) {
       throw this.wrapError('write', filePath, undefined, error)
     }
   }
@@ -76,7 +82,8 @@ export class FileSystemService {
   async remove(filePath: string): Promise<void> {
     try {
       await fs.unlink(filePath)
-    } catch (error) {
+    }
+    catch (error) {
       throw this.wrapError('remove', filePath, undefined, error)
     }
   }
@@ -88,7 +95,8 @@ export class FileSystemService {
         throw new Error(`Invalid directory path: ${dirPath}. Must be a relative or project path.`)
       }
       await fs.mkdir(dirPath, { recursive: true })
-    } catch (error) {
+    }
+    catch (error) {
       throw this.wrapError('ensureDir', dirPath, undefined, error)
     }
   }
@@ -101,7 +109,7 @@ export class FileSystemService {
       // Define paths to clean
       const pathsToDelete = [
         path.join(dirPath, 'content'),
-        path.join(dirPath, 'public', '_assets')
+        path.join(dirPath, 'public', '_assets'),
       ]
 
       // Delete only specific directories
@@ -112,7 +120,8 @@ export class FileSystemService {
           await fs.mkdir(pathToDelete, { recursive: true })
         }
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Error resetting output directories:', error)
       throw new Error(`Failed to reset output directories: ${error.message}`)
     }
@@ -120,7 +129,6 @@ export class FileSystemService {
 
   private async generateFileUid(sourcePath: string): Promise<string> {
     const settings = this.getSettings()
-    
 
     const fullPath = path.join(settings.sourceDirectoryPath, sourcePath)
     const content = await this.readFile(fullPath)
@@ -132,38 +140,40 @@ export class FileSystemService {
     const uid = await this.generateFileUid(sourcePath)
     return {
       outputRelativePath: path.join('public', '_assets', `${uid}${ext}`),
-      uid
+      uid,
     }
   }
 
-  async getFrontmatterContent(filePath: string): Promise<{ 
-    data: Record<string, any>;
-    content: string;
+  async getFrontmatterContent(filePath: string): Promise<{
+    data: Record<string, any>
+    content: string
   }> {
     try {
       const fileContent = await this.readFile(filePath)
       const { data, content } = matter(fileContent)
       return {
         data,
-        content
+        content,
       }
-    } catch (error) {
+    }
+    catch (error) {
       throw this.wrapError('read frontmatter', filePath, undefined, error)
     }
   }
 
   async readdir(dirPath: string): Promise<string[]> {
     try {
-      return await fs.readdir(dirPath);
-    } catch (error) {
-      throw this.wrapError('read directory', dirPath, undefined, error);
+      return await fs.readdir(dirPath)
+    }
+    catch (error) {
+      throw this.wrapError('read directory', dirPath, undefined, error)
     }
   }
 
   private wrapError(operation: string, sourcePath: string, targetPath: string | undefined, error: unknown): Error {
-    const message = targetPath 
+    const message = targetPath
       ? `Failed to ${operation} from ${sourcePath} to ${targetPath}`
       : `Failed to ${operation} ${sourcePath}`
     return error instanceof Error ? error : new Error(`${message}: ${error}`)
   }
-} 
+}

@@ -1,4 +1,4 @@
-import { Framework } from '../types/framework'
+import type { Framework } from '../types/framework'
 import { FrameworkService } from './FrameworkService'
 
 export class FileTypeDetector {
@@ -9,4 +9,4 @@ export class FileTypeDetector {
     const matchedType = config.fileTypes.find(type => type.check(path))
     return matchedType?.type || 'other'
   }
-} 
+}

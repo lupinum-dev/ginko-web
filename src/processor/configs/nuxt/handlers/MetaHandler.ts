@@ -1,18 +1,19 @@
-import { FileSystemService } from '../../../services/FileSystemService'
-import { CacheService } from '../../../services/CacheService'
+import type { GinkoSettings } from '../../../../composables/useGinkoSettings'
+import type { FileHandler } from '../NuxtTaskProcessor'
+import path from 'node:path'
 import { useGinkoProcessor } from '../../../../composables/useGinkoProcessor'
-import { FileHandler } from '../NuxtTaskProcessor'
-import path from 'path'
-import { useGinkoSettings, type GinkoSettings } from '../../../../composables/useGinkoSettings'
+import { useGinkoSettings } from '../../../../composables/useGinkoSettings'
+import { CacheService } from '../../../services/CacheService'
+import { FileSystemService } from '../../../services/FileSystemService'
 
-type SlugTranslations = {
-  default: string;
-  [key: string]: string;
+interface SlugTranslations {
+  default: string
+  [key: string]: string
 }
 
-type MetaObject = {
-  sourcePath: string;
-  slug: SlugTranslations;
+interface MetaObject {
+  sourcePath: string
+  slug: SlugTranslations
 }
 
 export class MetaHandler implements FileHandler {
@@ -31,20 +32,20 @@ export class MetaHandler implements FileHandler {
     const parentDir = path.dirname(path.dirname(sourcePath))
     const currentDir = path.dirname(sourcePath)
     const translations = this.extractSlugTranslations(frontmatter)
-    
+
     const { default: _, ...langTranslations } = translations
     const currentDirName = path.basename(currentDir)
     const prefix = currentDirName.match(/^\d+\./) ? currentDirName.match(/^\d+\./)?.[0] ?? '' : ''
-    
+
     return {
-      sourcePath: currentDir + '/',
+      sourcePath: `${currentDir}/`,
       slug: {
-        default: currentDir + '/',
+        default: `${currentDir}/`,
         ...Object.entries(langTranslations).reduce((acc, [lang, slug]) => ({
           ...acc,
-          [lang]: `${parentDir}/${prefix}${slug}/`
-        }), {})
-      }
+          [lang]: `${parentDir}/${prefix}${slug}/`,
+        }), {}),
+      },
     }
   }
 
@@ -53,7 +54,7 @@ export class MetaHandler implements FileHandler {
    */
   private extractSlugTranslations(frontmatter: Record<string, any>): SlugTranslations {
     const translations: SlugTranslations = { default: '' }
-    
+
     Object.entries(frontmatter).forEach(([key, value]) => {
       if (key.startsWith('slug__')) {
         const lang = key.split('__')[1]
@@ -69,20 +70,21 @@ export class MetaHandler implements FileHandler {
    */
   private buildTranslatedPath(pathParts: string[], cacheItems: MetaObject[], locale: string): string {
     const translatedParts = [...pathParts]
-    
+
     // Process all parts except the last one (current directory)
     for (let i = 1; i < pathParts.length - 1; i++) {
-      const pathToCheck = pathParts.slice(0, i + 1).join('/') + '/'
+      const pathToCheck = `${pathParts.slice(0, i + 1).join('/')}/`
       const matchingItem = cacheItems.find(item => item.sourcePath === pathToCheck)
-      
+
       if (matchingItem?.slug[locale]) {
         const translatedPart = matchingItem.slug[locale].split('/').filter(Boolean).pop()
-        if (translatedPart) translatedParts[i] = translatedPart
+        if (translatedPart)
+          translatedParts[i] = translatedPart
       }
     }
-    
+
     translatedParts.pop() // Remove the last part as it will be handled separately
-    return translatedParts.join('/') + '/'
+    return `${translatedParts.join('/')}/`
   }
 
   /**
@@ -90,10 +92,10 @@ export class MetaHandler implements FileHandler {
    */
   private createFinalMetaObject(
     baseMetaObject: MetaObject,
-    translatedBasePaths: Record<string, string>
+    translatedBasePaths: Record<string, string>,
   ): MetaObject {
     const { default: _, ...localeSlugPairs } = baseMetaObject.slug
-    
+
     return {
       sourcePath: baseMetaObject.sourcePath,
       slug: {
@@ -103,10 +105,10 @@ export class MetaHandler implements FileHandler {
           const lastSegment = currentSlug.split('/').filter(Boolean).pop()
           return {
             ...acc,
-            [locale]: `${basePath}${lastSegment}`
+            [locale]: `${basePath}${lastSegment}`,
           }
-        }, {})
-      }
+        }, {}),
+      },
     }
   }
 
@@ -117,7 +119,7 @@ export class MetaHandler implements FileHandler {
     return pathParts
       .slice(1, -1) // Exclude first and last parts
       .reduce((paths: string[], _, index) => {
-        paths.push(pathParts.slice(0, index + 2).join('/') + '/')
+        paths.push(`${pathParts.slice(0, index + 2).join('/')}/`)
         return paths
       }, [])
   }
@@ -125,12 +127,12 @@ export class MetaHandler implements FileHandler {
   async handle(actionType: string, sourcePath: string, oldPath?: string): Promise<void> {
     const settings: GinkoSettings = useGinkoSettings()
     const ginkoProcessor = useGinkoProcessor()
-    
+
     switch (actionType) {
       case 'rebuild': {
         const fullPath = path.join(settings.sourceDirectoryPath, sourcePath)
         const { data: frontmatter } = await this.fileSystem.getFrontmatterContent(fullPath)
-        
+
         // Create and cache meta object
         const metaObject = await this.createMetaObjectFromFile(sourcePath, frontmatter)
         const translatedPaths = await this.buildTranslatedPaths(sourcePath, metaObject)
@@ -147,15 +149,15 @@ export class MetaHandler implements FileHandler {
       case 'create':
         await ginkoProcessor.rebuildMarkdown()
         break
-      
-      case 'delete': 
+
+      case 'delete':
         await ginkoProcessor.rebuildMarkdown()
         break
-      
+
       case 'modify':
         await ginkoProcessor.rebuildMarkdown()
         break
-      
+
       case 'rename':
         await ginkoProcessor.rebuildMarkdown()
         break
@@ -166,7 +168,6 @@ export class MetaHandler implements FileHandler {
    * Creates a meta object from a file at the given path
    */
   private async createMetaObjectFromFile(sourcePath: string, frontmatter): Promise<MetaObject> {
-
     return this.createMetaObject(sourcePath, frontmatter)
   }
 
@@ -174,18 +175,18 @@ export class MetaHandler implements FileHandler {
    * Builds translated paths for all locales in the meta object
    */
   private async buildTranslatedPaths(
-    sourcePath: string, 
-    metaObject: MetaObject
+    sourcePath: string,
+    metaObject: MetaObject,
   ): Promise<Record<string, string>> {
     const pathParts = sourcePath.split('/').filter(part => part !== '_meta.md')
     const cacheItems = this.cacheService.findMatchingMetaItems(
-      this.getPathsToCheck(pathParts)
+      this.getPathsToCheck(pathParts),
     )
 
     const { default: _, ...locales } = metaObject.slug
     return Object.keys(locales).reduce((acc, locale) => ({
       ...acc,
-      [locale]: this.buildTranslatedPath(pathParts, cacheItems, locale)
+      [locale]: this.buildTranslatedPath(pathParts, cacheItems, locale),
     }), {})
   }
 
@@ -194,7 +195,7 @@ export class MetaHandler implements FileHandler {
    */
   private combineTranslationsWithMeta(
     metaObject: MetaObject,
-    translatedPaths: Record<string, string>
+    translatedPaths: Record<string, string>,
   ): MetaObject {
     return this.createFinalMetaObject(metaObject, translatedPaths)
   }
@@ -208,17 +209,18 @@ export class MetaHandler implements FileHandler {
 
   private extractTranslatedFields(
     frontmatter: Record<string, any>,
-    defaultLocale: string
+    defaultLocale: string,
   ): Record<string, Record<string, string>> {
     const translations: Record<string, Record<string, string>> = { default: {} }
-    
+
     // Group frontmatter entries by field and locale
     Object.entries(frontmatter).forEach(([key, value]) => {
       if (key.includes('__')) {
         const [field, locale] = key.split('__')
         // Skip slug fields as they shouldn't be in the _dir.json content
-        if (field === 'slug') return
-        
+        if (field === 'slug')
+          return
+
         if (!translations[locale]) {
           translations[locale] = {}
         }
@@ -229,13 +231,13 @@ export class MetaHandler implements FileHandler {
     // Handle default locale content
     const defaultLocaleContent = translations[defaultLocale] || {}
     translations.default = { ...defaultLocaleContent }
-    
+
     // For locales without specific translations, use default locale content
-    Object.keys(translations).forEach(locale => {
+    Object.keys(translations).forEach((locale) => {
       if (locale !== 'default' && locale !== defaultLocale) {
         translations[locale] = {
-          ...defaultLocaleContent,  // First spread default content
-          ...translations[locale]   // Then override with locale-specific content if any
+          ...defaultLocaleContent, // First spread default content
+          ...translations[locale], // Then override with locale-specific content if any
         }
       }
     })
@@ -246,19 +248,19 @@ export class MetaHandler implements FileHandler {
   private async createDirectoryJsonFiles(
     finalMetaObject: MetaObject,
     translations: Record<string, Record<string, string>>,
-    settings: GinkoSettings
+    settings: GinkoSettings,
   ): Promise<void> {
     const { slug } = finalMetaObject
-    
+
     // Create JSON files for each locale
     for (const [locale, path] of Object.entries(slug)) {
       const content = translations[locale] || translations.default || {}
       // Ensure path ends with '/' before adding _dir.json
       const normalizedPath = path.endsWith('/') ? path : `${path}/`
-      
+
       // Determine the language prefix
       const langPrefix = locale === 'default' ? settings.defaultLocale : locale
-      
+
       // Combine paths with language prefix
       const jsonPath = `${settings.outputDirectoryPath}/content/${langPrefix}/${normalizedPath}.navigation.json`
       // make sure path the content folder is createed

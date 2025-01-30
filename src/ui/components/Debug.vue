@@ -1,98 +1,20 @@
-<template>
-  <div class="debug-container">
-    <!-- Plugin Settings Section -->
-    <div class="debug-section">
-      <h3 class="section-title">Plugin Settings</h3>
-      <div class="settings-container">
-        <pre class="settings-value">{{ formatValue(pluginSettings) }}</pre>
-      </div>
-    </div>
-
-    <!-- Local Storage Section -->
-    <div class="debug-section">
-      <h3 class="section-title">Local Storage Debug</h3>
-      
-      <div class="storage-items">
-        <div v-for="item in ginkoStorageItems" :key="item.key" class="storage-item">
-          <div class="item-header">
-            <span class="item-key">{{ item.key }}</span>
-            <div class="item-actions">
-              <button 
-                class="action-button small"
-                @click="copyValue(item)"
-                title="Copy value"
-              >
-                Copy
-              </button>
-              <button 
-                class="action-button small warning"
-                @click="confirmDelete(item)"
-                title="Delete item"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-          <pre class="item-value">{{ formatValue(item.value) }}</pre>
-        </div>
-        
-        <div v-if="ginkoStorageItems.length === 0" class="empty-cache-state">
-          No Ginko items found in localStorage
-        </div>
-      </div>
-    </div>
-
-    <!-- Confirmation Modal -->
-    <div v-if="showDeleteModal" class="modal-overlay" @click="showDeleteModal = false">
-      <div class="modal-content" @click.stop>
-        <h4>Confirm Delete</h4>
-        <p>Are you sure you want to delete "{{ itemToDelete?.key }}"?</p>
-        <p class="warning-text">This action cannot be undone.</p>
-        <div class="modal-actions">
-          <button 
-            class="action-button"
-            @click="showDeleteModal = false"
-          >
-            Cancel
-          </button>
-          <button 
-            class="action-button warning"
-            @click="deleteItem"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Toast Notification -->
-    <Transition name="toast">
-      <div v-if="toast" class="toast" :class="toast.type">
-        {{ toast.message }}
-      </div>
-    </Transition>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { Notice } from 'obsidian'
-import type { GinkoSettings } from '../../utils/types'
 import type { GinkoPlugin } from '../../types/GinkoPlugin'
+import { computed, onMounted, ref } from 'vue'
 
 interface StorageItem {
-  key: string;
-  value: string;
+  key: string
+  value: string
 }
 
 interface Toast {
-  message: string;
-  type: 'success' | 'error';
+  message: string
+  type: 'success' | 'error'
 }
 
 const props = defineProps<{
   plugin: GinkoPlugin
-}>();
+}>()
 
 const pluginSettings = computed(() => props.plugin.settings)
 
@@ -121,18 +43,19 @@ function formatValue(value: any) {
   try {
     // If value is already an object, stringify it directly
     if (typeof value === 'object' && value !== null) {
-      return JSON.stringify(value, null, 2);
+      return JSON.stringify(value, null, 2)
     }
     // If it's a string, try to parse it as JSON
     if (typeof value === 'string') {
-      const parsed = JSON.parse(value);
-      return JSON.stringify(parsed, null, 2);
+      const parsed = JSON.parse(value)
+      return JSON.stringify(parsed, null, 2)
     }
     // For other types, convert to string
-    return String(value);
-  } catch {
+    return String(value)
+  }
+  catch {
     // If JSON parsing fails, return as is
-    return value;
+    return value
   }
 }
 
@@ -148,16 +71,18 @@ function confirmDelete(item: StorageItem) {
 }
 
 function deleteItem() {
-  if (!itemToDelete.value) return
-  
+  if (!itemToDelete.value)
+    return
+
   try {
     localStorage.removeItem(itemToDelete.value.key)
     loadGinkoItems() // Refresh list
     showToast('Item deleted successfully', 'success')
-  } catch (error) {
+  }
+  catch (error) {
     showToast('Failed to delete item', 'error')
   }
-  
+
   showDeleteModal.value = false
   itemToDelete.value = null
 }
@@ -169,6 +94,88 @@ function showToast(message: string, type: 'success' | 'error') {
   }, 3000)
 }
 </script>
+
+<template>
+  <div class="debug-container">
+    <!-- Plugin Settings Section -->
+    <div class="debug-section">
+      <h3 class="section-title">
+        Plugin Settings
+      </h3>
+      <div class="settings-container">
+        <pre class="settings-value">{{ formatValue(pluginSettings) }}</pre>
+      </div>
+    </div>
+
+    <!-- Local Storage Section -->
+    <div class="debug-section">
+      <h3 class="section-title">
+        Local Storage Debug
+      </h3>
+
+      <div class="storage-items">
+        <div v-for="item in ginkoStorageItems" :key="item.key" class="storage-item">
+          <div class="item-header">
+            <span class="item-key">{{ item.key }}</span>
+            <div class="item-actions">
+              <button
+                class="action-button small"
+                title="Copy value"
+                @click="copyValue(item)"
+              >
+                Copy
+              </button>
+              <button
+                class="action-button small warning"
+                title="Delete item"
+                @click="confirmDelete(item)"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+          <pre class="item-value">{{ formatValue(item.value) }}</pre>
+        </div>
+
+        <div v-if="ginkoStorageItems.length === 0" class="empty-cache-state">
+          No Ginko items found in localStorage
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div v-if="showDeleteModal" class="modal-overlay" @click="showDeleteModal = false">
+      <div class="modal-content" @click.stop>
+        <h4>Confirm Delete</h4>
+        <p>Are you sure you want to delete "{{ itemToDelete?.key }}"?</p>
+        <p class="warning-text">
+          This action cannot be undone.
+        </p>
+        <div class="modal-actions">
+          <button
+            class="action-button"
+            @click="showDeleteModal = false"
+          >
+            Cancel
+          </button>
+          <button
+            class="action-button warning"
+            @click="deleteItem"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <Transition name="toast">
+      <div v-if="toast" class="toast" :class="toast.type">
+        {{ toast.message }}
+      </div>
+    </Transition>
+  </div>
+</template>
 
 <style>
 .debug-container {

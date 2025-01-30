@@ -1,4 +1,4 @@
-import { Task, BatchedTask, FileAction } from '../types/ginko'
+import type { BatchedTask, FileAction, Task } from '../types/ginko'
 
 export class TaskQueue {
   private pendingTasks: Task[] = []
@@ -8,14 +8,14 @@ export class TaskQueue {
 
   public addTask(task: Task): void {
     const taskKey = this.getTaskKey(task.path, task.action)
-    
+
     if (this.processingTasks.has(taskKey)) {
       console.log(taskKey)
       console.log('Skipping duplicate task:', {
         path: task.path,
         action: task.action,
         fileType: task.fileType,
-        oldPath: task.oldPath
+        oldPath: task.oldPath,
       })
       return
     }
@@ -29,7 +29,7 @@ export class TaskQueue {
       action: task.action,
       fileType: task.fileType,
       oldPath: task.oldPath,
-      retries: this.taskRetries.get(taskKey)
+      retries: this.taskRetries.get(taskKey),
     })
 
     this.pendingTasks.push(task)
@@ -41,8 +41,9 @@ export class TaskQueue {
     for (const task of this.pendingTasks) {
       const batchKey = `${task.action}-${task.fileType}`
       const taskKey = this.getTaskKey(task.path, task.action)
-      
-      if (this.processingTasks.has(taskKey)) continue
+
+      if (this.processingTasks.has(taskKey))
+        continue
 
       const retries = this.taskRetries.get(taskKey) || 0
       if (retries >= this.MAX_RETRIES) {
@@ -58,8 +59,8 @@ export class TaskQueue {
 
   public markTaskAsProcessed(path: string, action: FileAction): void {
     const taskKey = this.getTaskKey(path, action)
-    this.pendingTasks = this.pendingTasks.filter(task => 
-      this.getTaskKey(task.path, task.action) !== taskKey
+    this.pendingTasks = this.pendingTasks.filter(task =>
+      this.getTaskKey(task.path, task.action) !== taskKey,
     )
     this.cleanupTask(taskKey)
   }
@@ -91,19 +92,19 @@ export class TaskQueue {
       action: task.action,
       fileType: task.fileType,
       oldPath: task.oldPath,
-      retries: this.taskRetries.get(taskKey)
+      retries: this.taskRetries.get(taskKey),
     })
-    this.pendingTasks = this.pendingTasks.filter(t => 
-      this.getTaskKey(t.path, t.action) !== taskKey
+    this.pendingTasks = this.pendingTasks.filter(t =>
+      this.getTaskKey(t.path, t.action) !== taskKey,
     )
     this.cleanupTask(taskKey)
   }
 
   private addTaskToBatch(
-    task: Task, 
-    batchKey: string, 
-    taskKey: string, 
-    batches: Map<string, BatchedTask>
+    task: Task,
+    batchKey: string,
+    taskKey: string,
+    batches: Map<string, BatchedTask>,
   ): void {
     if (!batches.has(batchKey)) {
       batches.set(batchKey, {
@@ -111,7 +112,7 @@ export class TaskQueue {
         fileType: task.fileType || 'other',
         files: [],
         timestamp: task.timestamp,
-        oldPath: task.oldPath
+        oldPath: task.oldPath,
       })
     }
 
@@ -126,4 +127,4 @@ export class TaskQueue {
     this.taskRetries.clear()
     console.log('🧹 Cleared existing queue')
   }
-} 
+}

@@ -4,10 +4,10 @@ export const fileTypeProcessingOrder = [
   'galleryFile',
   'meta',
   'markdown',
-  'other'
+  'other',
 ] as const
 
-type FileTypeCheck = {
+interface FileTypeCheck {
   type: string
   check: (path: string) => boolean
 }
@@ -15,30 +15,30 @@ type FileTypeCheck = {
 export const commonFileTypes: FileTypeCheck[] = [
   {
     type: 'asset',
-    check: (path: string) => path.includes('_assets/')
+    check: (path: string) => path.includes('_assets/'),
   },
   {
     type: 'meta',
-    check: (path: string) => path.endsWith('_meta.md')
+    check: (path: string) => path.endsWith('_meta.md'),
   },
   {
     type: 'markdown',
-    check: (path: string) => path.endsWith('.md')
+    check: (path: string) => path.endsWith('.md'),
   },
   {
     type: 'galleryFile',
     check: (path: string) => {
-      const hasExtension = path.includes('.');
-      return hasExtension && path.includes('_galleries');
-    }
+      const hasExtension = path.includes('.')
+      return hasExtension && path.includes('_galleries')
+    },
   },
   {
     type: 'other',
-    check: () => true
-  }
+    check: () => true,
+  },
 ]
 
 export const nuxtFileTypes: FileTypeCheck[] = [
   ...commonFileTypes,
   // Add any Nuxt-specific file types here
-] 
+]

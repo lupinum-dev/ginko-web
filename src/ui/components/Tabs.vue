@@ -1,3 +1,23 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+
+interface Tab {
+  id: string
+  label: string
+}
+
+const props = defineProps<{
+  tabs: Tab[]
+  defaultTab?: string
+}>()
+
+const selectedTab = ref(props.defaultTab || props.tabs[0].id)
+
+function selectTab(tabId: string) {
+  selectedTab.value = tabId
+}
+</script>
+
 <template>
   <div class="tabs-container">
     <div class="tabs-list" role="tablist">
@@ -16,30 +36,10 @@
       </button>
     </div>
     <div class="tab-content">
-      <slot :name="selectedTab"></slot>
+      <slot :name="selectedTab" />
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref } from 'vue'
-
-interface Tab {
-  id: string
-  label: string
-}
-
-const props = defineProps<{
-  tabs: Tab[]
-  defaultTab?: string
-}>()
-
-const selectedTab = ref(props.defaultTab || props.tabs[0].id)
-
-const selectTab = (tabId: string) => {
-  selectedTab.value = tabId
-}
-</script>
 
 <style>
 .tabs-container {
@@ -78,15 +78,11 @@ const selectTab = (tabId: string) => {
   background-color: var(--background-modifier-hover);
 }
 
-
-
 .tab-active {
   color: var(--text-normal);
   background-color: var(--background-primary);
   font-weight: 600;
 }
-
-
 
 .tab-content {
   flex: 1;

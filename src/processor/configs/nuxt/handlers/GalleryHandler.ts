@@ -1,23 +1,26 @@
-import { FileSystemService } from '../../../services/FileSystemService'
-import { CacheService, type GalleryItem } from '../../../services/CacheService'
+import type { GinkoSettings } from '../../../../composables/useGinkoSettings'
+import type { GalleryItem } from '../../../services/CacheService'
+import type { BatchedTask } from '../../../types/ginko'
+import type { FileHandler } from '../NuxtTaskProcessor'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import { imageMeta } from 'image-meta'
 import { useGinkoProcessor } from '../../../../composables/useGinkoProcessor'
-import { FileHandler } from '../NuxtTaskProcessor'
-import path from 'path'
-import { useGinkoSettings, type GinkoSettings } from '../../../../composables/useGinkoSettings'
-import { BatchedTask } from '../../../types/ginko'
-import fs from 'fs/promises'
-import { imageMeta } from 'image-meta';
+import { useGinkoSettings } from '../../../../composables/useGinkoSettings'
+import { CacheService } from '../../../services/CacheService'
+import { FileSystemService } from '../../../services/FileSystemService'
 
-const extractGalleryInfo = (sourcePath: string): { id: string; name: string | undefined } => {
-  const regex = /_galleries\/([^-\s]+)(?:\s*-\s*([^+\s]+)\+)?/;
-  const match = sourcePath.match(regex);
-  
-  if (!match) return { id: '', name: undefined };
+function extractGalleryInfo(sourcePath: string): { id: string, name: string | undefined } {
+  const regex = /_galleries\/([^-\s]+)(?:\s*-\s*([^+\s]+)\+)?/
+  const match = sourcePath.match(regex)
+
+  if (!match)
+    return { id: '', name: undefined }
   return {
     name: match[1],
-    id: match[2] || ''
-  };
-};
+    id: match[2] || '',
+  }
+}
 
 export class GalleryHandler implements FileHandler {
   private fileSystem: FileSystemService
@@ -41,23 +44,23 @@ export class GalleryHandler implements FileHandler {
           const { outputRelativePath, uid } = await this.fileSystem.getAssetOutputPath(sourceRelativePath)
           const sourcePath = path.join(settings.sourceDirectoryPath, sourceRelativePath)
           const targetPath = path.join(settings.outputDirectoryPath, outputRelativePath)
-          
+
           // Copy the file first
           await this.fileSystem.copyFile(sourcePath, targetPath)
-          
+
           // Add to assets cache with size information
-          const imageBuffer = await fs.readFile(sourcePath);
-          const meta = imageMeta(imageBuffer);
+          const imageBuffer = await fs.readFile(sourcePath)
+          const meta = imageMeta(imageBuffer)
           const size = {
             width: meta.width || 0,
-            height: meta.height || 0
-          };
+            height: meta.height || 0,
+          }
 
           await this.cacheService.addCacheItem({
             id: uid,
             sourcePaths: [sourceRelativePath],
             targetPath: outputRelativePath,
-            size
+            size,
           })
 
           // Extract gallery info and add to gallery cache
@@ -70,7 +73,7 @@ export class GalleryHandler implements FileHandler {
               outputRelativePath,
               sourcePath,
               sourceRelativePath,
-              size // Pass the size directly since we already have it
+              size, // Pass the size directly since we already have it
             )
           }
           break
@@ -101,7 +104,7 @@ export class GalleryHandler implements FileHandler {
           const { outputRelativePath, uid } = await this.fileSystem.getAssetOutputPath(sourceRelativePath)
           const sourcePath = path.join(settings.sourceDirectoryPath, sourceRelativePath)
           const targetPath = path.join(settings.outputDirectoryPath, outputRelativePath)
-          
+
           const cacheItem = this.cacheService.getCacheItemBySourcePath(sourceRelativePath)
           if (!cacheItem) {
             console.warn(`Asset not found in cache during modify operation: ${sourceRelativePath}`)
@@ -112,24 +115,24 @@ export class GalleryHandler implements FileHandler {
           // Delete old file and remove from cache
           await this.fileSystem.deleteFile(cacheItem.targetPath)
           this.cacheService.removeCacheItem(sourceRelativePath)
-          
+
           // Copy new file
           await this.fileSystem.copyFile(sourcePath, targetPath)
-          
+
           // Get new size information
-          const imageBuffer = await fs.readFile(sourcePath);
-          const meta = imageMeta(imageBuffer);
+          const imageBuffer = await fs.readFile(sourcePath)
+          const meta = imageMeta(imageBuffer)
           const size = {
             width: meta.width || 0,
-            height: meta.height || 0
-          };
+            height: meta.height || 0,
+          }
 
           // Add to asset cache with new size
           this.cacheService.addCacheItem({
             id: uid,
             sourcePaths: [sourceRelativePath],
             targetPath: outputRelativePath,
-            size
+            size,
           })
 
           // Update gallery cache
@@ -142,7 +145,7 @@ export class GalleryHandler implements FileHandler {
               outputRelativePath,
               sourcePath,
               sourceRelativePath,
-              size
+              size,
             )
           }
           break
@@ -154,14 +157,14 @@ export class GalleryHandler implements FileHandler {
             console.warn('Rename operation missing oldPath:', sourceRelativePath)
             throw new Error('Rename operation missing oldPath')
           }
-          
+
           // Update the asset cache
           await this.cacheService.updateCacheItem(oldRelativePath, sourceRelativePath)
 
           // Check if this is a gallery image
           const oldGalleryInfo = extractGalleryInfo(oldRelativePath)
           const newGalleryInfo = extractGalleryInfo(sourceRelativePath)
-          
+
           if (oldGalleryInfo.id || newGalleryInfo.id) {
             const cacheItem = this.cacheService.getCacheItemBySourcePath(sourceRelativePath)
             if (!cacheItem) {
@@ -173,11 +176,12 @@ export class GalleryHandler implements FileHandler {
             // Update the gallery cache
             this.cacheService.galleries.updateGalleryImage(oldRelativePath, sourceRelativePath)
           }
-          
+
           break
         }
       }
-    } catch (error) {
+    }
+    catch (error) {
       console.warn(`Error handling gallery operation ${actionType} for ${sourceRelativePath}:`, error)
       throw error
     }
@@ -185,85 +189,85 @@ export class GalleryHandler implements FileHandler {
 
   async afterCompletion(batch: BatchedTask): Promise<void> {
     // #TODO can be improved by alot, to fine grain handle each gallery dont delete all... currently not worth it (~1.6ms)
-    const startTime = performance.now();
+    const startTime = performance.now()
     if (batch.fileType !== 'galleryFile' && batch.fileType !== 'galleryFolder') {
-      return;
+      return
     }
-    const settings: GinkoSettings = useGinkoSettings();
-    const galleryOutputPath = path.join(settings.outputDirectoryPath, 'content/_galleries/');
-
-
+    const settings: GinkoSettings = useGinkoSettings()
+    const galleryOutputPath = path.join(settings.outputDirectoryPath, 'content/_galleries/')
 
     try {
-      await this.processGalleryOutput(galleryOutputPath);
-    } catch (error) {
-      console.error('Failed to process gallery output:', error);
-      throw error;
-    } finally {
-      const endTime = performance.now();
-      console.log(`Gallery JSON files deleted & created in ${(endTime - startTime).toFixed(2)} milliseconds.`);
+      await this.processGalleryOutput(galleryOutputPath)
+    }
+    catch (error) {
+      console.error('Failed to process gallery output:', error)
+      throw error
+    }
+    finally {
+      const endTime = performance.now()
+      console.log(`Gallery JSON files deleted & created in ${(endTime - startTime).toFixed(2)} milliseconds.`)
     }
   }
 
   private async processGalleryOutput(outputPath: string): Promise<void> {
-    await this.fileSystem.ensureDir(outputPath);
-    await this.clearExistingGalleryFiles(outputPath);
-    
-    const galleries = await this.cacheService.galleries.getAllGalleries();
-    await this.writeGalleryFiles(outputPath, galleries);
+    await this.fileSystem.ensureDir(outputPath)
+    await this.clearExistingGalleryFiles(outputPath)
+
+    const galleries = await this.cacheService.galleries.getAllGalleries()
+    await this.writeGalleryFiles(outputPath, galleries)
   }
 
   private async clearExistingGalleryFiles(outputPath: string): Promise<void> {
-    const existingFiles = await this.fileSystem.readdir(outputPath);
-    const jsonFiles = existingFiles.filter(file => file.endsWith('.json'));
-    
+    const existingFiles = await this.fileSystem.readdir(outputPath)
+    const jsonFiles = existingFiles.filter(file => file.endsWith('.json'))
+
     await Promise.all(
-      jsonFiles.map(file => 
-        this.fileSystem.deleteFile(path.join(outputPath, file))
-      )
-    );
+      jsonFiles.map(file =>
+        this.fileSystem.deleteFile(path.join(outputPath, file)),
+      ),
+    )
   }
 
   private async writeGalleryFiles(outputPath: string, galleries: GalleryItem[]): Promise<void> {
     // Write individual gallery files
     await Promise.all(
-      galleries.map(gallery => this.writeGalleryFile(outputPath, gallery))
-    );
+      galleries.map(gallery => this.writeGalleryFile(outputPath, gallery)),
+    )
   }
 
   private async writeGalleryFile(outputPath: string, gallery: GalleryItem): Promise<void> {
     const extractPrefix = (path: string): number => {
-      const filename = path.split('/').pop() || '';
-      const match = filename.match(/^(\d+)\./);
-      return match ? parseInt(match[1]) : Infinity;
-    };
+      const filename = path.split('/').pop() || ''
+      const match = filename.match(/^(\d+)\./)
+      return match ? Number.parseInt(match[1]) : Infinity
+    }
 
     const galleryData = {
       _id: gallery._id,
       name: gallery.name,
       children: gallery.children
         .sort((a, b) => {
-          const prefixA = extractPrefix(a.sourceRelativePath);
-          const prefixB = extractPrefix(b.sourceRelativePath);
-          
+          const prefixA = extractPrefix(a.sourceRelativePath)
+          const prefixB = extractPrefix(b.sourceRelativePath)
+
           // If both have numeric prefixes, sort by them
           if (prefixA !== Infinity || prefixB !== Infinity) {
-            return prefixA - prefixB;
+            return prefixA - prefixB
           }
-          
+
           // Otherwise fall back to alphabetical sort
-          return a.sourceRelativePath.localeCompare(b.sourceRelativePath);
+          return a.sourceRelativePath.localeCompare(b.sourceRelativePath)
         })
         .map(child => ({
           _id: child.id,
-          ...child
-        }))
-    };
+          ...child,
+        })),
+    }
 
-    const filePath = path.join(outputPath, `${gallery._id}.json`);
+    const filePath = path.join(outputPath, `${gallery._id}.json`)
     await this.fileSystem.writeFile(
       filePath,
-      JSON.stringify(galleryData, null, 2)
-    );
+      JSON.stringify(galleryData, null, 2),
+    )
   }
 }

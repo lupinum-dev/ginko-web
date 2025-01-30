@@ -1,8 +1,6 @@
-
-
 export type FileAction = 'modify' | 'create' | 'delete' | 'rename' | 'rebuild'
 
-export type Task = {
+export interface Task {
   path: string
   action: FileAction
   fileType?: string
@@ -10,10 +8,10 @@ export type Task = {
   oldPath?: string
 }
 
-export type BatchedTask = {
+export interface BatchedTask {
   action: FileAction
   fileType: string
   files: string[]
   timestamp: number
   oldPath?: string
-} 
+}

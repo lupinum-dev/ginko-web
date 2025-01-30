@@ -1,164 +1,6 @@
-<template>
-  <Transition name="toast">
-    <div v-if="error" class="error-toast">
-      <div class="error-content">
-        <div class="error-icon">⚠️</div>
-        <div class="error-text">{{ error }}</div>
-        <button class="close-button" @click="error = null">×</button>
-      </div>
-    </div>
-  </Transition>
-
-  <div class="dashboard">
-    <div class="dashboard-section">
-      <h3 class="section-title">Server Status</h3>
-      <div class="status-card">
-        <div class="status-indicator" :class="serverStatusClass">
-          {{ serverStatusText }}
-        </div>
-        <button 
-          class="action-button"
-          :class="{ 'warning': isServerRunning }"
-          @click="toggleServer"
-        >
-          {{ isServerRunning ? 'Stop Server' : 'Start Server' }}
-        </button>
-      </div>
-    </div>
-
-    <div class="dashboard-section">
-      <h3 class="section-title">Preview</h3>
-      <div class="preview-card">
-        <div v-if="isServerRunning && serverPort" class="preview-content">
-          <span 
-            class="preview-url" 
-            @click="copyPreviewUrl"
-            :title="'Click to copy: http://localhost:' + serverPort"
-          >
-            http://localhost:{{ serverPort }}
-          </span>
-          <button 
-            class="action-button"
-            @click="openPreview"
-          >
-            Open Preview
-          </button>
-        </div>
-        <div v-else class="preview-placeholder">
-          <span class="placeholder-text">Start server to enable preview</span>
-          <button 
-            class="action-button disabled"
-            disabled
-          >
-            Preview Unavailable
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="dashboard-section">
-      <h3 class="section-title">Rebuild Actions</h3>
-      <div class="actions-list">
-        <div class="action-item">
-          <button 
-            class="action-button"
-            :disabled="isRebuilding"
-            @click="() => rebuildGinko('markdown')"
-          >
-            <span class="action-label">
-              {{ isRebuilding === 'markdown' ? 'Rebuilding...' : 'Rebuild Markdown' }}
-            </span>
-            <span v-if="rebuildStatus?.type === 'markdown'" :class="['status-badge', rebuildStatus.status]">
-              {{ rebuildStatus.message }}
-            </span>
-          </button>
-          <div class="action-description">
-            Rebuild only markdown files
-          </div>
-        </div>
-
-        <div class="action-item">
-          <button 
-            class="action-button"
-            :disabled="isRebuilding"
-            @click="() => rebuildGinko('galleries')"
-          >
-            <span class="action-label">
-              {{ isRebuilding === 'galleries' ? 'Rebuilding...' : 'Rebuild Galleries' }}
-            </span>
-            <span v-if="rebuildStatus?.type === 'galleries'" :class="['status-badge', rebuildStatus.status]">
-              {{ rebuildStatus.message }}
-            </span>
-          </button>
-          <div class="action-description">
-            Rebuild gallery collections
-          </div>
-        </div>
-
-        <div class="action-item">
-          <button 
-            class="action-button"
-            :disabled="isRebuilding"
-            @click="() => rebuildGinko('assets')"
-          >
-            <span class="action-label">
-              {{ isRebuilding === 'assets' ? 'Rebuilding...' : 'Rebuild Assets' }}
-            </span>
-            <span v-if="rebuildStatus?.type === 'assets'" :class="['status-badge', rebuildStatus.status]">
-              {{ rebuildStatus.message }}
-            </span>
-          </button>
-          <div class="action-description">
-            Rebuild static assets and images
-          </div>
-        </div>
-
-        <div class="action-item">
-          <button 
-            class="action-button"
-            :disabled="isRebuilding"
-            @click="() => rebuildGinko('all')"
-          >
-            <span class="action-label">
-              {{ isRebuilding === 'all' ? 'Rebuilding...' : 'Rebuild All' }}
-            </span>
-            <span v-if="rebuildStatus?.type === 'all'" :class="['status-badge', rebuildStatus.status]">
-              {{ rebuildStatus.message }}
-            </span>
-          </button>
-          <div class="action-description">
-            Complete rebuild of all content
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="dashboard-section">
-      <h3 class="section-title">Cache</h3>
-      <div class="actions-list">
-        <div class="action-item">
-          <button 
-            class="action-button"
-            :disabled="isCacheClearing"
-            @click="clearCache"
-          >
-            <span class="action-label">{{ isCacheClearing ? 'Exporting...' : 'Export Cache' }}</span>
-            <span v-if="cacheStatus" :class="['status-badge', cacheStatus.type]">
-              {{ cacheStatus.message }}
-            </span>
-          </button>
-          <div class="action-description">
-            Export cache to disk for debugging
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type { GinkoPlugin } from '../../types/GinkoPlugin'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 const props = defineProps<{
   plugin: GinkoPlugin
@@ -176,9 +18,9 @@ const error = ref<string | null>(null)
 const isRebuilding = ref<RebuildType>(null)
 const isCacheClearing = ref(false)
 const rebuildStatus = ref<{
-  type: RebuildType;
-  status: 'success' | 'error';
-  message: string;
+  type: RebuildType
+  status: 'success' | 'error'
+  message: string
 } | null>(null)
 const cacheStatus = ref<{ type: 'success' | 'error', message: string } | null>(null)
 
@@ -187,7 +29,7 @@ const serverStatusClass = computed(() => ({
   'status-running': serverStatus.value === 'running',
   'status-error': serverStatus.value === 'error',
   'status-stopping': serverStatus.value === 'stopping',
-  'status-stopped': serverStatus.value === 'stopped'
+  'status-stopped': serverStatus.value === 'stopped',
 }))
 
 const serverStatusText = computed(() => {
@@ -195,37 +37,39 @@ const serverStatusText = computed(() => {
     running: 'Server Running',
     error: 'Server Error',
     stopping: 'Server Stopping...',
-    stopped: 'Server Stopped'
+    stopped: 'Server Stopped',
   }
   return statusMap[serverStatus.value] || 'Unknown Status'
 })
 
 // Server control functions
-const toggleServer = async () => {
+async function toggleServer() {
   error.value = null
   try {
     if (!props.plugin) {
       throw new Error('Plugin not initialized')
     }
-    
+
     if (isServerRunning.value) {
       serverStatus.value = 'stopping'
       await props.plugin.stopDevServer()
       isServerRunning.value = false
       serverStatus.value = 'stopped'
-    } else {
+    }
+    else {
       await props.plugin.startDevServer()
       isServerRunning.value = true
       serverStatus.value = 'running'
     }
-  } catch (err) {
+  }
+  catch (err) {
     console.error('Server operation failed:', err)
     error.value = err.message
     serverStatus.value = 'error'
   }
 }
 
-const checkServerStatus = () => {
+function checkServerStatus() {
   if (props.plugin) {
     const port = props.plugin.getServerPort()
     serverPort.value = port || null
@@ -233,7 +77,7 @@ const checkServerStatus = () => {
     const devServer = props.plugin.devServer
     const wasRunning = isServerRunning.value
     isServerRunning.value = !!devServer && !devServer.killed
-    
+
     // Handle state transitions
     if (wasRunning && !isServerRunning.value) {
       // Only show error if we're not in the stopping state
@@ -241,35 +85,40 @@ const checkServerStatus = () => {
         serverStatus.value = 'error'
         error.value = 'Server stopped unexpectedly'
       }
-    } else if (devServer?.killed) {
+    }
+    else if (devServer?.killed) {
       serverStatus.value = 'error'
-    } else if (devServer) {
+    }
+    else if (devServer) {
       serverStatus.value = 'running'
-    } else {
+    }
+    else {
       serverStatus.value = 'stopped'
       serverPort.value = null // Clear port when server is stopped
     }
   }
 }
 
-const openPreview = () => {
+function openPreview() {
   if (serverPort.value) {
     window.open(`http://localhost:${serverPort.value}`, '_blank')
   }
 }
 
-type RebuildType = 'markdown' | 'galleries' | 'assets' | 'all' | null;
+type RebuildType = 'markdown' | 'galleries' | 'assets' | 'all' | null
 
-const rebuildGinko = async (type: RebuildType) => {
-  if (!type) return;
-  
+async function rebuildGinko(type: RebuildType) {
+  if (!type)
+    return
+
   error.value = null
   rebuildStatus.value = null
   isRebuilding.value = type
-  
+
   try {
-    if (!props.plugin) throw new Error('Plugin not initialized')
-    
+    if (!props.plugin)
+      throw new Error('Plugin not initialized')
+
     switch (type) {
       case 'markdown':
         await props.plugin.rebuildMarkdown()
@@ -284,56 +133,62 @@ const rebuildGinko = async (type: RebuildType) => {
         await props.plugin.rebuild()
         break
     }
-    
-    rebuildStatus.value = { 
-      type, 
-      status: 'success', 
-      message: 'Rebuilt successfully' 
+
+    rebuildStatus.value = {
+      type,
+      status: 'success',
+      message: 'Rebuilt successfully',
     }
-  } catch (err) {
+  }
+  catch (err) {
     console.error(`${type} rebuild failed:`, err)
     error.value = err.message
-    rebuildStatus.value = { 
-      type, 
-      status: 'error', 
-      message: 'Rebuild failed' 
+    rebuildStatus.value = {
+      type,
+      status: 'error',
+      message: 'Rebuild failed',
     }
-  } finally {
+  }
+  finally {
     isRebuilding.value = null
   }
 }
 
-const clearCache = async () => {
+async function clearCache() {
   error.value = null
   cacheStatus.value = null
   isCacheClearing.value = true
-  
+
   try {
-    if (!props.plugin) throw new Error('Plugin not initialized')
+    if (!props.plugin)
+      throw new Error('Plugin not initialized')
     await props.plugin.clearCache()
     cacheStatus.value = { type: 'success', message: 'Cache exported' }
-  } catch (err) {
+  }
+  catch (err) {
     console.error('Cache export failed:', err)
     error.value = err.message
     cacheStatus.value = { type: 'error', message: 'Export failed' }
-  } finally {
+  }
+  finally {
     isCacheClearing.value = false
   }
 }
 
-const copyPreviewUrl = async () => {
+async function copyPreviewUrl() {
   if (serverPort.value) {
     try {
-      const url = `http://localhost:${serverPort.value}`;
-      await navigator.clipboard.writeText(url);
+      const url = `http://localhost:${serverPort.value}`
+      await navigator.clipboard.writeText(url)
       // Optional: Show a brief success message
-      const originalText = error.value;
-      error.value = 'URL copied to clipboard';
+      const originalText = error.value
+      error.value = 'URL copied to clipboard'
       setTimeout(() => {
-        error.value = originalText;
-      }, 2000);
-    } catch (err) {
-      console.error('Failed to copy URL:', err);
+        error.value = originalText
+      }, 2000)
+    }
+    catch (err) {
+      console.error('Failed to copy URL:', err)
     }
   }
 }
@@ -347,6 +202,178 @@ onUnmounted(() => {
   clearInterval(statusCheckInterval)
 })
 </script>
+
+<template>
+  <Transition name="toast">
+    <div v-if="error" class="error-toast">
+      <div class="error-content">
+        <div class="error-icon">
+          ⚠️
+        </div>
+        <div class="error-text">
+          {{ error }}
+        </div>
+        <button class="close-button" @click="error = null">
+          ×
+        </button>
+      </div>
+    </div>
+  </Transition>
+
+  <div class="dashboard">
+    <div class="dashboard-section">
+      <h3 class="section-title">
+        Server Status
+      </h3>
+      <div class="status-card">
+        <div class="status-indicator" :class="serverStatusClass">
+          {{ serverStatusText }}
+        </div>
+        <button
+          class="action-button"
+          :class="{ warning: isServerRunning }"
+          @click="toggleServer"
+        >
+          {{ isServerRunning ? 'Stop Server' : 'Start Server' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="dashboard-section">
+      <h3 class="section-title">
+        Preview
+      </h3>
+      <div class="preview-card">
+        <div v-if="isServerRunning && serverPort" class="preview-content">
+          <span
+            class="preview-url"
+            :title="`Click to copy: http://localhost:${serverPort}`"
+            @click="copyPreviewUrl"
+          >
+            http://localhost:{{ serverPort }}
+          </span>
+          <button
+            class="action-button"
+            @click="openPreview"
+          >
+            Open Preview
+          </button>
+        </div>
+        <div v-else class="preview-placeholder">
+          <span class="placeholder-text">Start server to enable preview</span>
+          <button
+            class="action-button disabled"
+            disabled
+          >
+            Preview Unavailable
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-section">
+      <h3 class="section-title">
+        Rebuild Actions
+      </h3>
+      <div class="actions-list">
+        <div class="action-item">
+          <button
+            class="action-button"
+            :disabled="isRebuilding"
+            @click="() => rebuildGinko('markdown')"
+          >
+            <span class="action-label">
+              {{ isRebuilding === 'markdown' ? 'Rebuilding...' : 'Rebuild Markdown' }}
+            </span>
+            <span v-if="rebuildStatus?.type === 'markdown'" class="status-badge" :class="[rebuildStatus.status]">
+              {{ rebuildStatus.message }}
+            </span>
+          </button>
+          <div class="action-description">
+            Rebuild only markdown files
+          </div>
+        </div>
+
+        <div class="action-item">
+          <button
+            class="action-button"
+            :disabled="isRebuilding"
+            @click="() => rebuildGinko('galleries')"
+          >
+            <span class="action-label">
+              {{ isRebuilding === 'galleries' ? 'Rebuilding...' : 'Rebuild Galleries' }}
+            </span>
+            <span v-if="rebuildStatus?.type === 'galleries'" class="status-badge" :class="[rebuildStatus.status]">
+              {{ rebuildStatus.message }}
+            </span>
+          </button>
+          <div class="action-description">
+            Rebuild gallery collections
+          </div>
+        </div>
+
+        <div class="action-item">
+          <button
+            class="action-button"
+            :disabled="isRebuilding"
+            @click="() => rebuildGinko('assets')"
+          >
+            <span class="action-label">
+              {{ isRebuilding === 'assets' ? 'Rebuilding...' : 'Rebuild Assets' }}
+            </span>
+            <span v-if="rebuildStatus?.type === 'assets'" class="status-badge" :class="[rebuildStatus.status]">
+              {{ rebuildStatus.message }}
+            </span>
+          </button>
+          <div class="action-description">
+            Rebuild static assets and images
+          </div>
+        </div>
+
+        <div class="action-item">
+          <button
+            class="action-button"
+            :disabled="isRebuilding"
+            @click="() => rebuildGinko('all')"
+          >
+            <span class="action-label">
+              {{ isRebuilding === 'all' ? 'Rebuilding...' : 'Rebuild All' }}
+            </span>
+            <span v-if="rebuildStatus?.type === 'all'" class="status-badge" :class="[rebuildStatus.status]">
+              {{ rebuildStatus.message }}
+            </span>
+          </button>
+          <div class="action-description">
+            Complete rebuild of all content
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-section">
+      <h3 class="section-title">
+        Cache
+      </h3>
+      <div class="actions-list">
+        <div class="action-item">
+          <button
+            class="action-button"
+            :disabled="isCacheClearing"
+            @click="clearCache"
+          >
+            <span class="action-label">{{ isCacheClearing ? 'Exporting...' : 'Export Cache' }}</span>
+            <span v-if="cacheStatus" class="status-badge" :class="[cacheStatus.type]">
+              {{ cacheStatus.message }}
+            </span>
+          </button>
+          <div class="action-description">
+            Export cache to disk for debugging
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
 
 <style>
 .dashboard {

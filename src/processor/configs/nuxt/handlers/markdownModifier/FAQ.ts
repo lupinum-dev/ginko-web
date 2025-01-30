@@ -1,9 +1,9 @@
-import { ContentModifier } from '../../markdownModifier'
+import type { ContentModifier } from '../../markdownModifier'
 import { stripMarkdown } from '../../utils/markdown'
 
 export class FaqModifier implements ContentModifier {
   private readonly FAQ_BLOCK_REGEX = /^\+\+faq\n([\s\S]*?)^\+\+/gm
-  private readonly GINKO_IMAGE_REGEX = /:ginko-image{([^}]*)}/g
+  private readonly GINKO_IMAGE_REGEX = /:ginko-image\{([^}]*)\}/g
 
   modify(content: string): string {
     return content.replace(this.FAQ_BLOCK_REGEX, (_, faqContent) => {
@@ -28,8 +28,8 @@ export class FaqModifier implements ContentModifier {
     })
   }
 
-  private parseBulletStyle(content: string): Array<{ title: string; answer: string }> {
-    const items: Array<{ title: string; answer: string }> = []
+  private parseBulletStyle(content: string): Array<{ title: string, answer: string }> {
+    const items: Array<{ title: string, answer: string }> = []
     const lines = content.split('\n')
     let currentQuestion: string | null = null
     let currentAnswer: string[] = []
@@ -43,12 +43,13 @@ export class FaqModifier implements ContentModifier {
         if (currentQuestion && currentAnswer.length > 0) {
           items.push({
             title: stripMarkdown(currentQuestion),
-            answer: currentAnswer.join('\n').trim()
+            answer: currentAnswer.join('\n').trim(),
           })
           currentAnswer = []
         }
         currentQuestion = questionMatch[1].trim()
-      } else if (answerMatch && currentQuestion) {
+      }
+      else if (answerMatch && currentQuestion) {
         currentAnswer.push(answerMatch[1].trim())
       }
     }
@@ -57,19 +58,20 @@ export class FaqModifier implements ContentModifier {
     if (currentQuestion && currentAnswer.length > 0) {
       items.push({
         title: stripMarkdown(currentQuestion),
-        answer: currentAnswer.join('\n').trim()
+        answer: currentAnswer.join('\n').trim(),
       })
     }
 
     return items
   }
 
-  private parseMarkdownStyle(content: string): Array<{ title: string; answer: string }> {
-    const items: Array<{ title: string; answer: string }> = []
+  private parseMarkdownStyle(content: string): Array<{ title: string, answer: string }> {
+    const items: Array<{ title: string, answer: string }> = []
     const sections = content.split(/(?=^#{2,4}\s)/m)
 
     for (const section of sections) {
-      if (!section.trim()) continue
+      if (!section.trim())
+        continue
 
       const lines = section.split('\n')
       const titleMatch = lines[0].match(/^#{2,4}\s+(.+)$/)
@@ -81,7 +83,7 @@ export class FaqModifier implements ContentModifier {
         if (title && answer) {
           items.push({
             title: stripMarkdown(title),
-            answer
+            answer,
           })
         }
       }
@@ -90,7 +92,7 @@ export class FaqModifier implements ContentModifier {
     return items
   }
 
-  private formatFaq(items: Array<{ title: string; answer: string }>): string {
+  private formatFaq(items: Array<{ title: string, answer: string }>): string {
     if (items.length === 0) {
       return '::ginko-faq\n::'
     }
