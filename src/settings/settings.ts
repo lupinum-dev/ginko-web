@@ -4,7 +4,10 @@ import type { GinkoScope } from './resetModal'
 import { PluginSettingTab, Setting } from 'obsidian'
 import { ResetModal } from './resetModal'
 import { UTILITIES, WEBSITE_TEMPLATES } from './settingsConstants'
+import { DEFAULT_SETTINGS } from './settingsTypes'
 import { checkVaultFolder, getWebsitePath } from './settingsUtils'
+
+export { DEFAULT_SETTINGS }
 
 // Declare the electron shell type
 declare global {
