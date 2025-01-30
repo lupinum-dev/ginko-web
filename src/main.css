@@ -42,5 +42,29 @@
   color: var(--text-normal);
 }
 
+.ginko-web-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ginko-web-status-warning {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-error);
+  font-weight: 500;
+  font-size: 1.1em;
+}
+
+.ginko-web-status-warning .lucide {
+  color: var(--text-error);
+  --icon-size: var(--icon-size-m);
+}
+
+.ginko-web-status-bar:hover .ginko-web-status-warning {
+  text-decoration: underline;
+}
+
 
 

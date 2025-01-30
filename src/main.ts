@@ -1,5 +1,5 @@
 import type { GinkoWebSettings } from './settings/settings'
-import { Plugin } from 'obsidian'
+import { Plugin, setIcon } from 'obsidian'
 import { DEFAULT_SETTINGS, GinkoWebSettingTab } from './settings/settings'
 import { CURRENT_WELCOME_VERSION, WELCOME_VIEW_TYPE, WelcomeView } from './welcome/welcomeView'
 
@@ -20,10 +20,43 @@ export default class GinkoWebPlugin extends Plugin {
     // Show welcome view on first load
     await this.activateWelcomeView()
 
-    // This adds a status bar item to the bottom of the app. Does not work on mobile apps.
+    // Add status bar item with configuration warning
     const statusBarItemEl = this.addStatusBarItem()
-    statusBarItemEl.setText('Status Bar Text')
+    statusBarItemEl.addClass('ginko-web-status-bar')
 
+    // Update status bar based on configuration
+    const updateStatusBar = () => {
+      statusBarItemEl.empty()
+      statusBarItemEl.removeEventListener('click', openSettings) // Remove old listener
+
+      if (!this.settings.pathConfiguration.isConfigured) {
+        const warningContainer = statusBarItemEl.createSpan({
+          cls: 'ginko-web-status-warning',
+        })
+        setIcon(warningContainer, 'alert-triangle')
+        warningContainer.createSpan({ text: ' Ginko Web is not configured yet!' })
+
+        statusBarItemEl.style.cursor = 'pointer'
+        statusBarItemEl.addEventListener('click', openSettings) // Add new listener
+      }
+      else {
+        statusBarItemEl.style.cursor = 'default'
+      }
+    }
+
+    // Define click handler separately so we can remove it
+    const openSettings = () => {
+      this.app.setting.open()
+      this.app.setting.openTabById('ginko-web')
+    }
+
+    // Initial status update
+    updateStatusBar()
+
+    // Update status when settings change
+    this.registerEvent(
+      this.app.workspace.on('ginko-web:settings-changed', updateStatusBar),
+    )
 
     // This adds a settings tab so the user can configure various aspects of the plugin
     this.addSettingTab(new GinkoWebSettingTab(this.app, this))
@@ -44,6 +77,8 @@ export default class GinkoWebPlugin extends Plugin {
 
   async saveSettings() {
     await this.saveData(this.settings)
+    // Emit settings changed event to update UI
+    this.app.workspace.trigger('ginko-web:settings-changed')
   }
 
   async activateWelcomeView(forceShow = false) {

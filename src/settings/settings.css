@@ -12,8 +12,10 @@
   width: 64px;
   height: 64px;
   margin: 0 auto 1rem;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2" viewBox="0 0 296 297"><path d="M-1490.89 1133.34h590.662v590.662h-590.662z" style="fill:none" transform="matrix(.50048 0 0 .50048 746.155 -566.685)"/><path d="M891.103 593.909c0 21.124-2.76 38.248-6.164 38.248H865.79c-3.414 0-6.182-17.171-6.182-38.354V415.019c0-9.948.637-19.488 1.771-26.522 1.134-7.034 2.671-10.986 4.275-10.986h19.616c3.221 0 5.833 16.205 5.833 36.194v180.204Zm-9.044-180.392h-13.377c-1.814 0-3.298 9.822-3.298 21.827v25.499c0 12.005 1.484 21.827 3.298 21.827h11.717c.583 0 1.055 2.931 1.055 6.546v7.037c0 1.338.175 2.423.391 2.423h.214c1.814 0 3.298-9.822 3.298-21.827v-41.505c0-12.005-1.484-21.827-3.298-21.827Zm-12.773 99.016c0-1.338-.175-2.422-.39-2.422h-.214c-1.814 0-3.298 9.822-3.298 21.826v42.674c0 12.005 1.484 21.827 3.298 21.827h13.377c1.814 0 3.298-9.822 3.298-21.827v-26.667c0-12.005-1.484-21.827-3.298-21.827h-11.767c-.267 0-.523-.657-.711-1.827-.189-1.17-.295-2.757-.295-4.411v-7.346Z" style="fill:#87285e;stroke:#87285e;stroke-width:.64px" transform="matrix(0 2.16913 -.3496 0 324.3 -1827.732)"/><text x="602.483" y="1092.09" style="font-family:&quot;Charter-Bold&quot;,&quot;Charter&quot;,serif;font-weight:700;font-size:66.667px;fill:#1f1f1f" transform="translate(-542.36 -903.782)">G<tspan x="647.813px 666.158px 704.49px 739.372px" y="1092.09px 1092.09px 1092.09px 1092.09px">inko</tspan></text><text x="595.654" y="1162.92" style="font-family:&quot;Charter-Bold&quot;,&quot;Charter&quot;,serif;font-weight:700;font-size:66.667px;fill:#1f1f1f" transform="translate(-542.36 -903.782)">B<tspan x="635.516px 653.796px 690.272px 720.011px 754.892px" y="1162.92px 1162.92px 1162.92px 1162.92px 1162.92px">locks</tspan></text></svg>');
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%2387285E" d="M50 5C25.2 5 5 25.2 5 50s20.2 45 45 45 45-20.2 45-45S74.8 5 50 5zm0 80c-19.3 0-35-15.7-35-35s15.7-35 35-35 35 15.7 35 35-15.7 35-35 35z"/><path fill="%2387285E" d="M65 35H45c-5.5 0-10 4.5-10 10v20c0 5.5 4.5 10 10 10h20c5.5 0 10-4.5 10-10V45c0-5.5-4.5-10-10-10zm0 30H45V45h20v20z"/></svg>');
   background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 
 .ginko-web-settings-title {
@@ -249,8 +251,8 @@
 }
 
 .ginko-web-settings-info-box {
-  padding: 20px;
-  margin: 16px 0 24px;
+  padding: 24px;
+  margin: 20px 0 28px;
   border-radius: 8px;
   background-color: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
@@ -279,4 +281,165 @@
 
 .ginko-web-settings-inline-link:hover {
   text-decoration: underline;
+}
+
+.ginko-web-settings-path-value.mod-error {
+  color: var(--text-error);
+}
+
+.ginko-web-settings-path-value.mod-warning {
+  color: var(--text-warning);
+}
+
+.ginko-web-settings-path-value.mod-valid {
+  color: var(--text-success);
+}
+
+.ginko-web-settings-runtime-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8em;
+  margin-left: 8px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.ginko-web-settings-runtime-badge.mod-npm {
+  background-color: #cb3837;
+  color: white;
+}
+
+.ginko-web-settings-runtime-badge.mod-deno {
+  background-color: #000000;
+  color: white;
+}
+
+.ginko-web-settings-runtime-badge.mod-bun {
+  background-color: #fbf0df;
+  color: #000000;
+}
+
+.ginko-web-settings-runtime-badge.mod-pnpm {
+  background-color: #f69220;
+  color: white;
+}
+
+.ginko-web-settings-runtime-badge.mod-obsidian {
+  background-color: #6c31e3;
+  color: white;
+}
+
+.ginko-web-settings-path-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ginko-web-settings-path-status {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.ginko-web-settings-status-message {
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.ginko-web-settings-status-message.mod-valid {
+  background-color: var(--background-modifier-success);
+  color: black;
+}
+
+.ginko-web-settings-status-message.mod-warning {
+  background-color: var(--background-modifier-warning);
+  color:white;
+}
+
+.ginko-web-settings-status-message.mod-error {
+  background-color: var(--background-modifier-error);
+  color: white;
+}
+
+/* Update existing styles */
+.ginko-web-settings-path-value.mod-valid {
+  border-color: var(--background-modifier-success);
+}
+
+/* Template Dropdown */
+.ginko-web-settings-indent select option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+}
+
+.ginko-web-settings-indent select option svg {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.ginko-web-settings-indent select {
+  min-width: 200px;
+}
+
+/* Debug Section */
+.ginko-web-settings-debug-section {
+  margin-top: 16px;
+  padding: 16px;
+  background-color: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+}
+
+.ginko-web-settings-debug-content {
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+  padding: 12px;
+  background-color: var(--background-secondary);
+  border-radius: 4px;
+  overflow-x: auto;
+  margin-bottom: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.ginko-web-settings-debug-copy {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease;
+}
+
+.ginko-web-settings-debug-copy:hover {
+  background-color: var(--interactive-accent-hover);
+}
+
+.ginko-web-settings-debug-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.ginko-web-settings-debug-button {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease;
+  flex: 1;
+}
+
+.ginko-web-settings-debug-button:hover {
+  background-color: var(--interactive-accent-hover);
 }
