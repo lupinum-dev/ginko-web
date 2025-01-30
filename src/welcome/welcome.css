@@ -1,0 +1,132 @@
+/* Welcome Modal */
+.ginko-web-welcome-modal {
+  padding: 1.5rem;
+  margin: 0 auto;
+}
+
+.ginko-web-welcome-section {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.ginko-web-welcome-section h3 {
+  font-size: 1.3em;
+  margin: 0 0 1rem 0;
+  color: var(--text-normal);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ginko-web-welcome-section p {
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 1.2rem;
+  font-size: 1.1em;
+}
+
+.ginko-web-welcome-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.2rem 0;
+}
+
+.ginko-web-welcome-section li {
+  padding: 0.4rem 0 0.4rem 1.8rem;
+  position: relative;
+  color: var(--text-muted);
+  font-size: 1.1em;
+}
+
+.ginko-web-welcome-section li::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+  color: var(--text-accent);
+}
+
+.ginko-web-welcome-buttons {
+  display: flex;
+  justify-content: center;
+}
+
+.ginko-web-welcome-buttons .setting-item {
+  border: none;
+  padding: 0;
+}
+
+.ginko-web-welcome-buttons button {
+  min-width: 200px;
+  font-size: 1.1em;
+  padding: 0.8rem 1.5rem;
+}
+
+/* Footer styling */
+.ginko-web-welcome-footer {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.ginko-web-welcome-checkbox {
+  margin-bottom: 1rem;
+}
+
+.ginko-web-welcome-checkbox .setting-item-info {
+  font-size: 0.9em;
+  color: var(--text-muted);
+}
+
+.ginko-web-welcome-start {
+  display: flex;
+  justify-content: center;
+}
+
+.ginko-web-welcome-start .setting-item-control {
+  padding: 0;
+}
+
+.ginko-web-welcome-start button {
+  min-width: 250px;
+  font-size: 1.2em;
+  padding: 1rem 2rem;
+}
+
+.ginko-web-welcome-view {
+  padding: 2em;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.ginko-web-welcome-view h1 {
+  margin-bottom: 1.5em;
+}
+
+.ginko-web-welcome-view h2 {
+  margin-top: 2em;
+}
+
+.ginko-web-welcome-view a {
+  text-decoration: none;
+}
+
+.ginko-web-welcome-view a:hover {
+  text-decoration: underline;
+}
+
+.ginko-web-welcome-footer {
+  margin-top: 3em;
+  text-align: center;
+}
+
+.ginko-web-welcome-footer button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+

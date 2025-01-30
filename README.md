@@ -1,7 +1,7 @@
 <h1 align="center">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="/_assets/logo_dark.svg">
-  <img width="250" alt="Logo of Ginko Blocks from Lupinum OG" src="/_assets/logo_light.svg">
+  <img width="250" alt="Logo of Ginko Web from Lupinum OG" src="/_assets/logo_light.svg">
 </picture>
 </h1>
 
@@ -13,11 +13,11 @@
 
 ## 👋 Introduction
 
-Ginko transforms how you publish content on the web. Write in the best-in-class Obsidian Editor, publish to modern Frontends, and never fight with complex CMS systems again. 
+Ginko transforms how you publish content on the web. Write in the best-in-class Obsidian Editor, publish to modern Frontends, and never fight with complex CMS systems again.
 
 ## 🚧 Work in Progress
 
-> [!CAUTION] 
+> [!CAUTION]
 > This plugin is in early development!
 > - Back up your vault before installing
 > - Expect significant changes to features and settings
@@ -35,13 +35,13 @@ Ginko transforms how you publish content on the web. Write in the best-in-class 
 
 ## 🎯 Perfect For
 
-- Personal blogs and portfolios 
+- Personal blogs and portfolios
 - Business websites and documentation
 - Multi-language content sites
 - Knowledge bases and wikis
 
 ## 🥳 Free for personal usage
-> [!NOTE] 
+> [!NOTE]
 > Ginko is licensed under the Business Source License 1.1 (BSL 1.1)
 > - Free forever for personal use
 > - Commercial license required for business usage
@@ -58,7 +58,6 @@ Ginko provides first-class support for the following site builder platforms:
 - Vitepress 🚧
 - NuxtUI Pro Docs 🚧
 - NuxtUI Pro Saas 🚧
-
 
 ## 🚀 Premium Services
 Accelerate your journey with professional support:
@@ -94,7 +93,6 @@ Find detailed guides and examples in our [official documentation](https://ginko.
 
 [Join here](https://discord.gg/SSGK5tuqJh)
 
-
 # 🤝 Contributing
 
 We welcome contributions! Feel free to:
@@ -102,6 +100,5 @@ We welcome contributions! Feel free to:
 - Suggest new features in Github Discussions
 - Create pull requests
 - Improve documentation
-
 
 Copyright 2025 <a href="www.lupinum.com">Lupinum OG</a>
