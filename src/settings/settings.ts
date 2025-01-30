@@ -3,67 +3,18 @@ import type GinkoWebPlugin from '../main'
 import type { GinkoScope } from './resetModal'
 import { PluginSettingTab, Setting } from 'obsidian'
 import { ResetModal } from './resetModal'
+import { UTILITIES, WEBSITE_TEMPLATES } from './settingsConstants'
+import { checkVaultFolder, getWebsitePath } from './settingsUtils'
 
-interface UtilityLink {
-  text: string
-  url: string
-}
-
-interface Utility {
-  id: keyof GinkoWebSettings['utilities']
-  name: string
-  description: string
-  warning: string
-  links: UtilityLink[]
-}
-
-export interface GinkoWebSettings {
-  utilities: {
-    debug: boolean
-    colocationFolder: boolean
-    linter: boolean
-    [key: string]: boolean
+// Declare the electron shell type
+declare global {
+  interface Window {
+    require: (module: 'electron') => {
+      shell: {
+        openPath: (path: string) => Promise<string>
+      }
+    }
   }
-  websitePath: {
-    type: 'none' | 'standard' | 'custom'
-    customPath?: string
-    pathType?: 'relative' | 'absolute'
-    template?: string
-  }
-  languages: {
-    multipleLanguages: boolean
-    mainLanguage: string
-  }
-  exclusions: {
-    ignoredFolders: string
-    ignoredFiles: string
-  }
-  pathConfiguration: {
-    isConfigured: boolean
-  }
-}
-
-export const DEFAULT_SETTINGS: GinkoWebSettings = {
-  utilities: {
-    debug: false,
-    colocationFolder: false,
-    linter: false,
-  },
-  websitePath: {
-    type: 'none',
-    template: '',
-  },
-  languages: {
-    multipleLanguages: false,
-    mainLanguage: 'en',
-  },
-  exclusions: {
-    ignoredFolders: '',
-    ignoredFiles: '',
-  },
-  pathConfiguration: {
-    isConfigured: false,
-  },
 }
 
 export class GinkoWebSettingTab extends PluginSettingTab {
@@ -74,135 +25,51 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     this.plugin = plugin
   }
 
-  private async checkWebsiteFolder(path: string): Promise<{ valid: boolean, runtime?: 'npm' | 'pnpm' | 'deno' | 'bun' }> {
-    try {
-      console.log('Checking website folder:', path)
-
-      // Remove any trailing slashes from the path
-      const cleanPath = path.replace(/\/+$/, '')
-
-      // Use Node's fs instead of Obsidian's adapter
-      const fs = require('node:fs')
-
-      // Check for package managers
-      const packageJsonPath = `${cleanPath}/package.json`
-      const pnpmLockPath = `${cleanPath}/pnpm-lock.yaml`
-      const npmLockPath = `${cleanPath}/package-lock.json`
-
-      console.log('Checking package files at:', { packageJsonPath, pnpmLockPath, npmLockPath })
-
-      // First check if package.json exists
-      if (fs.existsSync(packageJsonPath)) {
-        // Then determine which package manager
-        if (fs.existsSync(pnpmLockPath)) {
-          console.log('Found pnpm project')
-          return { valid: true, runtime: 'pnpm' }
-        }
-        if (fs.existsSync(npmLockPath)) {
-          console.log('Found npm project')
-          return { valid: true, runtime: 'npm' }
-        }
-        // If no lock file found, default to npm
-        console.log('Found package.json without lock file, assuming npm')
-        return { valid: true, runtime: 'npm' }
-      }
-
-      // Check for Deno's configuration files
-      const denoJsonPath = `${cleanPath}/deno.json`
-      const denoJsoncPath = `${cleanPath}/deno.jsonc`
-
-      if (fs.existsSync(denoJsonPath) || fs.existsSync(denoJsoncPath)) {
-        console.log('Found deno config')
-        return { valid: true, runtime: 'deno' }
-      }
-
-      // Check for Bun's lock file
-      const bunLockPath = `${cleanPath}/bun.lockb`
-
-      if (fs.existsSync(bunLockPath)) {
-        console.log('Found bun lock')
-        return { valid: true, runtime: 'bun' }
-      }
-
-      // Additional debug: list directory contents
-      try {
-        const dirContents = fs.readdirSync(cleanPath)
-        console.log('Directory contents:', dirContents)
-      }
-      catch (e) {
-        console.log('Could not read directory:', e)
-      }
-
-      console.log('No runtime files found')
-      return { valid: false }
-    }
-    catch (error) {
-      console.error('Error checking website folder:', error)
-      return { valid: false }
-    }
+  private createCopyButton(text: string): HTMLElement {
+    const button = createEl('button')
+    button.addClass('ginko-web-settings-copy-btn')
+    const icon = createEl('span')
+    icon.addClass('ginko-web-settings-copy-icon')
+    icon.setText('📋')
+    button.appendChild(icon)
+    button.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(text)
+      icon.setText('✓')
+      setTimeout(() => {
+        icon.setText('📋')
+      }, 2000)
+    })
+    return button
   }
 
-  private async getWebsitePath(): Promise<{ path: string, status?: 'error' | 'warning' | 'valid', runtime?: string }> {
-    if (!this.plugin.settings.websitePath.type || this.plugin.settings.websitePath.type === 'none') {
-      return { path: '<Not configured>', status: 'error' }
-    }
-
-    let websitePath: string
-    if (this.plugin.settings.websitePath.type === 'standard') {
-      const vaultPath = this.app.vault.adapter.getBasePath()
-      websitePath = vaultPath.split('/').slice(0, -2).join('/') // Note: changed to -2 to go up two levels
-      console.log('Standard path calculation:', { vaultPath, websitePath })
-    }
-    else {
-      const customPath = this.plugin.settings.websitePath.customPath || ''
-      if (!customPath) {
-        return { path: '<Not set>', status: 'error' }
-      }
-
-      if (this.plugin.settings.websitePath.pathType === 'relative') {
-        const vaultPath = this.app.vault.adapter.getBasePath()
-        websitePath = require('node:path').resolve(vaultPath, customPath)
-        console.log('Relative path calculation:', { vaultPath, customPath, resolvedPath: websitePath })
-      }
-      else {
-        websitePath = customPath
-        console.log('Absolute path:', websitePath)
-      }
-    }
-
-    // Check if the folder exists and contains required files
-    console.log('Checking path:', websitePath)
-    const checkResult = await this.checkWebsiteFolder(websitePath)
-    console.log('Check result:', checkResult)
-
-    return {
-      path: websitePath,
-      status: checkResult.valid ? 'valid' : 'warning',
-      runtime: checkResult.runtime,
-    }
-  }
-
-  private async checkVaultFolder(path: string): Promise<boolean> {
-    try {
-      const fs = require('node:fs')
-      return fs.existsSync(`${path}/.obsidian`)
-    }
-    catch (error) {
-      console.error('Error checking vault folder:', error)
-      return false
-    }
+  private createOpenButton(path: string): HTMLElement {
+    const button = createEl('button')
+    button.addClass('ginko-web-settings-open-btn')
+    const icon = createEl('span')
+    icon.setText('📂')
+    button.appendChild(icon)
+    button.addEventListener('click', async () => {
+      const { shell } = window.require('electron')
+      await shell.openPath(path)
+    })
+    return button
   }
 
   private async updatePathsDisplay(pathsDiv: HTMLElement): Promise<void> {
     pathsDiv.empty()
-    const pathsTitle = pathsDiv.createEl('h3', { text: 'Current Configuration' })
+    pathsDiv.createEl('h3', { text: 'Current Configuration' })
 
     // Vault Path Section
-    const vaultPath = this.app.vault.adapter.getBasePath()
-    const isObsidianVault = await this.checkVaultFolder(vaultPath)
+    const vaultPath = (this.app.vault.adapter as any).getBasePath()
+    const isObsidianVault = await checkVaultFolder(vaultPath)
 
     // Website Path Section
-    const websitePathInfo = await this.getWebsitePath()
+    const websitePathInfo = await getWebsitePath(
+      this.app.vault.adapter,
+      this.plugin.settings.websitePath.type,
+      this.plugin.settings.websitePath.customPath,
+      this.plugin.settings.websitePath.pathType,
+    )
 
     // Update configuration status
     const isConfigured = isObsidianVault && websitePathInfo.status === 'valid'
@@ -211,12 +78,12 @@ export class GinkoWebSettingTab extends PluginSettingTab {
       await this.plugin.saveSettings()
     }
 
+    // Create vault path section
     const vaultPathDiv = pathsDiv.createDiv('ginko-web-settings-path-item')
     const vaultPathHeader = vaultPathDiv.createDiv('ginko-web-settings-path-header')
     const vaultHeaderLeft = vaultPathHeader.createDiv('ginko-web-settings-path-header-left')
     vaultHeaderLeft.createSpan({ text: 'Vault Path: ', cls: 'ginko-web-settings-path-label' })
 
-    // Check for Obsidian folder and add badge
     if (isObsidianVault) {
       vaultHeaderLeft.createSpan({
         cls: 'ginko-web-settings-runtime-badge mod-obsidian',
@@ -228,17 +95,17 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     vaultButtonsDiv.appendChild(this.createCopyButton(vaultPath))
     vaultButtonsDiv.appendChild(this.createOpenButton(vaultPath))
 
-    const vaultPathValue = vaultPathDiv.createDiv({
+    vaultPathDiv.createDiv({
       text: vaultPath,
       cls: 'ginko-web-settings-path-value mod-valid',
     })
 
+    // Create website path section
     const websitePathDiv = pathsDiv.createDiv('ginko-web-settings-path-item')
     const websitePathHeader = websitePathDiv.createDiv('ginko-web-settings-path-header')
     const websiteHeaderLeft = websitePathHeader.createDiv('ginko-web-settings-path-header-left')
     websiteHeaderLeft.createSpan({ text: 'Website Path: ', cls: 'ginko-web-settings-path-label' })
 
-    // Add runtime badge if found
     if (websitePathInfo.runtime) {
       websiteHeaderLeft.createSpan({
         cls: `ginko-web-settings-runtime-badge mod-${websitePathInfo.runtime}`,
@@ -252,7 +119,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
       websiteButtonsDiv.appendChild(this.createOpenButton(websitePathInfo.path))
     }
 
-    const websitePathValue = websitePathDiv.createDiv({
+    websitePathDiv.createDiv({
       text: websitePathInfo.path,
       cls: `ginko-web-settings-path-value ${websitePathInfo.status ? `mod-${websitePathInfo.status}` : ''}`,
     })
@@ -279,35 +146,6 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     }
   }
 
-  private createCopyButton(text: string): HTMLElement {
-    const button = createEl('button')
-    button.addClass('ginko-web-settings-copy-btn')
-    const icon = createEl('span')
-    icon.addClass('ginko-web-settings-copy-icon')
-    icon.setText('📋')
-    button.appendChild(icon)
-    button.addEventListener('click', async () => {
-      await navigator.clipboard.writeText(text)
-      icon.setText('✓')
-      setTimeout(() => {
-        icon.setText('📋')
-      }, 2000)
-    })
-    return button
-  }
-
-  private createOpenButton(path: string): HTMLElement {
-    const button = createEl('button')
-    button.addClass('ginko-web-settings-open-btn')
-    const icon = createEl('span')
-    icon.setText('📂')
-    button.appendChild(icon)
-    button.addEventListener('click', () => {
-      require('electron').shell.openPath(path)
-    })
-    return button
-  }
-
   display(): void {
     const { containerEl } = this
 
@@ -316,10 +154,9 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     // Banner
     const bannerDiv = containerEl.createDiv('ginko-web-settings-banner')
     bannerDiv.createDiv('ginko-web-settings-logo')
-    const titleDiv = bannerDiv.createDiv('ginko-web-settings-title')
-    titleDiv.setText('Ginko Web')
-    const descDiv = bannerDiv.createDiv('ginko-web-settings-description')
-    descDiv.setText('Enhance your notes with powerful block components')
+    bannerDiv.createDiv('ginko-web-settings-title').setText('Ginko Web')
+    bannerDiv.createDiv('ginko-web-settings-description')
+      .setText('Enhance your notes with powerful block components')
 
     // Documentation Area
     containerEl.createEl('h2', { text: 'Documentation' })
@@ -354,9 +191,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
           window.open('https://discord.gg/SSGK5tuqJh', '_blank')
         }))
 
-    // The only difficult part of ginko is to setup, once you have dont that its smooth sailing.
-    // So please read the documentation carefully!
-
+    // Setup Section
     containerEl.createEl('h2', { text: 'Setup' })
 
     // Website Path Settings
@@ -378,10 +213,14 @@ export class GinkoWebSettingTab extends PluginSettingTab {
         .onChange(async (value) => {
           this.plugin.settings.websitePath.type = value as 'none' | 'standard' | 'custom'
           await this.plugin.saveSettings()
-          this.updatePathsDisplay(pathsDiv)
           this.display()
         }))
 
+    // Create paths display div early
+    const pathsDiv = containerEl.createDiv('ginko-web-settings-paths')
+    pathsDiv.addClass('ginko-web-settings-info-box')
+
+    // Add custom path settings if custom path is selected
     if (this.plugin.settings.websitePath.type === 'custom') {
       new Setting(containerEl)
         .setClass('ginko-web-settings-indent')
@@ -393,7 +232,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.websitePath.pathType = value as 'relative' | 'absolute'
             await this.plugin.saveSettings()
-            this.updatePathsDisplay(pathsDiv)
+            await this.updatePathsDisplay(pathsDiv)
           }))
 
       new Setting(containerEl)
@@ -406,7 +245,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.websitePath.customPath = value
             await this.plugin.saveSettings()
-            this.updatePathsDisplay(pathsDiv)
+            await this.updatePathsDisplay(pathsDiv)
           }))
     }
 
@@ -418,18 +257,14 @@ export class GinkoWebSettingTab extends PluginSettingTab {
         .setDesc('Choose a predefined template for your website')
         .addDropdown((dropdown) => {
           dropdown.addOption('', 'Select a template...')
-          this.WEBSITE_TEMPLATES.forEach((template) => {
+          WEBSITE_TEMPLATES.forEach((template) => {
             dropdown.addOption(template.id, template.name)
           })
           dropdown.onChange(async (value) => {
             if (!value)
               return
-            const template = this.WEBSITE_TEMPLATES.find(t => t.id === value)
-            if (template) {
-              this.plugin.settings.websitePath.template = value
-              await this.plugin.saveSettings()
-              console.log('Selected template:', template)
-            }
+            this.plugin.settings.websitePath.template = value
+            await this.plugin.saveSettings()
           })
 
           // Set initial value from settings
@@ -438,7 +273,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
           // Add template icons and descriptions
           const dropdownEl = dropdown.selectEl
           dropdownEl.querySelectorAll('option').forEach((option) => {
-            const template = this.WEBSITE_TEMPLATES.find(t => t.id === option.value)
+            const template = WEBSITE_TEMPLATES.find(t => t.id === option.value)
             if (template) {
               option.innerHTML = `${template.icon} ${template.name}`
               option.setAttribute('title', template.description)
@@ -447,9 +282,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
         })
     }
 
-    // Current Paths Display (moved to end of setup section)
-    const pathsDiv = containerEl.createDiv('ginko-web-settings-paths')
-    pathsDiv.addClass('ginko-web-settings-info-box')
+    // Update paths display
     this.updatePathsDisplay(pathsDiv)
 
     // Language Settings
@@ -513,39 +346,11 @@ export class GinkoWebSettingTab extends PluginSettingTab {
       .addButton(button => button
         .setButtonText('Show Welcome & Changelog')
         .onClick(async () => {
-          // Access the plugin instance to call activateWelcomeView
           await this.plugin.activateWelcomeView(true)
         }))
 
-    const utilities: Utility[] = [
-      {
-        id: 'colocationFolder',
-        name: 'Colocation Folder',
-        description: 'Utility which helps you to create a colocation folder.',
-        warning: '',
-        links: [
-          { text: 'Read our documentation', url: 'https://ginko.build/docs/utilities/syntax-highlight' },
-        ],
-      },
-      {
-        id: 'linter',
-        name: 'Linter',
-        description: 'Utility which helps you to checks your files for errors.',
-        warning: '',
-        links: [
-          { text: 'Read our documentation', url: 'https://ginko.build/docs/utilities/syntax-highlight' },
-        ],
-      },
-      {
-        id: 'debug',
-        name: 'Debug Mode',
-        description: 'Enable debug logging to help troubleshoot issues.',
-        warning: 'Note: Enabling debug mode may affect performance and will output additional logs to the console.',
-        links: [],
-      },
-    ]
-
-    utilities.forEach((utility) => {
+    // Add utilities
+    UTILITIES.forEach((utility) => {
       const setting = new Setting(containerEl)
       setting.setName(utility.name)
       setting.setDesc(createFragment((el) => {
@@ -586,7 +391,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
         }))
     })
 
-    // Add to the display() method at the bottom, after utilities section
+    // Add Debug Section
     containerEl.createEl('h2', { text: 'Debug' })
 
     new Setting(containerEl)
@@ -596,9 +401,8 @@ export class GinkoWebSettingTab extends PluginSettingTab {
         .setValue(false)
         .onChange((value) => {
           const debugSection = containerEl.querySelector('.ginko-web-settings-debug-section')
-          if (debugSection) {
+          if (debugSection instanceof HTMLElement)
             debugSection.style.display = value ? 'block' : 'none'
-          }
         }))
 
     // Create debug section
@@ -655,49 +459,4 @@ export class GinkoWebSettingTab extends PluginSettingTab {
       },
     ).open()
   }
-
-  private readonly WEBSITE_TEMPLATES: WebsiteTemplate[] = [
-    {
-      id: 'nuxt-ui-pro-docs',
-      name: 'Nuxt UI Pro Docs',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256"><path fill="#00DC82" d="M96.3 117.5c3-4.5 7.6-7.5 12.9-7.5h38.4c5.3 0 9.9 3 12.9 7.5l19.2 30c3 4.5 3 10.5 0 15l-19.2 30c-3 4.5-7.6 7.5-12.9 7.5h-38.4c-5.3 0-9.9-3-12.9-7.5l-19.2-30c-3-4.5-3-10.5 0-15l19.2-30Z"/></svg>',
-      description: 'Beautiful documentation template with Nuxt UI Pro components',
-    },
-    {
-      id: 'nuxt-ui-pro-saas',
-      name: 'Nuxt UI Pro SaaS',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256"><path fill="#00DC82" d="M96.3 117.5c3-4.5 7.6-7.5 12.9-7.5h38.4c5.3 0 9.9 3 12.9 7.5l19.2 30c3 4.5 3 10.5 0 15l-19.2 30c-3 4.5-7.6 7.5-12.9 7.5h-38.4c-5.3 0-9.9-3-12.9-7.5l-19.2-30c-3-4.5-3-10.5 0-15l19.2-30Z"/></svg>',
-      description: 'SaaS template with authentication and billing',
-    },
-    {
-      id: 'docusaurus',
-      name: 'Docusaurus',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256"><path fill="#3ECC5F" d="M128 0C57.3 0 0 57.3 0 128s57.3 128 128 128s128-57.3 128-128S198.7 0 128 0Z"/></svg>',
-      description: 'Modern static website generator by Facebook/Meta',
-    },
-    {
-      id: 'astro-starlight',
-      name: 'Astro Starlight',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256"><path fill="#FF5D01" d="M163.008 19.198c6.177-7.363 17.082-8.38 24.586-2.375c7.504 6.006 8.525 16.711 2.348 24.074L84.698 164.902c-6.177 7.363-17.082 8.38-24.586 2.375c-7.504-6.006-8.525-16.711-2.348-24.074l105.244-124.005Z"/></svg>',
-      description: 'Documentation theme for Astro with full-featured markdown support',
-    },
-    {
-      id: 'fumadocs',
-      name: 'FumaDocs',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path fill="#4F46E5" d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5s1.5.67 1.5 1.5s-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5s1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"/></svg>',
-      description: 'Next.js documentation starter with full text search',
-    },
-    {
-      id: 'vitepress',
-      name: 'VitePress',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256"><path fill="#41B883" d="m179.086 39.543l-50.95 88.272l-50.95-88.272H0l128.136 221.954L256 39.543z"/></svg>',
-      description: 'Simple, powerful, and fast static site generator by Vite',
-    },
-    {
-      id: 'ginko-docs',
-      name: 'Ginko Docs',
-      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><path fill="#87285E" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10s10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8s8 3.59 8 8s-3.59 8-8 8z"/></svg>',
-      description: 'Official Ginko documentation template',
-    },
-  ]
 }
