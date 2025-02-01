@@ -1,7 +1,5 @@
-import type { TAbstractFile } from 'obsidian'
 import type { GinkoWebSettings } from './settings/settingsTypes'
-import { Notice, Plugin, setIcon, TFile } from 'obsidian'
-import { useFileType } from './composables/useFileType'
+import { Notice, Plugin, setIcon } from 'obsidian'
 import { initializeGinkoProcessor, useGinkoProcessor } from './composables/useGinkoProcessor'
 import { CacheService } from './processor/services/CacheService'
 import { setupFileWatcher } from './processor/services/fileWatcher'
