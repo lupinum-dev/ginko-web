@@ -30,10 +30,13 @@ export interface GinkoWebSettings {
     linter: boolean
     [key: string]: boolean
   }
-  websitePath: {
+  paths: {
     type: 'none' | 'standard' | 'custom'
-    customPath?: string
+    websitePath?: string
+    vaultPath?: string
     template?: string
+    packageManager?: string
+    pathConfigured: boolean
   }
   languages: {
     multipleLanguages: boolean
@@ -42,9 +45,6 @@ export interface GinkoWebSettings {
   exclusions: {
     ignoredFolders: string
     ignoredFiles: string
-  }
-  pathConfiguration: {
-    isConfigured: boolean
   }
 }
 
