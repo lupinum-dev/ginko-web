@@ -523,6 +523,32 @@ export class GinkoWebSettingTab extends PluginSettingTab {
           return text
         })
 
+      // Add secondary languages input
+      new Setting(languageContent)
+        .setName('Secondary Languages')
+        .setDesc('Enter additional language codes (comma-separated)')
+        .addText((text) => {
+          text
+            .setPlaceholder('de, fr, es')
+            .setValue(this.plugin.settings.languages.secondaryLanguages.join(', '))
+            .onChange((value) => {
+              // Split by comma, trim whitespace, and filter out empty strings
+              const languages = value.split(',')
+                .map(lang => lang.trim().toLowerCase())
+                .filter(lang => lang !== '')
+              this.plugin.settings.languages.secondaryLanguages = languages
+            })
+
+          // Add blur handler to save settings
+          const inputEl = text.inputEl
+          inputEl.addEventListener('blur', async () => {
+            await this.plugin.saveSettings()
+            this.display()
+          })
+
+          return text
+        })
+
       // Add helper text for language codes
       languageContent.createEl('div', {
         text: 'Common language codes: en (English), de (German), fr (French), es (Spanish), it (Italian), pt (Portuguese), ja (Japanese), zh (Chinese)',
@@ -534,6 +560,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     singleLanguageBtn.addEventListener('click', async () => {
       this.plugin.settings.languages.type = 'single'
       this.plugin.settings.languages.mainLanguage = 'en' // Default to English for single language
+      this.plugin.settings.languages.secondaryLanguages = [] // Clear secondary languages
       await this.plugin.saveSettings()
       this.display()
     })
@@ -541,6 +568,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     multiLanguageBtn.addEventListener('click', async () => {
       this.plugin.settings.languages.type = 'multi'
       this.plugin.settings.languages.mainLanguage = '' // Reset language when switching to multi
+      this.plugin.settings.languages.secondaryLanguages = [] // Reset secondary languages
       await this.plugin.saveSettings()
       this.display()
     })

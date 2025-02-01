@@ -42,6 +42,7 @@ export interface GinkoWebSettings {
   languages: {
     type: 'none' | 'single' | 'multi'
     mainLanguage: string
+    secondaryLanguages: string[]
   }
   exclusions: {
     ignoredFolders: string
@@ -137,6 +138,7 @@ export function ensureSettingsInitialized(settings: Partial<GinkoWebSettings>): 
     languages: {
       type: settings.languages?.type ?? 'none',
       mainLanguage: settings.languages?.mainLanguage ?? '',
+      secondaryLanguages: settings.languages?.secondaryLanguages ?? [],
     },
     exclusions: {
       ignoredFolders: settings.exclusions?.ignoredFolders ?? '',
