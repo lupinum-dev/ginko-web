@@ -526,7 +526,6 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     // Event Listeners for Language Mode Buttons
     singleLanguageBtn.addEventListener('click', async () => {
       this.plugin.settings.languages.type = 'single'
-      this.plugin.settings.languages.multipleLanguages = false
       this.plugin.settings.languages.mainLanguage = 'en' // Default to English for single language
       await this.plugin.saveSettings()
       this.display()
@@ -534,7 +533,6 @@ export class GinkoWebSettingTab extends PluginSettingTab {
 
     multiLanguageBtn.addEventListener('click', async () => {
       this.plugin.settings.languages.type = 'multi'
-      this.plugin.settings.languages.multipleLanguages = true
       this.plugin.settings.languages.mainLanguage = '' // Reset language when switching to multi
       await this.plugin.saveSettings()
       this.display()

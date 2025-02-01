@@ -40,7 +40,6 @@ export interface GinkoWebSettings {
   }
   languages: {
     type: 'none' | 'single' | 'multi'
-    multipleLanguages: boolean
     mainLanguage: string
   }
   exclusions: {
@@ -135,7 +134,6 @@ export function ensureSettingsInitialized(settings: Partial<GinkoWebSettings>): 
     },
     languages: {
       type: settings.languages?.type ?? 'none',
-      multipleLanguages: settings.languages?.multipleLanguages ?? false,
       mainLanguage: settings.languages?.mainLanguage ?? '',
     },
     exclusions: {
