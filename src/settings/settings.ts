@@ -565,14 +565,6 @@ export class GinkoWebSettingTab extends PluginSettingTab {
         this.plugin.saveSettings()
       }
 
-      console.warn('Path Step Status:', {
-        usage: this.plugin.settings.usage.isConfigured,
-        template: !!this.plugin.settings.paths.template,
-        pathConfigured: this.plugin.settings.paths.pathConfigured,
-        hasPackageManager,
-        websitePathStatus: websitePathInfo.status,
-      })
-
       // Update the active/completed states
       const isPathStepActive = this.plugin.settings.usage.isConfigured
         && !!this.plugin.settings.paths.template
