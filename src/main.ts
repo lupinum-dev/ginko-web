@@ -26,6 +26,12 @@ export default class GinkoWebPlugin extends Plugin {
     const statusBarItemEl = this.addStatusBarItem()
     statusBarItemEl.addClass('ginko-web-status-bar')
 
+    // Define click handler
+    const openSettings = () => {
+      this.app.setting.open()
+      this.app.setting.openTabById('ginko-web')
+    }
+
     // Update status bar based on configuration
     const updateStatusBar = async () => {
       statusBarItemEl.empty()
@@ -50,12 +56,6 @@ export default class GinkoWebPlugin extends Plugin {
         statusBarItemEl.style.cursor = 'pointer'
         statusBarItemEl.addEventListener('click', openSettings) // Add new listener
       }
-    }
-
-    // Define click handler separately so we can remove it
-    const openSettings = () => {
-      this.app.setting.open()
-      this.app.setting.openTabById('ginko-web')
     }
 
     // Initial status update
