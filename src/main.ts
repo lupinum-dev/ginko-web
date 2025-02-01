@@ -1,6 +1,6 @@
 import type { Menu, TAbstractFile } from 'obsidian'
 import type { GinkoWebSettings } from './settings/settingsTypes'
-import { Notice, Plugin, setIcon, TFile } from 'obsidian'
+import { Notice, Plugin, setIcon, TFile, TFolder } from 'obsidian'
 import { initializeGinkoProcessor, useGinkoProcessor } from './composables/useGinkoProcessor'
 import { initializeGinkoSettings, updateGinkoSettings } from './composables/useGinkoSettings'
 import { CacheService } from './processor/services/CacheService'
@@ -8,8 +8,8 @@ import { setupFileWatcher } from './processor/services/fileWatcher'
 import { GinkoWebSettingTab } from './settings/settings'
 import { DEFAULT_SETTINGS, ensureSettingsInitialized, isSetupComplete } from './settings/settingsTypes'
 import { getWebsitePath } from './settings/settingsUtils'
-import { copyFrontmatter, hasCopiedFrontmatter, pasteFrontmatter } from './tools/copyFrontmatter'
 import { createColocationFolder } from './tools/createColocationFolder'
+import { ColocationModal } from './ui/modals/ColocationModal'
 import { CURRENT_WELCOME_VERSION, WELCOME_VIEW_TYPE, WelcomeView } from './welcome/welcomeView'
 
 export default class GinkoWebPlugin extends Plugin {
@@ -103,27 +103,6 @@ export default class GinkoWebPlugin extends Plugin {
         active: true,
       })
       workspace.revealLeaf(leaf)
-    }
-  }
-
-  private addColocationFolderMenuItem(menu: Menu, file: TAbstractFile) {
-    if (file instanceof TFile) {
-      menu.addItem((item) => {
-        item
-          .setTitle('Create colocation folder')
-          .setIcon('folder-plus')
-          .onClick(async () => {
-            try {
-              const folderPath = await createColocationFolder(this.app.vault, file.path)
-              // console.log(`Created colocation folder: ${folderPath}`);
-              new Notice(`Created colocation folder: ${folderPath}`)
-            }
-            catch (error) {
-              // console.log(`Error creating colocation folder: ${error.message}`);
-              new Notice(`Error: ${error.message}`)
-            }
-          })
-      })
     }
   }
 
@@ -225,73 +204,50 @@ export default class GinkoWebPlugin extends Plugin {
     // Remove any existing event handlers first
     this.app.workspace.off('file-menu', this.handleFileMenu)
 
-    // Always register the menu handler - utility checks happen inside handleFileMenu
-    this.app.workspace.on('file-menu', this.handleFileMenu)
-  }
+    // Only register if the colocation folder utility is enabled
+    if (this.settings.utilities.colocationFolder) {
+      this.registerEvent(
+        this.app.workspace.on('file-menu', (menu: Menu, file: TAbstractFile) => {
+          if (file instanceof TFolder) {
+            menu.addItem((item) => {
+              item
+                .setTitle('Add Colocation Folder')
+                .setIcon('folder-plus')
+                .onClick(() => {
+                  const modal = new ColocationModal(
+                    this.app,
+                    this.settings,
+                    this.settings.utilities.lastUsedTemplate,
+                    async (result) => {
+                      console.log('Modal submitted with:', {
+                        result,
+                        targetFolder: file.path,
+                      })
 
-  private handleFileMenu = (menu: Menu, file: TAbstractFile) => {
-    if (file instanceof TFile) {
-      // Add colocation folder menu item if utility is enabled
-      if (this.settings.utilities.colocationFolder) {
-        this.addColocationFolderMenuItem(menu, file)
-      }
+                      try {
+                        // Update the last used template setting
+                        this.settings.utilities.lastUsedTemplate = result.useTemplate
+                        await this.saveSettings()
 
-      // Add frontmatter menu items if utility is enabled
-      if (this.settings.utilities.frontmatter && file.extension === 'md') {
-        // Add a separator
-        menu.addSeparator()
-
-        // Copy frontmatter
-        menu.addItem((item) => {
-          item
-            .setTitle('Copy frontmatter')
-            .setIcon('copy')
-            .onClick(async () => {
-              try {
-                await copyFrontmatter(this.app.vault, file.path)
-                new Notice('✓ Frontmatter copied')
-              }
-              catch (error) {
-                new Notice(`Error: ${error.message}`)
-              }
+                        const folderPath = await createColocationFolder(
+                          this.app.vault,
+                          file.path,
+                          result,
+                        )
+                        new Notice(`Created colocation folder: ${folderPath}`)
+                      }
+                      catch (error) {
+                        console.error('Error creating colocation folder:', error)
+                        new Notice(`Error: ${error.message}`)
+                      }
+                    },
+                  )
+                  modal.open()
+                })
             })
-        })
-
-        // Only show paste options if we have copied frontmatter
-        if (hasCopiedFrontmatter()) {
-          // Paste frontmatter (override)
-          menu.addItem((item) => {
-            item
-              .setTitle('Paste frontmatter (override)')
-              .setIcon('clipboard-paste')
-              .onClick(async () => {
-                try {
-                  await pasteFrontmatter(this.app.vault, file.path, 'override')
-                  new Notice('✓ Frontmatter pasted (override)')
-                }
-                catch (error) {
-                  new Notice(`Error: ${error.message}`)
-                }
-              })
-          })
-
-          // Paste frontmatter (smart)
-          menu.addItem((item) => {
-            item
-              .setTitle('Paste frontmatter (smart)')
-              .setIcon('clipboard-check')
-              .onClick(async () => {
-                try {
-                  await pasteFrontmatter(this.app.vault, file.path, 'smart')
-                  new Notice('✓ Frontmatter pasted (smart)')
-                }
-                catch (error) {
-                  new Notice(`Error: ${error.message}`)
-                }
-              })
-          })
-        }
-      }
+          }
+        }),
+      )
     }
   }
 }

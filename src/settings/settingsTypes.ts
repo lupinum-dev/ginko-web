@@ -29,16 +29,18 @@ export interface GinkoWebSettings {
     colocationFolder: boolean
     linter: boolean
     frontmatter: boolean
+    lastUsedTemplate: boolean
     [key: string]: boolean
   }
   paths: {
-    type: 'none' | 'standard' | 'custom'
+    type: 'none' | 'standard' | 'custom' | 'relative' | 'absolute'
     websitePath?: string
     vaultPath?: string
     template?: string
     packageManager?: string
     pathConfigured: boolean
     outputDirectoryPath?: string
+    publicPath: string
   }
   languages: {
     type: 'none' | 'single' | 'multi'
@@ -127,6 +129,7 @@ export function ensureSettingsInitialized(settings: Partial<GinkoWebSettings>): 
       colocationFolder: settings.utilities?.colocationFolder ?? false,
       linter: settings.utilities?.linter ?? false,
       frontmatter: settings.utilities?.frontmatter ?? false,
+      lastUsedTemplate: settings.utilities?.lastUsedTemplate ?? false,
     },
     paths: {
       type: settings.paths?.type ?? 'none',
@@ -136,6 +139,7 @@ export function ensureSettingsInitialized(settings: Partial<GinkoWebSettings>): 
       packageManager: settings.paths?.packageManager ?? '',
       pathConfigured: settings.paths?.pathConfigured ?? false,
       outputDirectoryPath: settings.paths?.outputDirectoryPath ?? '',
+      publicPath: settings.paths?.publicPath ?? '',
     },
     languages: {
       type: settings.languages?.type ?? 'none',
