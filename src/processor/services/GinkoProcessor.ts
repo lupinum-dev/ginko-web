@@ -93,8 +93,6 @@ export class GinkoProcessor {
       // Get all files from the vault
       const files = this.app.vault.getFiles()
 
-
-
       // Process each file
       for (const file of files) {
         // Skip files in the target output directory
@@ -115,8 +113,6 @@ export class GinkoProcessor {
 
       // Force immediate processing
       await this.processBatch()
-
-      console.log(`✅ ${type.charAt(0).toUpperCase() + type.slice(1)} rebuild tasks completed`)
     }
     catch (error) {
       console.error(`❌ Error during ${type} rebuild:`, error)
