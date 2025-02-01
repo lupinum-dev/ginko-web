@@ -1,6 +1,7 @@
-import type { GinkoWebSettings } from './settings/settings'
+import type { GinkoWebSettings } from './settings/settingsTypes'
 import { Plugin, setIcon } from 'obsidian'
 import { DEFAULT_SETTINGS, GinkoWebSettingTab } from './settings/settings'
+import { isSetupComplete } from './settings/settingsTypes'
 import { CURRENT_WELCOME_VERSION, WELCOME_VIEW_TYPE, WelcomeView } from './welcome/welcomeView'
 
 // Remember to rename these classes and interfaces!
@@ -29,17 +30,22 @@ export default class GinkoWebPlugin extends Plugin {
       statusBarItemEl.empty()
       statusBarItemEl.removeEventListener('click', openSettings) // Remove old listener
 
-      if (!this.settings.pathConfiguration.isConfigured) {
+      if (!isSetupComplete(this.settings)) {
         const warningContainer = statusBarItemEl.createSpan({
           cls: 'ginko-web-status-warning',
         })
         setIcon(warningContainer, 'alert-triangle')
-        warningContainer.createSpan({ text: ' Ginko Web is not configured yet!' })
+        warningContainer.createSpan({ text: ' Complete Ginko Web setup!' })
 
         statusBarItemEl.style.cursor = 'pointer'
         statusBarItemEl.addEventListener('click', openSettings) // Add new listener
       }
       else {
+        const successContainer = statusBarItemEl.createSpan({
+          cls: 'ginko-web-status-success',
+        })
+        setIcon(successContainer, 'check-circle')
+        successContainer.createSpan({ text: ' Ginko Web is ready!' })
         statusBarItemEl.style.cursor = 'default'
       }
     }

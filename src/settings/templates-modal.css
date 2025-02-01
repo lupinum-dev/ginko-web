@@ -1,0 +1,159 @@
+.ginko-web-templates-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding: 0 1rem;
+}
+
+.ginko-web-templates-header h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.8em;
+  color: var(--text-normal);
+}
+
+.ginko-web-templates-header p {
+  color: var(--text-muted);
+  font-size: 1.1em;
+  margin: 0;
+}
+
+.ginko-web-templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.ginko-web-template-card {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.ginko-web-template-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.ginko-web-template-preview {
+  width: 100%;
+  height: 200px;
+  overflow: hidden;
+  background: var(--background-secondary);
+}
+
+.ginko-web-template-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.ginko-web-template-card:hover .ginko-web-template-preview img {
+  transform: scale(1.05);
+}
+
+.ginko-web-template-info {
+  padding: 1.5rem;
+}
+
+.ginko-web-template-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.ginko-web-template-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ginko-web-template-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.ginko-web-template-header h3 {
+  margin: 0;
+  font-size: 1.3em;
+  color: var(--text-normal);
+}
+
+.ginko-web-template-description {
+  color: var(--text-muted);
+  font-size: 0.95em;
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+.ginko-web-template-features {
+  margin-top: 1rem;
+}
+
+.ginko-web-template-features h4 {
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin: 0 0 0.5rem;
+}
+
+.ginko-web-template-features ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ginko-web-template-features li {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  padding: 0.3rem 0;
+  display: flex;
+  align-items: center;
+}
+
+.ginko-web-template-features li::before {
+  content: "✓";
+  color: var(--text-accent);
+  margin-right: 0.5rem;
+  font-weight: bold;
+}
+
+.ginko-web-template-actions {
+  display: flex;
+  gap: 0.8rem;
+  padding: 1.5rem;
+  background: var(--background-secondary);
+}
+
+.ginko-web-template-button {
+  flex: 1;
+  padding: 0.8rem;
+  border-radius: 6px;
+  font-size: 0.9em;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.ginko-web-template-button.mod-preview {
+  background: var(--background-modifier-border);
+  color: var(--text-normal);
+}
+
+.ginko-web-template-button.mod-choose {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+}
+
+.ginko-web-template-button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+} 

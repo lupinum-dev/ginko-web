@@ -443,3 +443,303 @@
 .ginko-web-settings-debug-button:hover {
   background-color: var(--interactive-accent-hover);
 }
+
+/* Step-based Settings */
+.ginko-web-settings-step {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.ginko-web-settings-step.is-required {
+  border-left: 4px solid var(--text-error);
+}
+
+.ginko-web-settings-step.is-optional {
+  border-left: 4px solid var(--text-muted);
+}
+
+
+
+.ginko-web-settings-step.is-completed {
+  border-left: 4px solid var(--color-green);
+}
+
+
+.ginko-web-settings-step.is-optional .ginko-web-settings-step-title::after {
+  content: '(Optional)';
+  font-size: 0.8em;
+  font-weight: normal;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+}
+
+.ginko-web-settings-step-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.ginko-web-settings-step-number {
+  background: var(--background-modifier-border);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+.ginko-web-settings-step.is-completed .ginko-web-settings-step-number {
+  background: var(--color-green);
+  color: white;
+}
+
+.ginko-web-settings-step-title {
+  font-size: 1.3em;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.ginko-web-settings-step-content {
+  margin-left: 48px;
+}
+
+.ginko-web-settings-step-content .setting-item {
+  border: none;
+  padding: 0;
+  margin-bottom: 1rem;
+}
+
+.ginko-web-settings-step-content .setting-item-control {
+  padding: 0;
+}
+
+.ginko-web-settings-step-content button {
+  background-color: var(--background-modifier-border);
+  color: var(--text-normal);
+  font-size: 0.9em;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.ginko-web-settings-step-content button:hover {
+  background-color: var(--background-modifier-hover);
+  border-color: var(--background-modifier-border-hover);
+  transform: translateY(-1px);
+}
+
+/* Usage Selection */
+.ginko-web-settings-usage-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.ginko-web-settings-usage-option {
+  flex: 1;
+  background: var(--background-secondary);
+  border: 2px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.ginko-web-settings-usage-option:hover {
+  transform: translateY(-2px);
+  border-color: var(--interactive-accent);
+}
+
+.ginko-web-settings-usage-option.is-selected {
+  background: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.ginko-web-settings-usage-icon {
+  font-size: 2em;
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ginko-web-settings-usage-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.ginko-web-settings-usage-option.is-selected .ginko-web-settings-usage-icon svg path {
+  fill: var(--text-on-accent);
+}
+
+.ginko-web-settings-usage-title {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.ginko-web-settings-usage-description {
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+.ginko-web-settings-license-input {
+  margin-top: 1rem;
+  display: none;
+  width: 100%;
+}
+
+.ginko-web-settings-license-input.is-visible {
+  display: block;
+}
+
+.ginko-web-settings-license-input .setting-item-control {
+  width: 100%;
+  padding: 0;
+}
+
+.ginko-web-settings-license-input .setting-item-control input {
+  width: 100%;
+}
+
+.ginko-web-settings-license-docs {
+  margin-top: 0.5rem;
+  font-size: 0.9em;
+  color: var(--text-muted);
+}
+
+.ginko-web-settings-license-docs a {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+.ginko-web-settings-license-docs a:hover {
+  text-decoration: underline;
+}
+
+.ginko-web-settings-step-status {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  font-size: 0.9em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ginko-web-settings-step-status.is-completed {
+  color: var(--color-green);
+}
+
+.ginko-web-settings-learn-link {
+  display: inline-block;
+  color: var(--text-accent);
+  text-decoration: none;
+  font-size: 0.9em;
+  margin-bottom: 1rem;
+  margin-top: 0.5rem;
+}
+
+.ginko-web-settings-learn-link:hover {
+  text-decoration: underline;
+}
+
+.ginko-web-settings-framework-select {
+  width: 100%;
+  font-size: 14px;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.ginko-web-settings-framework-select option {
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ginko-web-settings-framework-select option svg {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.ginko-web-settings-template-description {
+  margin-top: 0.5rem;
+  padding: 0.8rem;
+  background: var(--background-secondary);
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: var(--text-muted);
+}
+
+.ginko-web-settings-indent {
+  margin-left: 24px;
+  border-left: 2px solid var(--background-modifier-border);
+  padding-left: 16px;
+}
+
+.ginko-web-settings-indent .setting-item {
+  border: none;
+}
+
+.ginko-web-settings-paths {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--background-secondary);
+  border-radius: 8px;
+}
+
+.ginko-web-settings-path-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.ginko-web-settings-path-item:last-child {
+  margin-bottom: 0;
+}
+
+.ginko-web-settings-path-label {
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.ginko-web-settings-path-value {
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+  padding: 0.5rem;
+  background: var(--background-primary);
+  border-radius: 4px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.ginko-web-settings-path-value.mod-valid {
+  border-color: var(--color-green);
+  color: var(--color-green);
+}
+
+.ginko-web-settings-path-value.mod-warning {
+  border-color: var(--text-warning);
+  color: var(--text-warning);
+}
+
+.ginko-web-settings-path-value.mod-error {
+  border-color: var(--text-error);
+  color: var(--text-error);
+}

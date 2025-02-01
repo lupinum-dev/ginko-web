@@ -46,15 +46,33 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  padding: 0 8px;
 }
 
 .ginko-web-status-warning {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--text-error);
-  font-weight: 500;
-  font-size: 1.1em;
+  color: var(--text-warning);
+}
+
+.ginko-web-status-success {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-green);
+}
+
+.ginko-web-status-warning .lucide-alert-triangle {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+.ginko-web-status-success .lucide-check-circle {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
 }
 
 .ginko-web-status-warning .lucide {
