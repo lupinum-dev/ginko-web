@@ -4,6 +4,7 @@ import { Notice, Plugin, setIcon, TFile } from 'obsidian'
 import { useFileType } from './composables/useFileType'
 import { initializeGinkoProcessor, useGinkoProcessor } from './composables/useGinkoProcessor'
 import { CacheService } from './processor/services/CacheService'
+import { setupFileWatcher } from './processor/services/fileWatcher'
 import { GinkoWebSettingTab } from './settings/settings'
 import { DEFAULT_SETTINGS, ensureSettingsInitialized, isSetupComplete } from './settings/settingsTypes'
 import { getWebsitePath } from './settings/settingsUtils'
@@ -48,52 +49,8 @@ export default class GinkoWebPlugin extends Plugin {
     }
 
     initializeGinkoProcessor(this.app, this.settings, 'nuxt')
-    const ginkoProcessor = useGinkoProcessor()
 
-    this.app.workspace.onLayoutReady(() => {
-      this.registerEvent(
-        this.app.vault.on('modify', (file: TAbstractFile) => {
-          // console.log('🟡 Modifying file:', file)
-          if (file instanceof TFile) {
-            ginkoProcessor.addTask(file.path, 'modify')
-          }
-        }),
-      )
-
-      this.registerEvent(
-        this.app.vault.on('rename', (file: TAbstractFile, oldPath: string) => {
-          if (file instanceof TFile) {
-            const { isSameFileType } = useFileType()
-
-            if (isSameFileType(file.path, oldPath)) {
-              // If file types are the same, process as a regular rename
-              ginkoProcessor.addTask(file.path, 'rename', oldPath)
-            }
-            else {
-              // If file types are different, process as a delete + create
-              ginkoProcessor.addTask(oldPath, 'delete')
-              ginkoProcessor.addTask(file.path, 'create')
-            }
-          }
-        }),
-      )
-
-      this.registerEvent(
-        this.app.vault.on('create', (file: TAbstractFile) => {
-          if (file instanceof TFile) {
-            ginkoProcessor.addTask(file.path, 'create')
-          }
-        }),
-      )
-
-      this.registerEvent(
-        this.app.vault.on('delete', (file: TAbstractFile) => {
-          if (file instanceof TFile) {
-            ginkoProcessor.addTask(file.path, 'delete')
-          }
-        }),
-      )
-    })
+    setupFileWatcher(this, this.app)
   }
 
   /**
