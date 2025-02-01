@@ -246,6 +246,45 @@ export default class GinkoWebPlugin extends Plugin {
                 })
             })
           }
+          else if (file instanceof TFile && file.extension === 'md') {
+            menu.addItem((item) => {
+              item
+                .setTitle('Convert to Colocation Folder')
+                .setIcon('folder-input')
+                .onClick(() => {
+                  const modal = new ColocationModal(
+                    this.app,
+                    this.settings,
+                    this.settings.utilities.lastUsedTemplate,
+                    async (result) => {
+                      console.log('Modal submitted with:', {
+                        result,
+                        sourceFile: file.path,
+                      })
+
+                      try {
+                        // Update the last used template setting
+                        this.settings.utilities.lastUsedTemplate = result.useTemplate
+                        await this.saveSettings()
+
+                        const folderPath = await createColocationFolder(
+                          this.app.vault,
+                          file.parent?.path || '',
+                          result,
+                        )
+                        new Notice(`Converted to colocation folder: ${folderPath}`)
+                      }
+                      catch (error) {
+                        console.error('Error converting to colocation folder:', error)
+                        new Notice(`Error: ${error.message}`)
+                      }
+                    },
+                    file.path,
+                  )
+                  modal.open()
+                })
+            })
+          }
         }),
       )
     }

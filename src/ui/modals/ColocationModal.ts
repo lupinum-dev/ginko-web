@@ -11,6 +11,10 @@ interface ColocationSettings {
   title: string
   slugs: LanguageSlug[]
   useTemplate: boolean
+  sourceFile?: {
+    path: string
+    language: string
+  }
 }
 
 export class ColocationModal extends Modal {
@@ -18,17 +22,20 @@ export class ColocationModal extends Modal {
   onSubmit: (result: ColocationSettings) => void
   lastTemplateValue: boolean
   settings: GinkoWebSettings
+  existingFilePath?: string
 
   constructor(
     app: App,
     settings: GinkoWebSettings,
     lastTemplateValue: boolean,
     onSubmit: (result: ColocationSettings) => void,
+    existingFilePath?: string,
   ) {
     super(app)
     this.settings = settings
     this.onSubmit = onSubmit
     this.lastTemplateValue = lastTemplateValue
+    this.existingFilePath = existingFilePath
     this.result = {
       title: '',
       slugs: this.initializeSlugs(),
@@ -63,7 +70,11 @@ export class ColocationModal extends Modal {
   onOpen() {
     const { contentEl } = this
 
-    contentEl.createEl('h2', { text: 'Create Colocation Folder' })
+    contentEl.createEl('h2', {
+      text: this.existingFilePath
+        ? 'Convert to Colocation Folder'
+        : 'Create Colocation Folder',
+    })
 
     new Setting(contentEl)
       .setName('Folder Title')
@@ -73,6 +84,45 @@ export class ColocationModal extends Modal {
         .onChange((value) => {
           this.result.title = value
         }))
+
+    if (this.existingFilePath) {
+      // Add language selector for existing file
+      new Setting(contentEl)
+        .setName('Source File Language')
+        .setDesc('Select which language this file represents')
+        .addDropdown((dropdown) => {
+          // Add all available languages
+          const allLangs = [
+            this.settings.languages.mainLanguage,
+            ...this.settings.languages.secondaryLanguages,
+          ]
+          allLangs.forEach((lang) => {
+            dropdown.addOption(lang, lang.toUpperCase())
+          })
+
+          dropdown.onChange((value) => {
+            this.result.sourceFile = {
+              path: this.existingFilePath!,
+              language: value,
+            }
+
+            // Pre-fill the slug for the selected language
+            const fileName = this.existingFilePath!.split('/').pop()!
+            const nameWithoutExt = fileName.replace(/\.md$/, '')
+            const langSlug = this.result.slugs.find(s => s.code === value)
+            if (langSlug) {
+              langSlug.slug = nameWithoutExt
+            }
+          })
+
+          // Set default to main language
+          dropdown.setValue(this.settings.languages.mainLanguage)
+          this.result.sourceFile = {
+            path: this.existingFilePath!,
+            language: this.settings.languages.mainLanguage,
+          }
+        })
+    }
 
     // Add separator for main language
     contentEl.createEl('h3', {
@@ -126,7 +176,7 @@ export class ColocationModal extends Modal {
     new Setting(contentEl)
       .addButton(btn =>
         btn
-          .setButtonText('Create')
+          .setButtonText(this.existingFilePath ? 'Convert' : 'Create')
           .setCta()
           .onClick(() => {
             this.close()

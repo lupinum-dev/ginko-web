@@ -11,6 +11,10 @@ export interface ColocationFolderOptions {
   title: string
   slugs: LanguageSlug[]
   useTemplate: boolean
+  sourceFile?: {
+    path: string
+    language: string
+  }
 }
 
 function slugify(text: string): string {
@@ -97,15 +101,39 @@ export async function createColocationFolder(
       }
     }
 
+    // If we're converting a file, read its content
+    let sourceContent: string | null = null
+    if (options.sourceFile?.path) {
+      const sourceFile = vault.getAbstractFileByPath(options.sourceFile.path)
+      if (sourceFile instanceof TFile) {
+        sourceContent = await vault.read(sourceFile)
+      }
+    }
+
     // Create language-specific markdown files
     for (const langSlug of options.slugs) {
       if (langSlug.slug) {
         const slugifiedName = slugify(langSlug.slug)
         const mdFileName = `${slugifiedName}__${langSlug.code}.md`
+
+        // Determine content for this file
+        let fileContent = templateContent
+        if (sourceContent && options.sourceFile?.language === langSlug.code) {
+          fileContent = sourceContent
+        }
+
         await vault.create(
           `${newFolderPath}/${mdFileName}`,
-          templateContent,
+          fileContent,
         )
+      }
+    }
+
+    // If this was a conversion, delete the original file
+    if (options.sourceFile?.path) {
+      const sourceFile = vault.getAbstractFileByPath(options.sourceFile.path)
+      if (sourceFile instanceof TFile) {
+        await vault.delete(sourceFile)
       }
     }
 
