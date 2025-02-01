@@ -7,8 +7,6 @@ import { UTILITIES, WEBSITE_TEMPLATES } from './settingsConstants'
 import { DEFAULT_SETTINGS } from './settingsTypes'
 import { checkVaultFolder, getWebsitePath } from './settingsUtils'
 
-export { DEFAULT_SETTINGS }
-
 // Declare the electron shell type
 declare global {
   interface Window {
@@ -69,8 +67,8 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     // Website Path Section
     const websitePathInfo = await getWebsitePath(
       this.app.vault.adapter,
-      this.plugin.settings.websitePath.type,
-      this.plugin.settings.websitePath.customPath,
+      this.plugin.settings.paths.type,
+      this.plugin.settings.paths.websitePath,
     )
 
     // Update configuration status
@@ -78,8 +76,8 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     const isConfigured = isObsidianVault && websitePathInfo.status === 'valid' && hasPackageManager
 
     // Only update the configuration status, don't trigger a display refresh
-    if (this.plugin.settings.pathConfiguration.isConfigured !== isConfigured) {
-      this.plugin.settings.pathConfiguration.isConfigured = isConfigured
+    if (this.plugin.settings.paths.pathConfigured !== isConfigured) {
+      this.plugin.settings.paths.pathConfigured = isConfigured
       await this.plugin.saveSettings()
     }
 
@@ -153,11 +151,11 @@ export class GinkoWebSettingTab extends PluginSettingTab {
 
   // Add method to handle website location changes
   private async handlePathTypeChange(value: string, pathContent: HTMLElement): Promise<void> {
-    this.plugin.settings.websitePath.type = value as 'none' | 'standard' | 'custom'
+    this.plugin.settings.paths.type = value as 'none' | 'standard' | 'custom'
 
     // Reset path configuration when changing type
     if (value === 'none') {
-      this.plugin.settings.pathConfiguration.isConfigured = false
+      this.plugin.settings.paths.pathConfigured = false
     }
 
     await this.plugin.saveSettings()
@@ -165,15 +163,15 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     // Get current website path info for validation
     const websitePathInfo = await getWebsitePath(
       this.app.vault.adapter,
-      this.plugin.settings.websitePath.type,
-      this.plugin.settings.websitePath.customPath,
+      this.plugin.settings.paths.type,
+      this.plugin.settings.paths.websitePath,
     )
 
     // Update configuration status
     const hasPackageManager = !!websitePathInfo.runtime
     const isConfigured = websitePathInfo.status === 'valid' && hasPackageManager
-    if (this.plugin.settings.pathConfiguration.isConfigured !== isConfigured) {
-      this.plugin.settings.pathConfiguration.isConfigured = isConfigured
+    if (this.plugin.settings.paths.pathConfigured !== isConfigured) {
+      this.plugin.settings.paths.pathConfigured = isConfigured
       await this.plugin.saveSettings()
     }
 
@@ -189,7 +187,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
 
   // Add new method to handle custom path changes
   private async handleCustomPathChange(value: string, pathContent: HTMLElement): Promise<void> {
-    this.plugin.settings.websitePath.customPath = value
+    this.plugin.settings.paths.websitePath = value
     await this.plugin.saveSettings()
 
     // Update paths display
@@ -379,8 +377,8 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     // Step 2: Framework Selection
     const frameworkStep = containerEl.createDiv('ginko-web-settings-step')
     frameworkStep.addClass('is-required')
-    frameworkStep.toggleClass('is-active', this.plugin.settings.usage.isConfigured && !this.plugin.settings.websitePath.template)
-    frameworkStep.toggleClass('is-completed', !!this.plugin.settings.websitePath.template)
+    frameworkStep.toggleClass('is-active', this.plugin.settings.usage.isConfigured && !this.plugin.settings.paths.template)
+    frameworkStep.toggleClass('is-completed', !!this.plugin.settings.paths.template)
 
     // Step Header
     const frameworkHeader = frameworkStep.createDiv('ginko-web-settings-step-header')
@@ -389,7 +387,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     frameworkHeader.createDiv('ginko-web-settings-step-title').setText('Choose your Framework')
 
     // Step Status
-    if (this.plugin.settings.websitePath.template) {
+    if (this.plugin.settings.paths.template) {
       const frameworkStatus = frameworkStep.createDiv('ginko-web-settings-step-status is-completed')
       frameworkStatus.innerHTML = '✓ Configured'
     }
@@ -404,14 +402,12 @@ export class GinkoWebSettingTab extends PluginSettingTab {
       text: '📖 Learn more about frameworks, templates & custom solutions',
       href: 'https://ginko.build/docs/frameworks',
       cls: 'ginko-web-settings-learn-link',
-      target: '_blank',
     })
 
     // Framework dropdown
-    const frameworkSetting = new Setting(frameworkContent)
+    new Setting(frameworkContent)
       .setName('Framework & Template')
       .setDesc('Choose a framework and template for your site')
-
       .addDropdown((dropdown) => {
         // Add default option
         dropdown.addOption('', 'Select a framework...')
@@ -422,7 +418,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
         })
 
         // Set current value
-        dropdown.setValue(this.plugin.settings.websitePath.template || '')
+        dropdown.setValue(this.plugin.settings.paths.template || '')
 
         // Style the dropdown options with icons
         const dropdownEl = dropdown.selectEl
@@ -438,49 +434,150 @@ export class GinkoWebSettingTab extends PluginSettingTab {
 
         // Add change handler
         dropdown.onChange(async (value) => {
-          this.plugin.settings.websitePath.template = value
+          this.plugin.settings.paths.template = value
           await this.plugin.saveSettings()
           this.display()
         })
       })
 
     // Show selected template description if one is selected
-    const selectedTemplate = WEBSITE_TEMPLATES.find(t => t.id === this.plugin.settings.websitePath.template)
+    const selectedTemplate = WEBSITE_TEMPLATES.find(t => t.id === this.plugin.settings.paths.template)
     if (selectedTemplate) {
       frameworkContent.createDiv('ginko-web-settings-template-description')
         .setText(selectedTemplate.description)
     }
 
-    // Step 3: Path Configuration
+    // Step 3: Language Configuration
+    const languageStep = containerEl.createDiv('ginko-web-settings-step')
+    languageStep.addClass('is-required')
+    languageStep.toggleClass('is-active', this.plugin.settings.usage.isConfigured
+      && !!this.plugin.settings.paths.template
+      && (this.plugin.settings.languages.type === 'none' || !this.plugin.settings.languages.mainLanguage))
+    languageStep.toggleClass('is-completed', this.plugin.settings.languages.type !== 'none'
+      && !!this.plugin.settings.languages.mainLanguage)
+
+    // Step Header
+    const languageHeader = languageStep.createDiv('ginko-web-settings-step-header')
+    const languageNumber = languageHeader.createDiv('ginko-web-settings-step-number')
+    languageNumber.setText('3')
+    languageHeader.createDiv('ginko-web-settings-step-title').setText('Language Configuration')
+
+    // Step Status
+    if (this.plugin.settings.languages.mainLanguage) {
+      const languageStatus = languageStep.createDiv('ginko-web-settings-step-status is-completed')
+      languageStatus.innerHTML = '✓ Configured'
+    }
+
+    // Step Content
+    const languageContent = languageStep.createDiv('ginko-web-settings-step-content')
+    languageContent.createDiv('ginko-web-settings-step-description')
+      .setText('Configure the language settings for your website')
+
+    // Language Mode Selection
+    const languageModeContainer = languageContent.createDiv('ginko-web-settings-language-mode')
+
+    // Single Language Button
+    const singleLanguageBtn = languageModeContainer.createDiv('ginko-web-settings-language-button')
+    singleLanguageBtn.toggleClass('is-selected', this.plugin.settings.languages.type === 'single')
+    singleLanguageBtn.createDiv('ginko-web-settings-language-icon').setText('🌐')
+    singleLanguageBtn.createDiv('ginko-web-settings-language-title').setText('Single Language')
+    singleLanguageBtn.createDiv('ginko-web-settings-language-description')
+      .setText('Website will be in a single language')
+
+    // Multi Language Button
+    const multiLanguageBtn = languageModeContainer.createDiv('ginko-web-settings-language-button')
+    multiLanguageBtn.toggleClass('is-selected', this.plugin.settings.languages.type === 'multi')
+    multiLanguageBtn.createDiv('ginko-web-settings-language-icon').setText('🌍')
+    multiLanguageBtn.createDiv('ginko-web-settings-language-title').setText('Multi Language')
+    multiLanguageBtn.createDiv('ginko-web-settings-language-description')
+      .setText('Website will support multiple languages')
+
+    // Language Selection (only show if multi-language type is selected)
+    if (this.plugin.settings.languages.type === 'multi') {
+      new Setting(languageContent)
+        .setName('Main Language')
+        .setDesc('Enter the main language code (e.g., en, de, fr)')
+        .addText((text) => {
+          text
+            .setPlaceholder('en')
+            .setValue(this.plugin.settings.languages.mainLanguage)
+            .onChange((value) => {
+              // Just update the value without saving or refreshing
+              this.plugin.settings.languages.mainLanguage = value.toLowerCase()
+            })
+
+          // Add blur handler to save settings
+          const inputEl = text.inputEl
+          inputEl.addEventListener('blur', async () => {
+            await this.plugin.saveSettings()
+            this.display()
+          })
+
+          return text
+        })
+
+      // Add helper text for language codes
+      languageContent.createEl('div', {
+        text: 'Common language codes: en (English), de (German), fr (French), es (Spanish), it (Italian), pt (Portuguese), ja (Japanese), zh (Chinese)',
+        cls: 'ginko-web-settings-helper-text',
+      })
+    }
+
+    // Event Listeners for Language Mode Buttons
+    singleLanguageBtn.addEventListener('click', async () => {
+      this.plugin.settings.languages.type = 'single'
+      this.plugin.settings.languages.multipleLanguages = false
+      this.plugin.settings.languages.mainLanguage = 'en' // Default to English for single language
+      await this.plugin.saveSettings()
+      this.display()
+    })
+
+    multiLanguageBtn.addEventListener('click', async () => {
+      this.plugin.settings.languages.type = 'multi'
+      this.plugin.settings.languages.multipleLanguages = true
+      this.plugin.settings.languages.mainLanguage = '' // Reset language when switching to multi
+      await this.plugin.saveSettings()
+      this.display()
+    })
+
+    // Update step completion status based on type and language selection
+    languageStep.toggleClass('is-active', this.plugin.settings.usage.isConfigured
+      && !!this.plugin.settings.paths.template
+      && (this.plugin.settings.languages.type === 'none'
+        || (this.plugin.settings.languages.type === 'multi' && !this.plugin.settings.languages.mainLanguage)))
+    languageStep.toggleClass('is-completed', (this.plugin.settings.languages.type === 'single')
+      || (this.plugin.settings.languages.type === 'multi' && !!this.plugin.settings.languages.mainLanguage))
+
+    // Step 4: Path Configuration
     const pathStep = containerEl.createDiv('ginko-web-settings-step')
     pathStep.addClass('is-required')
 
     // Get current website path info for validation
     getWebsitePath(
       this.app.vault.adapter,
-      this.plugin.settings.websitePath.type,
-      this.plugin.settings.websitePath.customPath,
+      this.plugin.settings.paths.type,
+      this.plugin.settings.paths.websitePath,
     ).then((websitePathInfo) => {
       const hasPackageManager = !!websitePathInfo.runtime
 
       // Update the configuration status
       const isConfigured = websitePathInfo.status === 'valid' && hasPackageManager
-      if (this.plugin.settings.pathConfiguration.isConfigured !== isConfigured) {
-        this.plugin.settings.pathConfiguration.isConfigured = isConfigured
+      if (this.plugin.settings.paths.pathConfigured !== isConfigured) {
+        this.plugin.settings.paths.pathConfigured = isConfigured
         this.plugin.saveSettings()
       }
 
-      console.log('🔍 Path Step Status:', {
+      console.warn('Path Step Status:', {
         usage: this.plugin.settings.usage.isConfigured,
-        template: !!this.plugin.settings.websitePath.template,
-        pathConfigured: this.plugin.settings.pathConfiguration.isConfigured,
+        template: !!this.plugin.settings.paths.template,
+        pathConfigured: this.plugin.settings.paths.pathConfigured,
         hasPackageManager,
         websitePathStatus: websitePathInfo.status,
       })
 
       // Update the active/completed states
       const isPathStepActive = this.plugin.settings.usage.isConfigured
-        && !!this.plugin.settings.websitePath.template
+        && !!this.plugin.settings.paths.template
         && !isConfigured
 
       pathStep.toggleClass('is-active', isPathStepActive)
@@ -496,7 +593,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     // Step Header
     const pathHeader = pathStep.createDiv('ginko-web-settings-step-header')
     const pathNumber = pathHeader.createDiv('ginko-web-settings-step-number')
-    pathNumber.setText('3')
+    pathNumber.setText('4')
     pathHeader.createDiv('ginko-web-settings-step-title').setText('Path Configuration')
 
     // Step Content
@@ -509,7 +606,6 @@ export class GinkoWebSettingTab extends PluginSettingTab {
       text: '📖 Learn more about path configuration',
       href: 'https://ginko.build/docs/setup/paths',
       cls: 'ginko-web-settings-learn-link',
-      target: '_blank',
     })
 
     // Path Type Selection
@@ -520,13 +616,13 @@ export class GinkoWebSettingTab extends PluginSettingTab {
         .addOption('none', 'Choose location...')
         .addOption('standard', 'Standard (Next to vault)')
         .addOption('custom', 'Custom Path')
-        .setValue(this.plugin.settings.websitePath.type)
+        .setValue(this.plugin.settings.paths.type)
         .onChange(async (value) => {
           await this.handlePathTypeChange(value, pathContent)
         }))
 
     // Show custom path options if custom is selected
-    if (this.plugin.settings.websitePath.type === 'custom') {
+    if (this.plugin.settings.paths.type === 'custom') {
       const customPathSetting = new Setting(pathContent)
         .setClass('ginko-web-settings-indent')
         .setName('Custom Path')
@@ -537,8 +633,8 @@ export class GinkoWebSettingTab extends PluginSettingTab {
             await this.handleFolderSelection(pathContent)
           }))
 
-      if (this.plugin.settings.websitePath.customPath) {
-        customPathSetting.setDesc(this.plugin.settings.websitePath.customPath)
+      if (this.plugin.settings.paths.websitePath) {
+        customPathSetting.setDesc(this.plugin.settings.paths.websitePath)
       }
     }
 
@@ -549,17 +645,17 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     // Update paths display
     this.updatePathsDisplay(pathsInfo)
 
-    // Step 4: Content Inclusion
+    // Step 5: Content Inclusion
     const inclusionStep = containerEl.createDiv('ginko-web-settings-step')
     inclusionStep.addClass('is-optional')
-    inclusionStep.toggleClass('is-active', this.plugin.settings.pathConfiguration.isConfigured
+    inclusionStep.toggleClass('is-active', this.plugin.settings.paths.pathConfigured
       && (!this.plugin.settings.exclusions.ignoredFolders || !this.plugin.settings.exclusions.ignoredFiles))
     inclusionStep.toggleClass('is-completed', !!this.plugin.settings.exclusions.ignoredFolders || !!this.plugin.settings.exclusions.ignoredFiles)
 
     // Step Header
     const inclusionHeader = inclusionStep.createDiv('ginko-web-settings-step-header')
     const inclusionNumber = inclusionHeader.createDiv('ginko-web-settings-step-number')
-    inclusionNumber.setText('4')
+    inclusionNumber.setText('5')
     inclusionHeader.createDiv('ginko-web-settings-step-title').setText('Content Settings')
 
     // Step Content
@@ -597,17 +693,17 @@ export class GinkoWebSettingTab extends PluginSettingTab {
           await this.plugin.saveSettings()
         }))
 
-    // Step 5: Utilities Setup
+    // Step 6: Utilities Setup
     const utilitiesStep = containerEl.createDiv('ginko-web-settings-step')
     utilitiesStep.addClass('is-optional')
-    utilitiesStep.toggleClass('is-active', this.plugin.settings.pathConfiguration.isConfigured
+    utilitiesStep.toggleClass('is-active', this.plugin.settings.paths.pathConfigured
       && Object.values(this.plugin.settings.utilities).every(v => !v))
     utilitiesStep.toggleClass('is-completed', Object.values(this.plugin.settings.utilities).some(v => v))
 
     // Step Header
     const utilitiesHeader = utilitiesStep.createDiv('ginko-web-settings-step-header')
     const utilitiesNumber = utilitiesHeader.createDiv('ginko-web-settings-step-number')
-    utilitiesNumber.setText('5')
+    utilitiesNumber.setText('6')
     utilitiesHeader.createDiv('ginko-web-settings-step-title').setText('Optional Utilities')
 
     // Step Content

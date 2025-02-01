@@ -4,8 +4,8 @@ import { Notice, Plugin, setIcon, TFile } from 'obsidian'
 import { useFileType } from './composables/useFileType'
 import { initializeGinkoProcessor, useGinkoProcessor } from './composables/useGinkoProcessor'
 import { CacheService } from './processor/services/CacheService'
-import { DEFAULT_SETTINGS, GinkoWebSettingTab } from './settings/settings'
-import { isSetupComplete } from './settings/settingsTypes'
+import { GinkoWebSettingTab } from './settings/settings'
+import { DEFAULT_SETTINGS, ensureSettingsInitialized, isSetupComplete } from './settings/settingsTypes'
 import { getWebsitePath } from './settings/settingsUtils'
 import { CURRENT_WELCOME_VERSION, WELCOME_VIEW_TYPE, WelcomeView } from './welcome/welcomeView'
 
@@ -13,9 +13,12 @@ import { CURRENT_WELCOME_VERSION, WELCOME_VIEW_TYPE, WelcomeView } from './welco
 
 export default class GinkoWebPlugin extends Plugin {
   settings: GinkoWebSettings
+  private statusBarItem: HTMLElement | null = null
 
   async onload() {
-    await this.loadSettings()
+    // Load and initialize settings
+    const loadedSettings = await this.loadData()
+    this.settings = ensureSettingsInitialized(loadedSettings || {})
 
     // Register the welcome view type
     this.registerView(
@@ -28,9 +31,15 @@ export default class GinkoWebPlugin extends Plugin {
 
     this.registerCommands()
 
-    // Add status bar item with configuration warning
-    const statusBarItemEl = this.addStatusBarItem()
-    statusBarItemEl.addClass('ginko-web-status-bar')
+    // Create a single status bar item
+    this.statusBarItem = this.addStatusBarItem()
+    this.statusBarItem.addClass('ginko-web-status-bar')
+
+    // Initial status bar update
+    await this.updateStatusBar()
+
+    // This adds a settings tab so the user can configure various aspects of the plugin
+    this.addSettingTab(new GinkoWebSettingTab(this.app, this))
 
     // Define click handler
     const openSettings = () => {
@@ -85,44 +94,6 @@ export default class GinkoWebPlugin extends Plugin {
         }),
       )
     })
-
-    // Update status bar based on configuration
-    const updateStatusBar = async () => {
-      statusBarItemEl.empty()
-      statusBarItemEl.removeEventListener('click', openSettings) // Remove old listener
-
-      // Get website path info to check for package manager
-      const websitePathInfo = await getWebsitePath(
-        this.app.vault.adapter,
-        this.settings.websitePath.type,
-        this.settings.websitePath.customPath,
-      )
-      const hasPackageManager = !!websitePathInfo.runtime
-
-      if (!isSetupComplete(this.settings, hasPackageManager)) {
-        const warningContainer = statusBarItemEl.createSpan({
-          cls: 'ginko-web-status-warning',
-        })
-        setIcon(warningContainer, 'alert-triangle')
-        warningContainer.createSpan({ text: ' Complete Ginko Web setup!' })
-
-        statusBarItemEl.style.cursor = 'pointer'
-        statusBarItemEl.addEventListener('click', openSettings) // Add new listener
-      }
-    }
-
-    // Initial status update
-    updateStatusBar()
-
-    // Update status when settings change
-    this.registerEvent(
-      this.app.workspace.on('ginko-web:settings-changed', () => {
-        updateStatusBar()
-      }),
-    )
-
-    // This adds a settings tab so the user can configure various aspects of the plugin
-    this.addSettingTab(new GinkoWebSettingTab(this.app, this))
   }
 
   /**
@@ -139,9 +110,10 @@ export default class GinkoWebPlugin extends Plugin {
   }
 
   async saveSettings() {
+    // Ensure settings are properly initialized before saving
+    this.settings = ensureSettingsInitialized(this.settings)
     await this.saveData(this.settings)
-    // Emit settings changed event to update UI
-    this.app.workspace.trigger('ginko-web:settings-changed')
+    await this.updateStatusBar()
   }
 
   async activateWelcomeView(forceShow = false) {
@@ -230,5 +202,41 @@ export default class GinkoWebPlugin extends Plugin {
 
       element.addClass('my-plugin-ribbon-class')
     })
+  }
+
+  private async updateStatusBar() {
+    if (!this.statusBarItem)
+      return
+
+    // Clear existing content
+    this.statusBarItem.empty()
+
+    // Ensure settings are properly initialized before checking status
+    const settings = ensureSettingsInitialized(this.settings)
+
+    // Get website path info to check for package manager
+    const websitePathInfo = await getWebsitePath(
+      this.app.vault.adapter,
+      settings.paths.type,
+      settings.paths.websitePath,
+    )
+    const hasPackageManager = !!websitePathInfo.runtime
+
+    if (!isSetupComplete(settings, hasPackageManager)) {
+      const warningContainer = this.statusBarItem.createSpan({
+        cls: 'ginko-web-status-warning',
+      })
+      setIcon(warningContainer, 'alert-triangle')
+      warningContainer.createSpan({ text: ' Complete Ginko Web setup!' })
+
+      this.statusBarItem.style.cursor = 'pointer'
+
+      // Remove any existing click listeners before adding a new one
+      const openSettings = () => {
+        this.app.setting.open()
+        this.app.setting.openTabById('ginko-web')
+      }
+      this.statusBarItem.onclick = openSettings
+    }
   }
 }

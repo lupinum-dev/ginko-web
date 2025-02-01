@@ -810,3 +810,52 @@
   background: var(--interactive-accent-hover);
   transform: translateY(-1px);
 }
+
+.ginko-web-settings-language-mode {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.ginko-web-settings-language-button {
+  flex: 1;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--background-modifier-border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ginko-web-settings-language-button:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.ginko-web-settings-language-button.is-selected {
+  border-color: var(--interactive-accent);
+  background-color: var(--interactive-accent-hover);
+}
+
+.ginko-web-settings-language-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.ginko-web-settings-language-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.ginko-web-settings-language-description {
+  font-size: 0.9em;
+  color: var(--text-muted);
+}
+
+.ginko-web-settings-helper-text {
+  font-size: 0.85em;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: var(--background-secondary);
+  border-radius: 4px;
+  line-height: 1.4;
+}

@@ -73,7 +73,7 @@ export async function checkVaultFolder(path: string): Promise<boolean> {
     await fs.stat(`${path}/.obsidian`)
     return true
   }
-  catch (error) {
+  catch (_error) {
     return false
   }
 }
@@ -90,7 +90,7 @@ export async function getWebsitePath(
     return { path: '<Not configured>', status: 'error' }
 
   let websitePath: string
-  const vaultPath = adapter.getBasePath()
+  const vaultPath = (adapter as any).basePath || ''
 
   if (websitePathType === 'standard') {
     websitePath = vaultPath.split('/').slice(0, -2).join('/') // Go up two levels

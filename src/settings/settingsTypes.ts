@@ -39,6 +39,7 @@ export interface GinkoWebSettings {
     pathConfigured: boolean
   }
   languages: {
+    type: 'none' | 'single' | 'multi'
     multipleLanguages: boolean
     mainLanguage: string
   }
@@ -55,13 +56,6 @@ export interface PathValidationStatus {
 }
 
 export function validatePathConfiguration(settings: GinkoWebSettings, hasPackageManager: boolean): PathValidationStatus {
-  console.log('🔍 validatePathConfiguration called:', {
-    type: settings.websitePath.type,
-    customPath: settings.websitePath.customPath,
-    pathType: settings.websitePath.pathType,
-    hasPackageManager,
-  })
-
   const status = {
     isValid: false,
     hasPackageManager,
@@ -69,33 +63,30 @@ export function validatePathConfiguration(settings: GinkoWebSettings, hasPackage
   }
 
   // First check if we have a valid type selected
-  if (settings.websitePath.type === 'none') {
-    settings.pathConfiguration.isConfigured = false
+  if (settings.paths.type === 'none') {
+    settings.paths.pathConfigured = false
     status.message = 'Please select a website location'
-    console.log('❌ Path validation - none type:', status)
     return status
   }
 
   // For standard path, check if package manager is detected
-  if (settings.websitePath.type === 'standard') {
+  if (settings.paths.type === 'standard') {
     status.isValid = hasPackageManager
     status.message = hasPackageManager
       ? '✓ Configuration valid - Ready to use Ginko'
       : '⚠ Website folder found but no package manager detected'
 
-    // Update the isConfigured flag
-    settings.pathConfiguration.isConfigured = status.isValid
-    console.log('🔍 Path validation - standard path:', status)
+    // Update the pathConfigured flag
+    settings.paths.pathConfigured = status.isValid
     return status
   }
 
-  // For custom path, check if both path and type are set and package manager is detected
-  if (settings.websitePath.type === 'custom') {
-    // Check if we have all required fields
-    if (!settings.websitePath.customPath || !settings.websitePath.pathType) {
-      settings.pathConfiguration.isConfigured = false
+  // For custom path, check if path is set and package manager is detected
+  if (settings.paths.type === 'custom') {
+    // Check if we have the required websitePath
+    if (!settings.paths.websitePath) {
+      settings.paths.pathConfigured = false
       status.message = 'Please complete the custom path configuration'
-      console.log('❌ Path validation - incomplete custom path:', status)
       return status
     }
 
@@ -105,15 +96,13 @@ export function validatePathConfiguration(settings: GinkoWebSettings, hasPackage
       ? '✓ Configuration valid - Ready to use Ginko'
       : '⚠ Website folder found but no package manager detected'
 
-    // Update the isConfigured flag
-    settings.pathConfiguration.isConfigured = status.isValid
-    console.log('🔍 Path validation - custom path:', status)
+    // Update the pathConfigured flag
+    settings.paths.pathConfigured = status.isValid
     return status
   }
 
   // If we get here, something is wrong with the configuration
-  settings.pathConfiguration.isConfigured = false
-  console.log('❌ Path validation - invalid configuration:', status)
+  settings.paths.pathConfigured = false
   return status
 }
 
@@ -121,42 +110,56 @@ export function isPathConfigurationValid(settings: GinkoWebSettings, hasPackageM
   return validatePathConfiguration(settings, hasPackageManager).isValid
 }
 
-export function isSetupComplete(settings: GinkoWebSettings, hasPackageManager = false): boolean {
-  // Check if required steps 1-3 are completed
-  return (
-    // Step 1: Usage is configured
-    settings.usage.isConfigured
-    // Step 2: Framework is selected
-    && !!settings.websitePath.template
-    // Step 3: Path is configured, valid, and has package manager
-    && isPathConfigurationValid(settings, hasPackageManager)
-  )
-  // Steps 4 and 5 are optional and not required for setup completion
+/**
+ * Ensures all required settings fields are initialized
+ */
+export function ensureSettingsInitialized(settings: Partial<GinkoWebSettings>): GinkoWebSettings {
+  return {
+    usage: {
+      type: settings.usage?.type ?? null,
+      isConfigured: settings.usage?.isConfigured ?? false,
+      licenseKey: settings.usage?.licenseKey,
+    },
+    utilities: {
+      debug: settings.utilities?.debug ?? false,
+      colocationFolder: settings.utilities?.colocationFolder ?? false,
+      linter: settings.utilities?.linter ?? false,
+    },
+    paths: {
+      type: settings.paths?.type ?? 'none',
+      websitePath: settings.paths?.websitePath ?? '',
+      vaultPath: settings.paths?.vaultPath ?? '',
+      template: settings.paths?.template ?? '',
+      packageManager: settings.paths?.packageManager ?? '',
+      pathConfigured: settings.paths?.pathConfigured ?? false,
+    },
+    languages: {
+      type: settings.languages?.type ?? 'none',
+      multipleLanguages: settings.languages?.multipleLanguages ?? false,
+      mainLanguage: settings.languages?.mainLanguage ?? '',
+    },
+    exclusions: {
+      ignoredFolders: settings.exclusions?.ignoredFolders ?? '',
+      ignoredFiles: settings.exclusions?.ignoredFiles ?? '',
+    },
+  }
 }
 
-export const DEFAULT_SETTINGS: GinkoWebSettings = {
-  usage: {
-    type: null,
-    isConfigured: false,
-  },
-  utilities: {
-    debug: false,
-    colocationFolder: false,
-    linter: false,
-  },
-  websitePath: {
-    type: 'none',
-    template: '',
-  },
-  languages: {
-    multipleLanguages: false,
-    mainLanguage: 'en',
-  },
-  exclusions: {
-    ignoredFolders: '',
-    ignoredFiles: '',
-  },
-  pathConfiguration: {
-    isConfigured: false,
-  },
+export const DEFAULT_SETTINGS: GinkoWebSettings = ensureSettingsInitialized({})
+
+export function isSetupComplete(settings: GinkoWebSettings, hasPackageManager = false): boolean {
+  // Ensure we have valid settings object
+  const validatedSettings = ensureSettingsInitialized(settings)
+
+  return (
+    // Step 1: Usage is configured
+    validatedSettings.usage.isConfigured
+    // Step 2: Framework is selected
+    && !!validatedSettings.paths.template
+    // Step 3: Language is configured
+    && validatedSettings.languages.type !== 'none'
+    && (validatedSettings.languages.type === 'single' || !!validatedSettings.languages.mainLanguage)
+    // Step 4: Path is configured, valid, and has package manager
+    && isPathConfigurationValid(validatedSettings, hasPackageManager)
+  )
 }
