@@ -1,5 +1,6 @@
+import type { Menu, TAbstractFile } from 'obsidian'
 import type { GinkoWebSettings } from './settings/settingsTypes'
-import { Notice, Plugin, setIcon } from 'obsidian'
+import { Notice, Plugin, setIcon, TFile } from 'obsidian'
 import { initializeGinkoProcessor, useGinkoProcessor } from './composables/useGinkoProcessor'
 import { initializeGinkoSettings, updateGinkoSettings } from './composables/useGinkoSettings'
 import { CacheService } from './processor/services/CacheService'
@@ -7,6 +8,7 @@ import { setupFileWatcher } from './processor/services/fileWatcher'
 import { GinkoWebSettingTab } from './settings/settings'
 import { DEFAULT_SETTINGS, ensureSettingsInitialized, isSetupComplete } from './settings/settingsTypes'
 import { getWebsitePath } from './settings/settingsUtils'
+import { createColocationFolder } from './tools/createColocationFolder'
 import { CURRENT_WELCOME_VERSION, WELCOME_VIEW_TYPE, WelcomeView } from './welcome/welcomeView'
 
 export default class GinkoWebPlugin extends Plugin {
@@ -40,6 +42,9 @@ export default class GinkoWebPlugin extends Plugin {
     // Initialize Ginko Processor
     initializeGinkoProcessor(this.app, this.settings, 'nuxt')
 
+    // Register file menu event
+    this.registerFileMenu()
+
     // File Watcher
     setupFileWatcher(this, this.app)
   }
@@ -62,6 +67,9 @@ export default class GinkoWebPlugin extends Plugin {
 
     // Update Ginko settings and processor
     updateGinkoSettings(this.settings)
+
+    // Re-register file menu to update based on utility settings
+    this.registerFileMenu()
 
     // Update status bar
     await this.updateStatusBar()
@@ -94,6 +102,27 @@ export default class GinkoWebPlugin extends Plugin {
         active: true,
       })
       workspace.revealLeaf(leaf)
+    }
+  }
+
+  private addColocationFolderMenuItem(menu: Menu, file: TAbstractFile) {
+    if (file instanceof TFile) {
+      menu.addItem((item) => {
+        item
+          .setTitle('Create colocation folder')
+          .setIcon('folder-plus')
+          .onClick(async () => {
+            try {
+              const folderPath = await createColocationFolder(this.app.vault, file.path)
+              // console.log(`Created colocation folder: ${folderPath}`);
+              new Notice(`Created colocation folder: ${folderPath}`)
+            }
+            catch (error) {
+              // console.log(`Error creating colocation folder: ${error.message}`);
+              new Notice(`Error: ${error.message}`)
+            }
+          })
+      })
     }
   }
 
@@ -188,6 +217,22 @@ export default class GinkoWebPlugin extends Plugin {
         this.app.setting.openTabById('ginko-web')
       }
       this.statusBarItem.onclick = openSettings
+    }
+  }
+
+  private registerFileMenu() {
+    // Remove any existing event handlers first
+    this.app.workspace.off('file-menu', this.handleFileMenu)
+
+    // Only register if the colocation folder utility is enabled
+    if (this.settings.utilities.colocationFolder) {
+      this.app.workspace.on('file-menu', this.handleFileMenu)
+    }
+  }
+
+  private handleFileMenu = (menu: Menu, file: TAbstractFile) => {
+    if (this.settings.utilities.colocationFolder) {
+      this.addColocationFolderMenuItem(menu, file)
     }
   }
 }
