@@ -93,15 +93,14 @@ export class GinkoProcessor {
       // Get all files from the vault
       const files = this.app.vault.getFiles()
 
-      console.log(`🔄 Checking files for ${type} rebuild. Found ${files.length} files`)
+
 
       // Process each file
       for (const file of files) {
         // Skip files in the target output directory
         if (file.path.startsWith(targetPath)) {
           if (type === 'all')
-            console.log(`⏭️ Skipping output file: ${file.path}`)
-          continue
+            continue
         }
 
         const fileType = detectFileType(file.path)
@@ -111,7 +110,6 @@ export class GinkoProcessor {
 
         if (shouldProcess) {
           await this.addTask(file.path, 'rebuild')
-          console.log(`${this.getLogEmoji(type)} Adding ${type} rebuild task for: ${file.path}`)
         }
       }
 

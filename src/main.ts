@@ -8,46 +8,37 @@ import { DEFAULT_SETTINGS, ensureSettingsInitialized, isSetupComplete } from './
 import { getWebsitePath } from './settings/settingsUtils'
 import { CURRENT_WELCOME_VERSION, WELCOME_VIEW_TYPE, WelcomeView } from './welcome/welcomeView'
 
-// Remember to rename these classes and interfaces!
-
 export default class GinkoWebPlugin extends Plugin {
   settings: GinkoWebSettings
   private statusBarItem: HTMLElement | null = null
 
   async onload() {
-    // Load and initialize settings
+    // Settings
     const loadedSettings = await this.loadData()
     this.settings = ensureSettingsInitialized(loadedSettings || {})
+    this.addSettingTab(new GinkoWebSettingTab(this.app, this))
 
-    // Register the welcome view type
+    // Welcome view
     this.registerView(
       WELCOME_VIEW_TYPE,
       leaf => new WelcomeView(leaf),
     )
-
-    // Show welcome view on first load
     await this.activateWelcomeView()
 
+    // Register Commands
     this.registerCommands()
 
-    // Create a single status bar item
+    // Status Bar
     this.statusBarItem = this.addStatusBarItem()
     this.statusBarItem.addClass('ginko-web-status-bar')
-
-    // Initial status bar update
     await this.updateStatusBar()
 
-    // This adds a settings tab so the user can configure various aspects of the plugin
-    this.addSettingTab(new GinkoWebSettingTab(this.app, this))
-
+    // Initialize Ginko Processor
     initializeGinkoProcessor(this.app, this.settings, 'nuxt')
 
+    // File Watcher
     setupFileWatcher(this, this.app)
   }
-
-  /**
-   * Registers editor extensions
-   */
 
   onunload() {
     // Unregister the welcome view type

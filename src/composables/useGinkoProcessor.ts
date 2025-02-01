@@ -17,9 +17,8 @@ export function initializeGinkoProcessor(
   framework: Framework = 'nuxt',
 ): GinkoProcessor {
   // Create new instance if none exists
-
-  console.log('🌟🌟🌟', settings)
   if (!ginkoContext.tryUse()) {
+    console.log('Initializing Ginko Processor with settings:', settings)
     const processor = new GinkoProcessor(app, settings, framework)
     ginkoContext.set(processor)
   }
