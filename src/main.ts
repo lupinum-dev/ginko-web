@@ -2,6 +2,7 @@ import type { GinkoWebSettings } from './settings/settingsTypes'
 import { Plugin, setIcon } from 'obsidian'
 import { DEFAULT_SETTINGS, GinkoWebSettingTab } from './settings/settings'
 import { isSetupComplete } from './settings/settingsTypes'
+import { getWebsitePath } from './settings/settingsUtils'
 import { CURRENT_WELCOME_VERSION, WELCOME_VIEW_TYPE, WelcomeView } from './welcome/welcomeView'
 
 // Remember to rename these classes and interfaces!
@@ -26,11 +27,20 @@ export default class GinkoWebPlugin extends Plugin {
     statusBarItemEl.addClass('ginko-web-status-bar')
 
     // Update status bar based on configuration
-    const updateStatusBar = () => {
+    const updateStatusBar = async () => {
       statusBarItemEl.empty()
       statusBarItemEl.removeEventListener('click', openSettings) // Remove old listener
 
-      if (!isSetupComplete(this.settings)) {
+      // Get website path info to check for package manager
+      const websitePathInfo = await getWebsitePath(
+        this.app.vault.adapter,
+        this.settings.websitePath.type,
+        this.settings.websitePath.customPath,
+        this.settings.websitePath.pathType,
+      )
+      const hasPackageManager = !!websitePathInfo.runtime
+
+      if (!isSetupComplete(this.settings, hasPackageManager)) {
         const warningContainer = statusBarItemEl.createSpan({
           cls: 'ginko-web-status-warning',
         })
@@ -39,14 +49,6 @@ export default class GinkoWebPlugin extends Plugin {
 
         statusBarItemEl.style.cursor = 'pointer'
         statusBarItemEl.addEventListener('click', openSettings) // Add new listener
-      }
-      else {
-        const successContainer = statusBarItemEl.createSpan({
-          cls: 'ginko-web-status-success',
-        })
-        setIcon(successContainer, 'check-circle')
-        successContainer.createSpan({ text: ' Ginko Web is ready!' })
-        statusBarItemEl.style.cursor = 'default'
       }
     }
 
@@ -61,7 +63,9 @@ export default class GinkoWebPlugin extends Plugin {
 
     // Update status when settings change
     this.registerEvent(
-      this.app.workspace.on('ginko-web:settings-changed', updateStatusBar),
+      this.app.workspace.on('ginko-web:settings-changed', () => {
+        updateStatusBar()
+      }),
     )
 
     // This adds a settings tab so the user can configure various aspects of the plugin
