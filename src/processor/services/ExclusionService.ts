@@ -1,5 +1,4 @@
 import type { GinkoWebSettings } from '../../settings/settingsTypes'
-import * as nodePath from 'node:path'
 import { minimatch } from 'minimatch'
 
 export class ExclusionService {
@@ -30,20 +29,20 @@ export class ExclusionService {
     // Convert pattern to use forward slashes for consistency
     pattern = pattern.replace(/\\/g, '/')
 
-    // If pattern doesn't contain a slash, make it match anywhere in the path
-    if (!pattern.includes('/')) {
+    // If pattern doesn't contain a slash and doesn't start with **, make it match anywhere in the path
+    if (!pattern.includes('/') && !pattern.startsWith('**')) {
       pattern = `**/${pattern}`
     }
 
-    // If pattern is a directory and doesn't end with **, make it match all contents
-    if (!pattern.includes('.') && !pattern.endsWith('**')) {
+    // Only add /** suffix for directory patterns that don't have an extension or wildcard
+    if (!pattern.includes('.') && !pattern.includes('*') && !pattern.endsWith('**')) {
       pattern = `${pattern}/**`
     }
 
-    // Ensure star patterns are properly escaped and handled
+    // Ensure the pattern is properly formatted for minimatch
     if (pattern.includes('*')) {
-      // Replace single * with proper glob pattern
-      pattern = pattern.replace(/\*/g, '*')
+      // Remove any duplicate ** patterns
+      pattern = pattern.replace(/\*{2,}/g, '**')
     }
 
     return pattern
@@ -58,12 +57,12 @@ export class ExclusionService {
       dot: true, // Match dotfiles
       nobrace: true, // Disable brace expansion
       nocase: true, // Case insensitive matching
+      matchBase: true, // Allow matching basename of filepath
     }
 
     // Check file patterns first
     for (const pattern of this.ignoredFilePatterns) {
       if (minimatch(filePath, pattern, matchOptions)) {
-        console.warn(`File excluded by pattern "${pattern}": ${filePath}`)
         return true
       }
     }
@@ -71,7 +70,6 @@ export class ExclusionService {
     // Then check folder patterns
     for (const pattern of this.ignoredFolderPatterns) {
       if (minimatch(filePath, pattern, matchOptions)) {
-        console.warn(`File excluded by folder pattern "${pattern}": ${filePath}`)
         return true
       }
     }
@@ -82,7 +80,6 @@ export class ExclusionService {
       const partialPath = segments.slice(0, i + 1).join('/')
       for (const pattern of this.ignoredFolderPatterns) {
         if (minimatch(partialPath, pattern, matchOptions)) {
-          console.warn(`File excluded by partial path match "${pattern}": ${filePath}`)
           return true
         }
       }
