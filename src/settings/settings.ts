@@ -62,6 +62,13 @@ export class GinkoWebSettingTab extends PluginSettingTab {
 
     // Vault Path Section
     const vaultPath = (this.app.vault.adapter as any).getBasePath()
+
+    // Automatically update vault path in settings if it's not set or different
+    if (!this.plugin.settings.paths.vaultPath || this.plugin.settings.paths.vaultPath !== vaultPath) {
+      this.plugin.settings.paths.vaultPath = vaultPath
+      await this.plugin.saveSettings()
+    }
+
     const isObsidianVault = await checkVaultFolder(vaultPath)
 
     // Website Path Section
