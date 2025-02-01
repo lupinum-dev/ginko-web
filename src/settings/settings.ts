@@ -311,6 +311,19 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     personalOption.createDiv('ginko-web-settings-usage-description')
       .setText('For individual use and personal projects')
 
+    // Add feature list for Personal
+    const personalFeatures = personalOption.createDiv('ginko-web-settings-usage-features')
+    const personalList = personalFeatures.createEl('ul')
+    const personalFeatureItems = [
+      'All core features',
+      'Community support',
+      'Unlimited personal sites',
+    ]
+    personalFeatureItems.forEach((feature) => {
+      const li = personalList.createEl('li')
+      li.setText(feature)
+    })
+
     // Commercial Usage Option
     const commercialOption = usageOptions.createDiv('ginko-web-settings-usage-option')
     commercialOption.toggleClass('is-selected', this.plugin.settings.usage.type === 'commercial')
@@ -318,6 +331,20 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     commercialOption.createDiv('ginko-web-settings-usage-title').setText('Commercial')
     commercialOption.createDiv('ginko-web-settings-usage-description')
       .setText('For business and commercial use')
+
+    // Add feature list for Commercial
+    const commercialFeatures = commercialOption.createDiv('ginko-web-settings-usage-features')
+    const commercialList = commercialFeatures.createEl('ul')
+    const commercialFeatureItems = [
+      'All core features',
+      'Unlimited commercial sites',
+      'Access to Screencasts',
+      'Basic Support',
+    ]
+    commercialFeatureItems.forEach((feature) => {
+      const li = commercialList.createEl('li')
+      li.setText(feature)
+    })
 
     // License Key Input
     const licenseInput = stepContent.createDiv('ginko-web-settings-license-input')

@@ -589,6 +589,41 @@
 .ginko-web-settings-usage-description {
   font-size: 0.9em;
   opacity: 0.8;
+  margin-bottom: 1rem;
+}
+
+.ginko-web-settings-usage-features {
+  text-align: left;
+  padding: 0 1rem;
+}
+
+.ginko-web-settings-usage-features ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ginko-web-settings-usage-features li {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.9em;
+  color: var(--text-muted);
+}
+
+.ginko-web-settings-usage-features li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--text-accent);
+}
+
+.ginko-web-settings-usage-option.is-selected .ginko-web-settings-usage-features li {
+  color: var(--text-on-accent);
+}
+
+.ginko-web-settings-usage-option.is-selected .ginko-web-settings-usage-features li::before {
+  color: var(--text-on-accent);
 }
 
 .ginko-web-settings-license-input {
