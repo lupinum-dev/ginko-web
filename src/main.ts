@@ -1,6 +1,7 @@
 import type { GinkoWebSettings } from './settings/settingsTypes'
 import { Notice, Plugin, setIcon } from 'obsidian'
 import { initializeGinkoProcessor, useGinkoProcessor } from './composables/useGinkoProcessor'
+import { initializeGinkoSettings, updateGinkoSettings } from './composables/useGinkoSettings'
 import { CacheService } from './processor/services/CacheService'
 import { setupFileWatcher } from './processor/services/fileWatcher'
 import { GinkoWebSettingTab } from './settings/settings'
@@ -17,6 +18,9 @@ export default class GinkoWebPlugin extends Plugin {
     const loadedSettings = await this.loadData()
     this.settings = ensureSettingsInitialized(loadedSettings || {})
     this.addSettingTab(new GinkoWebSettingTab(this.app, this))
+
+    // Initialize Ginko Settings
+    initializeGinkoSettings(this.settings)
 
     // Welcome view
     this.registerView(
@@ -52,7 +56,14 @@ export default class GinkoWebPlugin extends Plugin {
   async saveSettings() {
     // Ensure settings are properly initialized before saving
     this.settings = ensureSettingsInitialized(this.settings)
+
+    // Save to disk
     await this.saveData(this.settings)
+
+    // Update Ginko settings and processor
+    updateGinkoSettings(this.settings)
+
+    // Update status bar
     await this.updateStatusBar()
   }
 

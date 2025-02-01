@@ -31,6 +31,7 @@
     "@codemirror/view": "^6.36.1",
     "gray-matter": "^4.0.3",
     "image-meta": "^0.2.1",
+    "minimatch": "^9.0.0",
     "nanoid": "^5.0.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

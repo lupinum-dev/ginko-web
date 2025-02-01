@@ -2,9 +2,12 @@ import type { App } from 'obsidian'
 import type { GinkoWebSettings } from '../../settings/settingsTypes'
 import type { Framework } from '../../types/framework'
 import type { FileAction } from '../../types/ginko'
+import { Notice } from 'obsidian'
 import { useFileType } from '../../composables/useFileType'
+import { isSetupComplete } from '../../settings/settingsTypes'
 import { BatchProcessor } from './BatchProcessor'
 import { CacheService } from './CacheService'
+import { ExclusionService } from './ExclusionService'
 import { FileSystemService } from './FileSystemService'
 import { FileTypeDetector } from './FileTypeDetector'
 import { TaskQueue } from './TaskQueue'
@@ -20,6 +23,7 @@ export class GinkoProcessor {
   private batchProcessor: BatchProcessor
   private cacheService: CacheService
   private fileSystemService: FileSystemService
+  private exclusionService: ExclusionService
 
   constructor(
     private app: App,
@@ -31,9 +35,45 @@ export class GinkoProcessor {
     this.batchProcessor = new BatchProcessor(this.taskQueue, framework)
     this.cacheService = new CacheService()
     this.fileSystemService = new FileSystemService()
+    this.exclusionService = new ExclusionService(settings)
+  }
+
+  /**
+   * Update the processor's settings and all dependent services
+   */
+  public updateSettings(settings: GinkoWebSettings): void {
+    // Deep copy the settings to avoid reference issues
+    this.settings = JSON.parse(JSON.stringify(settings))
+
+    // Update dependent services
+    this.exclusionService.updatePatterns(this.settings)
+  }
+
+  private showNotice(message: string): void {
+    const notice = new Notice(message)
+    notice.noticeEl.addClass('ginko-web-notice')
   }
 
   public addTask(path: string, action: FileAction, oldPath?: string): void {
+    // Check if Ginko is properly configured
+    if (!isSetupComplete(this.settings)) {
+      console.warn('Ginko is not fully configured. Skipping file processing.')
+      this.showNotice('⚠️ Ginko is not fully configured. Please complete the setup in settings.')
+      return
+    }
+
+    // Skip if path is excluded
+    if (this.exclusionService.isExcluded(path)) {
+      console.warn(`Skipping excluded path: ${path}`)
+      return
+    }
+
+    // For rename operations, also check if the old path was excluded
+    if (action === 'rename' && oldPath && this.exclusionService.isExcluded(oldPath)) {
+      console.warn(`Skipping rename for excluded path: ${oldPath} -> ${path}`)
+      return
+    }
+
     const fileType = this.fileTypeDetector.detectFileType(path)
     this.taskQueue.addTask({
       path,
@@ -75,6 +115,13 @@ export class GinkoProcessor {
 
   private async rebuildByType(type: RebuildType): Promise<void> {
     try {
+      // Check if Ginko is properly configured
+      if (!isSetupComplete(this.settings)) {
+        console.warn('Ginko is not fully configured. Skipping rebuild.')
+        this.showNotice('⚠️ Ginko is not fully configured. Please complete the setup in settings.')
+        return
+      }
+
       const { detectFileType } = useFileType()
 
       // Clear existing queue and cache if rebuilding all
@@ -85,10 +132,10 @@ export class GinkoProcessor {
       }
 
       // Get target path from settings
-      if (!this.settings.outputDirectoryPath) {
+      if (!this.settings.paths.outputDirectoryPath) {
         throw new Error('Output directory path is not set in settings.')
       }
-      const targetPath = this.settings.outputDirectoryPath
+      const targetPath = this.settings.paths.outputDirectoryPath
 
       // Get all files from the vault
       const files = this.app.vault.getFiles()
@@ -99,6 +146,12 @@ export class GinkoProcessor {
         if (file.path.startsWith(targetPath)) {
           if (type === 'all')
             continue
+        }
+
+        // Skip excluded files
+        if (this.exclusionService.isExcluded(file.path)) {
+          console.warn(`Skipping excluded path during rebuild: ${file.path}`)
+          continue
         }
 
         const fileType = detectFileType(file.path)

@@ -37,6 +37,7 @@ export interface GinkoWebSettings {
     template?: string
     packageManager?: string
     pathConfigured: boolean
+    outputDirectoryPath?: string
   }
   languages: {
     type: 'none' | 'single' | 'multi'
@@ -131,6 +132,7 @@ export function ensureSettingsInitialized(settings: Partial<GinkoWebSettings>): 
       template: settings.paths?.template ?? '',
       packageManager: settings.paths?.packageManager ?? '',
       pathConfigured: settings.paths?.pathConfigured ?? false,
+      outputDirectoryPath: settings.paths?.outputDirectoryPath ?? '',
     },
     languages: {
       type: settings.languages?.type ?? 'none',
@@ -149,7 +151,8 @@ export function isSetupComplete(settings: GinkoWebSettings, hasPackageManager = 
   // Ensure we have valid settings object
   const validatedSettings = ensureSettingsInitialized(settings)
 
-  return (
+  // Basic configuration checks
+  const basicConfigValid = (
     // Step 1: Usage is configured
     validatedSettings.usage.isConfigured
     // Step 2: Framework is selected
@@ -157,7 +160,20 @@ export function isSetupComplete(settings: GinkoWebSettings, hasPackageManager = 
     // Step 3: Language is configured
     && validatedSettings.languages.type !== 'none'
     && (validatedSettings.languages.type === 'single' || !!validatedSettings.languages.mainLanguage)
-    // Step 4: Path is configured, valid, and has package manager
-    && isPathConfigurationValid(validatedSettings, hasPackageManager)
+    // Step 4: Path is configured
+    && validatedSettings.paths.pathConfigured
   )
+
+  // If basic config is not valid, return false
+  if (!basicConfigValid) {
+    return false
+  }
+
+  // If we're in custom path mode, we need a valid website path
+  if (validatedSettings.paths.type === 'custom' && !validatedSettings.paths.websitePath) {
+    return false
+  }
+
+  // Package manager check is optional
+  return true
 }
