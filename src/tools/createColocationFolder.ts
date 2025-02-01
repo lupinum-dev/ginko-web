@@ -24,6 +24,37 @@ function slugify(text: string): string {
     .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
 }
 
+async function findNearestTemplate(vault: Vault, startPath: string): Promise<TFile | null> {
+  // Split the path into segments
+  const pathSegments = startPath.split('/')
+
+  // Try each path from most specific to least specific
+  while (pathSegments.length > 0) {
+    const currentPath = pathSegments.join('/')
+    const templatePath = `${currentPath}/_template.md`
+
+    console.log('Checking for template at:', templatePath)
+
+    const templateFile = vault.getAbstractFileByPath(templatePath)
+    if (templateFile instanceof TFile) {
+      console.log('Found template at:', templatePath)
+      return templateFile
+    }
+
+    // Remove the last segment and try again
+    pathSegments.pop()
+  }
+
+  // Check root level
+  const rootTemplate = vault.getAbstractFileByPath('_template.md')
+  if (rootTemplate instanceof TFile) {
+    console.log('Found template at root: _template.md')
+    return rootTemplate
+  }
+
+  return null
+}
+
 export async function createColocationFolder(
   vault: Vault,
   parentPath: string,
@@ -41,7 +72,6 @@ export async function createColocationFolder(
 
   // Generate UID and create folder name
   const uid = uuidv4().split('-')[0]
-  // Keep original title, just ensure the UID part is consistent
   const newFolderName = `${options.title} - ${uid}+`
   const newFolderPath = `${parent.path}/${newFolderName}`
 
@@ -56,6 +86,17 @@ export async function createColocationFolder(
     // Create the main folder
     await vault.createFolder(newFolderPath)
 
+    // Find template if enabled
+    let templateContent = `# ${options.title}\n\n`
+    if (options.useTemplate) {
+      const template = await findNearestTemplate(vault, parentPath)
+      if (template) {
+        templateContent = await vault.read(template)
+        // Replace any title in the template with our new title
+        templateContent = templateContent.replace(/^# .+$/m, `# ${options.title}`)
+      }
+    }
+
     // Create language-specific markdown files
     for (const langSlug of options.slugs) {
       if (langSlug.slug) {
@@ -63,13 +104,10 @@ export async function createColocationFolder(
         const mdFileName = `${slugifiedName}__${langSlug.code}.md`
         await vault.create(
           `${newFolderPath}/${mdFileName}`,
-          `# ${options.title}\n\n`, // Initial content with title
+          templateContent,
         )
       }
     }
-
-    // TODO: Handle template creation if options.useTemplate is true
-    // This would be implemented based on your template system
 
     return newFolderPath
   }
