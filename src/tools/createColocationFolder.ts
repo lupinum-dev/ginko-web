@@ -14,7 +14,60 @@ export interface ColocationFolderOptions {
   sourceFile?: {
     path: string
     language: string
+    overwriteContent: boolean
   }
+}
+
+function extractFrontmatter(content: string): { frontmatter: string | null, body: string } {
+  const fmRegex = /^---\n([\s\S]*?)\n---\n([\s\S]*)$/
+  const match = content.match(fmRegex)
+
+  if (match) {
+    return {
+      frontmatter: match[1],
+      body: match[2].trim(),
+    }
+  }
+
+  return {
+    frontmatter: null,
+    body: content.trim(),
+  }
+}
+
+function mergeFrontmatterAndContent(templateContent: string, sourceContent: string): string {
+  const template = extractFrontmatter(templateContent)
+  const source = extractFrontmatter(sourceContent)
+
+  // If template has no frontmatter, return source content
+  if (!template.frontmatter) {
+    return sourceContent
+  }
+
+  // If source has no frontmatter, add template's frontmatter
+  if (!source.frontmatter) {
+    return `---\n${template.frontmatter}\n---\n\n${source.body}`
+  }
+
+  // Merge frontmatter (template takes precedence for duplicate keys)
+  const sourceFM = Object.fromEntries(
+    source.frontmatter.split('\n')
+      .map(line => line.split(':').map(part => part.trim()))
+      .filter(parts => parts.length === 2),
+  )
+
+  const templateFM = Object.fromEntries(
+    template.frontmatter.split('\n')
+      .map(line => line.split(':').map(part => part.trim()))
+      .filter(parts => parts.length === 2),
+  )
+
+  const mergedFM = { ...sourceFM, ...templateFM }
+  const mergedFMString = Object.entries(mergedFM)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join('\n')
+
+  return `---\n${mergedFMString}\n---\n\n${source.body}`
 }
 
 function slugify(text: string): string {
@@ -119,7 +172,13 @@ export async function createColocationFolder(
         // Determine content for this file
         let fileContent = templateContent
         if (sourceContent && options.sourceFile?.language === langSlug.code) {
-          fileContent = sourceContent
+          if (options.sourceFile.overwriteContent) {
+            fileContent = templateContent
+          }
+          else {
+            // Merge template frontmatter with source content
+            fileContent = mergeFrontmatterAndContent(templateContent, sourceContent)
+          }
         }
 
         await vault.create(

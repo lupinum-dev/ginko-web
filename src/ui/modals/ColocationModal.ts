@@ -14,6 +14,7 @@ interface ColocationSettings {
   sourceFile?: {
     path: string
     language: string
+    overwriteContent: boolean
   }
 }
 
@@ -104,6 +105,7 @@ export class ColocationModal extends Modal {
             this.result.sourceFile = {
               path: this.existingFilePath!,
               language: value,
+              overwriteContent: false,
             }
 
             // Pre-fill the slug for the selected language
@@ -120,8 +122,21 @@ export class ColocationModal extends Modal {
           this.result.sourceFile = {
             path: this.existingFilePath!,
             language: this.settings.languages.mainLanguage,
+            overwriteContent: false,
           }
         })
+
+      // Add toggle for content overwrite
+      new Setting(contentEl)
+        .setName('Overwrite Content')
+        .setDesc('If enabled, will overwrite the content with the template. If disabled, will keep the original content.')
+        .addToggle(toggle => toggle
+          .setValue(false)
+          .onChange((value) => {
+            if (this.result.sourceFile) {
+              this.result.sourceFile.overwriteContent = value
+            }
+          }))
     }
 
     // Add separator for main language
