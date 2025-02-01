@@ -59,7 +59,6 @@ export class GinkoWebSettingTab extends PluginSettingTab {
   }
 
   private async updatePathsDisplay(pathsDiv: HTMLElement): Promise<void> {
-    console.log('🔄 updatePathsDisplay called')
     pathsDiv.empty()
     pathsDiv.createEl('h3', { text: 'Current Configuration' })
 
@@ -72,24 +71,14 @@ export class GinkoWebSettingTab extends PluginSettingTab {
       this.app.vault.adapter,
       this.plugin.settings.websitePath.type,
       this.plugin.settings.websitePath.customPath,
-      this.plugin.settings.websitePath.pathType,
     )
-    console.log('📊 websitePathInfo:', websitePathInfo)
 
     // Update configuration status
     const hasPackageManager = !!websitePathInfo.runtime
     const isConfigured = isObsidianVault && websitePathInfo.status === 'valid' && hasPackageManager
-    console.log('⚙️ Configuration status:', {
-      isObsidianVault,
-      websitePathStatus: websitePathInfo.status,
-      hasPackageManager,
-      isConfigured,
-      currentIsConfigured: this.plugin.settings.pathConfiguration.isConfigured,
-    })
 
     // Only update the configuration status, don't trigger a display refresh
     if (this.plugin.settings.pathConfiguration.isConfigured !== isConfigured) {
-      console.log('🔄 Updating configuration status:', isConfigured)
       this.plugin.settings.pathConfiguration.isConfigured = isConfigured
       await this.plugin.saveSettings()
     }
@@ -150,7 +139,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     }
     else if (websitePathInfo.status === 'warning') {
       statusDiv.createDiv({
-        text: '⚠ Website folder found but no package manager detected',
+        text: '⚠ Folder found but no website detected!',
         cls: 'ginko-web-settings-status-message mod-warning',
       })
     }
@@ -164,12 +153,10 @@ export class GinkoWebSettingTab extends PluginSettingTab {
 
   // Add method to handle website location changes
   private async handlePathTypeChange(value: string, pathContent: HTMLElement): Promise<void> {
-    console.log('🔄 Website Location changed:', value)
     this.plugin.settings.websitePath.type = value as 'none' | 'standard' | 'custom'
 
     // Reset path configuration when changing type
     if (value === 'none') {
-      console.log('🔄 Resetting path configuration')
       this.plugin.settings.pathConfiguration.isConfigured = false
     }
 
@@ -180,7 +167,6 @@ export class GinkoWebSettingTab extends PluginSettingTab {
       this.app.vault.adapter,
       this.plugin.settings.websitePath.type,
       this.plugin.settings.websitePath.customPath,
-      this.plugin.settings.websitePath.pathType,
     )
 
     // Update configuration status
@@ -216,25 +202,23 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     this.display()
   }
 
-  // Add new method to handle path type changes
-  private async handlePathTypeOptionChange(value: string, pathContent: HTMLElement): Promise<void> {
-    this.plugin.settings.websitePath.pathType = value as 'relative' | 'absolute'
-    await this.plugin.saveSettings()
+  // Add method to handle folder selection
+  private async handleFolderSelection(pathContent: HTMLElement): Promise<void> {
+    // Use Electron's dialog to select folder
+    const { dialog } = window.require('electron').remote
+    const result = await dialog.showOpenDialog({
+      properties: ['openDirectory'],
+      title: 'Select Website Folder',
+      buttonLabel: 'Select Folder',
+    })
 
-    // Update paths display
-    const pathsInfo = pathContent.querySelector('.ginko-web-settings-paths')
-    if (pathsInfo instanceof HTMLElement) {
-      await this.updatePathsDisplay(pathsInfo)
+    if (!result.canceled && result.filePaths.length > 0) {
+      await this.handleCustomPathChange(result.filePaths[0], pathContent)
     }
-
-    // Refresh display once
-    this.display()
   }
 
   display(): void {
-    console.log('🎨 Display called')
     const { containerEl } = this
-
     containerEl.empty()
 
     // Banner
@@ -243,6 +227,48 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     bannerDiv.createDiv('ginko-web-settings-title').setText('Ginko Web')
     bannerDiv.createDiv('ginko-web-settings-description')
       .setText('Enhance your notes with powerful block components')
+
+    // Step 0: Preparation
+    const preparationStep = containerEl.createDiv('ginko-web-settings-step is-preparation')
+
+    // Step Header
+    const prepStepHeader = preparationStep.createDiv('ginko-web-settings-step-header')
+    const prepStepNumber = prepStepHeader.createDiv('ginko-web-settings-step-number')
+    prepStepNumber.setText('0')
+    prepStepHeader.createDiv('ginko-web-settings-step-title').setText('Preparation')
+
+    // Step Content
+    const prepStepContent = preparationStep.createDiv('ginko-web-settings-step-content')
+    prepStepContent.createDiv('ginko-web-settings-step-description')
+      .setText('Before you begin, take a moment to prepare for a smooth setup experience')
+
+    // Documentation Section
+    const docsSection = prepStepContent.createDiv('ginko-web-settings-preparation-section')
+    const docsTitle = docsSection.createDiv('ginko-web-settings-preparation-title')
+    docsTitle.createSpan({ text: '📖' })
+    docsTitle.createSpan({ text: 'Read our Documentation' })
+    docsSection.createDiv('ginko-web-settings-preparation-content')
+      .setText('Ginko Web once setup is a breeze to use. To avoid any mistakes during setup, please refer to our documentation.')
+    const docsLink = docsSection.createEl('a', {
+      cls: 'ginko-web-settings-preparation-button',
+      href: 'https://ginko.build/docs/ginko-web/getting-started',
+    })
+    docsLink.createSpan({ text: '📚' })
+    docsLink.createSpan({ text: 'View Documentation' })
+
+    // Discord Section
+    const discordSection = prepStepContent.createDiv('ginko-web-settings-preparation-section')
+    const discordTitle = discordSection.createDiv('ginko-web-settings-preparation-title')
+    discordTitle.createSpan({ text: '💬' })
+    discordTitle.createSpan({ text: 'Join our Community' })
+    discordSection.createDiv('ginko-web-settings-preparation-content')
+      .setText('Join our Discord community for news, updates, and support. Get help from other users and stay up to date with the latest developments.')
+    const discordLink = discordSection.createEl('a', {
+      cls: 'ginko-web-settings-preparation-button',
+      href: 'https://ginko.build/discord',
+    })
+    discordLink.createSpan({ text: '🎮' })
+    discordLink.createSpan({ text: 'Join Discord' })
 
     // Step 1: Usage Selection
     const usageStep = containerEl.createDiv('ginko-web-settings-step')
@@ -306,7 +332,6 @@ export class GinkoWebSettingTab extends PluginSettingTab {
           this.plugin.settings.usage.licenseKey = value
           this.plugin.settings.usage.isConfigured = !!value
           await this.plugin.saveSettings()
-          this.display()
         }))
 
     // Event Listeners for Usage Options
@@ -408,7 +433,6 @@ export class GinkoWebSettingTab extends PluginSettingTab {
       this.app.vault.adapter,
       this.plugin.settings.websitePath.type,
       this.plugin.settings.websitePath.customPath,
-      this.plugin.settings.websitePath.pathType,
     ).then((websitePathInfo) => {
       const hasPackageManager = !!websitePathInfo.runtime
 
@@ -476,27 +500,19 @@ export class GinkoWebSettingTab extends PluginSettingTab {
 
     // Show custom path options if custom is selected
     if (this.plugin.settings.websitePath.type === 'custom') {
-      new Setting(pathContent)
-        .setClass('ginko-web-settings-indent')
-        .setName('Path Type')
-        .addDropdown(dropdown => dropdown
-          .addOption('relative', 'Relative to vault')
-          .addOption('absolute', 'Absolute path')
-          .setValue(this.plugin.settings.websitePath.pathType || 'relative')
-          .onChange(async (value) => {
-            await this.handlePathTypeOptionChange(value, pathContent)
-          }))
-
-      new Setting(pathContent)
+      const customPathSetting = new Setting(pathContent)
         .setClass('ginko-web-settings-indent')
         .setName('Custom Path')
-        .setDesc('Enter the path to your website folder')
-        .addText(text => text
-          .setPlaceholder('Enter path...')
-          .setValue(this.plugin.settings.websitePath.customPath || '')
-          .onChange(async (value) => {
-            await this.handleCustomPathChange(value, pathContent)
+        .setDesc('Select the folder for your website')
+        .addButton(button => button
+          .setButtonText('Select Folder')
+          .onClick(async () => {
+            await this.handleFolderSelection(pathContent)
           }))
+
+      if (this.plugin.settings.websitePath.customPath) {
+        customPathSetting.setDesc(this.plugin.settings.websitePath.customPath)
+      }
     }
 
     // Show current paths info

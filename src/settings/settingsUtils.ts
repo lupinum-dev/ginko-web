@@ -85,7 +85,6 @@ export async function getWebsitePath(
   adapter: DataAdapter,
   websitePathType: 'none' | 'standard' | 'custom',
   customPath?: string,
-  pathType?: 'relative' | 'absolute',
 ): Promise<WebsitePathInfo> {
   if (!websitePathType || websitePathType === 'none')
     return { path: '<Not configured>', status: 'error' }
@@ -100,9 +99,7 @@ export async function getWebsitePath(
     if (!customPath)
       return { path: '<Not set>', status: 'error' }
 
-    websitePath = pathType === 'relative'
-      ? resolve(vaultPath, customPath)
-      : customPath
+    websitePath = customPath
   }
 
   // Check if the folder exists and contains required files

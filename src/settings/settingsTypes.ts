@@ -33,7 +33,6 @@ export interface GinkoWebSettings {
   websitePath: {
     type: 'none' | 'standard' | 'custom'
     customPath?: string
-    pathType?: 'relative' | 'absolute'
     template?: string
   }
   languages: {
