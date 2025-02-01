@@ -8,6 +8,7 @@ import { setupFileWatcher } from './processor/services/fileWatcher'
 import { GinkoWebSettingTab } from './settings/settings'
 import { DEFAULT_SETTINGS, ensureSettingsInitialized, isSetupComplete } from './settings/settingsTypes'
 import { getWebsitePath } from './settings/settingsUtils'
+import { copyFrontmatter, hasCopiedFrontmatter, pasteFrontmatter } from './tools/copyFrontmatter'
 import { createColocationFolder } from './tools/createColocationFolder'
 import { CURRENT_WELCOME_VERSION, WELCOME_VIEW_TYPE, WelcomeView } from './welcome/welcomeView'
 
@@ -224,15 +225,73 @@ export default class GinkoWebPlugin extends Plugin {
     // Remove any existing event handlers first
     this.app.workspace.off('file-menu', this.handleFileMenu)
 
-    // Only register if the colocation folder utility is enabled
-    if (this.settings.utilities.colocationFolder) {
-      this.app.workspace.on('file-menu', this.handleFileMenu)
-    }
+    // Always register the menu handler - utility checks happen inside handleFileMenu
+    this.app.workspace.on('file-menu', this.handleFileMenu)
   }
 
   private handleFileMenu = (menu: Menu, file: TAbstractFile) => {
-    if (this.settings.utilities.colocationFolder) {
-      this.addColocationFolderMenuItem(menu, file)
+    if (file instanceof TFile) {
+      // Add colocation folder menu item if utility is enabled
+      if (this.settings.utilities.colocationFolder) {
+        this.addColocationFolderMenuItem(menu, file)
+      }
+
+      // Add frontmatter menu items if utility is enabled
+      if (this.settings.utilities.frontmatter && file.extension === 'md') {
+        // Add a separator
+        menu.addSeparator()
+
+        // Copy frontmatter
+        menu.addItem((item) => {
+          item
+            .setTitle('Copy frontmatter')
+            .setIcon('copy')
+            .onClick(async () => {
+              try {
+                await copyFrontmatter(this.app.vault, file.path)
+                new Notice('✓ Frontmatter copied')
+              }
+              catch (error) {
+                new Notice(`Error: ${error.message}`)
+              }
+            })
+        })
+
+        // Only show paste options if we have copied frontmatter
+        if (hasCopiedFrontmatter()) {
+          // Paste frontmatter (override)
+          menu.addItem((item) => {
+            item
+              .setTitle('Paste frontmatter (override)')
+              .setIcon('clipboard-paste')
+              .onClick(async () => {
+                try {
+                  await pasteFrontmatter(this.app.vault, file.path, 'override')
+                  new Notice('✓ Frontmatter pasted (override)')
+                }
+                catch (error) {
+                  new Notice(`Error: ${error.message}`)
+                }
+              })
+          })
+
+          // Paste frontmatter (smart)
+          menu.addItem((item) => {
+            item
+              .setTitle('Paste frontmatter (smart)')
+              .setIcon('clipboard-check')
+              .onClick(async () => {
+                try {
+                  await pasteFrontmatter(this.app.vault, file.path, 'smart')
+                  new Notice('✓ Frontmatter pasted (smart)')
+                }
+                catch (error) {
+                  new Notice(`Error: ${error.message}`)
+                }
+              })
+          })
+        }
+      }
     }
   }
 }

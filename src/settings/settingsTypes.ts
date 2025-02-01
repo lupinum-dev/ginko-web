@@ -28,6 +28,7 @@ export interface GinkoWebSettings {
     debug: boolean
     colocationFolder: boolean
     linter: boolean
+    frontmatter: boolean
     [key: string]: boolean
   }
   paths: {
@@ -125,6 +126,7 @@ export function ensureSettingsInitialized(settings: Partial<GinkoWebSettings>): 
       debug: settings.utilities?.debug ?? false,
       colocationFolder: settings.utilities?.colocationFolder ?? false,
       linter: settings.utilities?.linter ?? false,
+      frontmatter: settings.utilities?.frontmatter ?? false,
     },
     paths: {
       type: settings.paths?.type ?? 'none',

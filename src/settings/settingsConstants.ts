@@ -56,6 +56,15 @@ export const UTILITIES: Utility[] = [
     ],
   },
   {
+    id: 'frontmatter',
+    name: 'Frontmatter Tools',
+    description: 'Adds copy/paste frontmatter options to the file context menu.',
+    warning: '',
+    links: [
+      { text: 'Read our documentation', url: 'https://ginko.build/docs/utilities/frontmatter' },
+    ],
+  },
+  {
     id: 'linter',
     name: 'Linter',
     description: 'Utility which helps you to checks your files for errors.',
