@@ -6,7 +6,6 @@ import { ResetModal } from './resetModal'
 import { UTILITIES, WEBSITE_TEMPLATES } from './settingsConstants'
 import { DEFAULT_SETTINGS } from './settingsTypes'
 import { checkVaultFolder, getWebsitePath } from './settingsUtils'
-import { TemplatesModal } from './TemplatesModal'
 
 export { DEFAULT_SETTINGS }
 
@@ -360,15 +359,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     const frameworkSetting = new Setting(frameworkContent)
       .setName('Framework & Template')
       .setDesc('Choose a framework and template for your site')
-      .addButton(button => button
-        .setButtonText('🎨 Browse Templates')
-        .onClick(() => {
-          new TemplatesModal(this.app, this.plugin, async (templateId) => {
-            this.plugin.settings.websitePath.template = templateId
-            await this.plugin.saveSettings()
-            this.display()
-          }).open()
-        }))
+
       .addDropdown((dropdown) => {
         // Add default option
         dropdown.addOption('', 'Select a framework...')
@@ -383,7 +374,6 @@ export class GinkoWebSettingTab extends PluginSettingTab {
 
         // Style the dropdown options with icons
         const dropdownEl = dropdown.selectEl
-        dropdownEl.addClass('ginko-web-settings-framework-select')
 
         // Add icons to options
         dropdownEl.querySelectorAll('option').forEach((option) => {
