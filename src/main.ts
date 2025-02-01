@@ -42,12 +42,6 @@ export default class GinkoWebPlugin extends Plugin {
     // This adds a settings tab so the user can configure various aspects of the plugin
     this.addSettingTab(new GinkoWebSettingTab(this.app, this))
 
-    // Define click handler
-    const openSettings = () => {
-      this.app.setting.open()
-      this.app.setting.openTabById('ginko-web')
-    }
-
     initializeGinkoProcessor(this.app, this.settings, 'nuxt')
 
     setupFileWatcher(this, this.app)
