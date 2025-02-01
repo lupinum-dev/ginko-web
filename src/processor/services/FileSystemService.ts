@@ -1,9 +1,9 @@
-import type { GinkoSettings } from '../composables/useGinkoSettings'
+import type { GinkoWebSettings } from '../../settings/settingsTypes'
 import crypto from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import matter from 'gray-matter'
-import { useGinkoSettings } from '../composables/useGinkoSettings'
+import { useGinkoSettings } from '../../composables/useGinkoSettings'
 
 export class FileSystemService {
   async exists(filePath: string): Promise<boolean> {

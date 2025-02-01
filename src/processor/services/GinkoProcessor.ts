@@ -1,8 +1,8 @@
 import type { App } from 'obsidian'
-import type { GinkoSettings } from '../../utils/types'
-import type { Framework } from '../types/framework'
-import type { FileAction } from '../types/ginko'
-import { useFileType } from '../composables/useFileType'
+import type { GinkoWebSettings } from '../../settings/settingsTypes'
+import type { Framework } from '../../types/framework'
+import type { FileAction } from '../../types/ginko'
+import { useFileType } from '../../composables/useFileType'
 import { BatchProcessor } from './BatchProcessor'
 import { CacheService } from './CacheService'
 import { FileSystemService } from './FileSystemService'
@@ -23,7 +23,7 @@ export class GinkoProcessor {
 
   constructor(
     private app: App,
-    private settings: GinkoSettings,
+    private settings: GinkoWebSettings,
     framework: Framework = 'nuxt',
   ) {
     this.fileTypeDetector = new FileTypeDetector(framework)

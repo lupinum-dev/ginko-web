@@ -1,5 +1,5 @@
 import type { Framework } from '../types/framework'
-import { FileTypeDetector } from '../services/FileTypeDetector'
+import { FileTypeDetector } from '../processor/services/FileTypeDetector'
 
 let fileTypeDetector: FileTypeDetector | null = null
 

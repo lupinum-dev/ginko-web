@@ -1,16 +1,16 @@
-import type { GinkoSettings } from '../../utils/types'
+import type { GinkoWebSettings } from '../settings/settingsTypes'
 import { createContext } from 'unctx'
 
 // Create a context for GinkoSettings
-const settingsContext = createContext<GinkoSettings>()
+const settingsContext = createContext<GinkoWebSettings>()
 
 // Export the use function
 export const useGinkoSettings = settingsContext.use
 
 // Initialize function to be called once from main.ts
 export function initializeGinkoSettings(
-  settings: GinkoSettings,
-): GinkoSettings {
+  settings: GinkoWebSettings,
+): GinkoWebSettings {
   // Create new instance if none exists
   if (!settingsContext.tryUse()) {
     settingsContext.set(settings)
@@ -19,4 +19,4 @@ export function initializeGinkoSettings(
   return settingsContext.use()
 }
 
-export type { GinkoSettings }
+export type { GinkoWebSettings }

@@ -1,5 +1,9 @@
+import type { TAbstractFile } from 'obsidian'
 import type { GinkoWebSettings } from './settings/settingsTypes'
-import { Plugin, setIcon } from 'obsidian'
+import { Notice, Plugin, setIcon, TFile } from 'obsidian'
+import { useFileType } from './composables/useFileType'
+import { initializeGinkoProcessor, useGinkoProcessor } from './composables/useGinkoProcessor'
+import { CacheService } from './processor/services/CacheService'
 import { DEFAULT_SETTINGS, GinkoWebSettingTab } from './settings/settings'
 import { isSetupComplete } from './settings/settingsTypes'
 import { getWebsitePath } from './settings/settingsUtils'
@@ -22,6 +26,8 @@ export default class GinkoWebPlugin extends Plugin {
     // Show welcome view on first load
     await this.activateWelcomeView()
 
+    this.registerCommands()
+
     // Add status bar item with configuration warning
     const statusBarItemEl = this.addStatusBarItem()
     statusBarItemEl.addClass('ginko-web-status-bar')
@@ -31,6 +37,54 @@ export default class GinkoWebPlugin extends Plugin {
       this.app.setting.open()
       this.app.setting.openTabById('ginko-web')
     }
+
+    initializeGinkoProcessor(this.app, this.settings, 'nuxt')
+    const ginkoProcessor = useGinkoProcessor()
+
+    this.app.workspace.onLayoutReady(() => {
+      this.registerEvent(
+        this.app.vault.on('modify', (file: TAbstractFile) => {
+          // console.log('🟡 Modifying file:', file)
+          if (file instanceof TFile) {
+            ginkoProcessor.addTask(file.path, 'modify')
+          }
+        }),
+      )
+
+      this.registerEvent(
+        this.app.vault.on('rename', (file: TAbstractFile, oldPath: string) => {
+          if (file instanceof TFile) {
+            const { isSameFileType } = useFileType()
+
+            if (isSameFileType(file.path, oldPath)) {
+              // If file types are the same, process as a regular rename
+              ginkoProcessor.addTask(file.path, 'rename', oldPath)
+            }
+            else {
+              // If file types are different, process as a delete + create
+              ginkoProcessor.addTask(oldPath, 'delete')
+              ginkoProcessor.addTask(file.path, 'create')
+            }
+          }
+        }),
+      )
+
+      this.registerEvent(
+        this.app.vault.on('create', (file: TAbstractFile) => {
+          if (file instanceof TFile) {
+            ginkoProcessor.addTask(file.path, 'create')
+          }
+        }),
+      )
+
+      this.registerEvent(
+        this.app.vault.on('delete', (file: TAbstractFile) => {
+          if (file instanceof TFile) {
+            ginkoProcessor.addTask(file.path, 'delete')
+          }
+        }),
+      )
+    })
 
     // Update status bar based on configuration
     const updateStatusBar = async () => {
@@ -42,7 +96,6 @@ export default class GinkoWebPlugin extends Plugin {
         this.app.vault.adapter,
         this.settings.websitePath.type,
         this.settings.websitePath.customPath,
-        this.settings.websitePath.pathType,
       )
       const hasPackageManager = !!websitePathInfo.runtime
 
@@ -119,5 +172,63 @@ export default class GinkoWebPlugin extends Plugin {
       })
       workspace.revealLeaf(leaf)
     }
+  }
+
+  private registerCommands() {
+    // Create a function for the common processor initialization logic
+    const initializeProcessor = async () => {
+      try {
+        const ginkoProcessor = useGinkoProcessor()
+        await ginkoProcessor.rebuild()
+        new Notice('🟢 Processing completed')
+        // console.log('Processing completed for all vault files');
+      }
+      catch (error) {
+        console.error(`Error during processing: ${error.message}`)
+        new Notice(`❌ Processing failed: ${error.message}`)
+        throw error // Re-throw to maintain error propagation
+      }
+    }
+
+    // Add this type definition at the top of the file, after the imports
+    interface RibbonIcon {
+      id: string
+      name: string
+      handler?: () => Promise<void>
+    }
+
+    // Define ribbon icons with their specific configurations
+    const ribbonIcons: RibbonIcon[] = [
+      { id: 'upload', name: 'Ginko Process' },
+      {
+        id: 'database',
+        name: 'Export GinkoCache',
+        handler: async () => {
+          try {
+            const cacheService = new CacheService()
+            await cacheService.exportCacheToFile(this.app.vault)
+            new Notice('✅ Cache exported successfully!')
+          }
+          catch (error) {
+            console.error('Failed to export cache:', error)
+            new Notice('❌ Failed to export cache')
+          }
+        },
+      },
+    ]
+
+    // Create ribbon icons using the common configuration
+    ribbonIcons.forEach((icon) => {
+      const element = this.addRibbonIcon(icon.id, icon.name, (evt: MouseEvent) => {
+        if (icon.handler) {
+          icon.handler()
+        }
+        else {
+          initializeProcessor()
+        }
+      })
+
+      element.addClass('my-plugin-ribbon-class')
+    })
   }
 }
