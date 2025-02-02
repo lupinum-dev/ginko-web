@@ -1,9 +1,8 @@
 import type { GinkoWebSettings } from '../../../../composables/useGinkoSettings'
-import type { BatchedTask } from '../../../types/framework'
+import type { BatchedTask } from '../../../../types/framework'
 import type { ContentModifier } from '../markdownModifier'
 import type { FileHandler } from '../NuxtTaskProcessor'
-import path from 'node:path'
-import { useGinkoProcessor } from '../../../../composables/useGinkoProcessor'
+import * as path from 'node:path'
 import { useGinkoSettings } from '../../../../composables/useGinkoSettings'
 import { CacheService } from '../../../services/CacheService'
 import { FileSystemService } from '../../../services/FileSystemService'
@@ -145,6 +144,9 @@ export class MarkdownHandler implements FileHandler {
 
   private async copyToTarget(sourcePath: string, outputPath: string): Promise<void> {
     const settings = this.getSettings()
+    if (!settings.paths.websitePath) {
+      throw new Error('Website path is not configured')
+    }
     const targetPath = path.join(settings.paths.websitePath, outputPath)
 
     // Process markdown content before copying
@@ -156,8 +158,7 @@ export class MarkdownHandler implements FileHandler {
     console.warn('Processed and copied file to:', targetPath)
   }
 
-  async handle(actionType: string, sourcePath: string, oldPath?: string): Promise<void> {
-    const ginkoProcessor = useGinkoProcessor()
+  async handle(actionType: string, sourcePath: string): Promise<void> {
     const settings = this.getSettings()
 
     console.warn('Debug - Handle method called:', {

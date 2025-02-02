@@ -1,6 +1,6 @@
-import type { GinkoSettings } from '../../../../composables/useGinkoSettings'
+import type { GinkoWebSettings } from '../../../../settings/settingsTypes'
 import type { FileHandler } from '../NuxtTaskProcessor'
-import path from 'node:path'
+import * as path from 'node:path'
 import { useGinkoProcessor } from '../../../../composables/useGinkoProcessor'
 import { useGinkoSettings } from '../../../../composables/useGinkoSettings'
 import { CacheService } from '../../../services/CacheService'
@@ -124,12 +124,15 @@ export class MetaHandler implements FileHandler {
       }, [])
   }
 
-  async handle(actionType: string, sourcePath: string, oldPath?: string): Promise<void> {
-    const settings: GinkoSettings = useGinkoSettings()
+  async handle(actionType: string, sourcePath: string): Promise<void> {
+    const settings: GinkoWebSettings = useGinkoSettings()
     const ginkoProcessor = useGinkoProcessor()
 
     switch (actionType) {
       case 'rebuild': {
+        if (!settings.paths.vaultPath) {
+          throw new Error('Vault path is not configured')
+        }
         const fullPath = path.join(settings.paths.vaultPath, sourcePath)
         const { data: frontmatter } = await this.fileSystem.getFrontmatterContent(fullPath)
 
@@ -140,7 +143,7 @@ export class MetaHandler implements FileHandler {
         await this.addToCache(finalMetaObject)
 
         // Extract and process translations from frontmatter
-        const translations = this.extractTranslatedFields(frontmatter, settings.defaultLocale)
+        const translations = this.extractTranslatedFields(frontmatter, settings.languages.mainLanguage)
         // Create directory JSON files
         await this.createDirectoryJsonFiles(finalMetaObject, translations, settings)
         break
@@ -167,7 +170,7 @@ export class MetaHandler implements FileHandler {
   /**
    * Creates a meta object from a file at the given path
    */
-  private async createMetaObjectFromFile(sourcePath: string, frontmatter): Promise<MetaObject> {
+  private async createMetaObjectFromFile(sourcePath: string, frontmatter: Record<string, any>): Promise<MetaObject> {
     return this.createMetaObject(sourcePath, frontmatter)
   }
 
@@ -248,7 +251,7 @@ export class MetaHandler implements FileHandler {
   private async createDirectoryJsonFiles(
     finalMetaObject: MetaObject,
     translations: Record<string, Record<string, string>>,
-    settings: GinkoSettings,
+    settings: GinkoWebSettings,
   ): Promise<void> {
     const { slug } = finalMetaObject
 

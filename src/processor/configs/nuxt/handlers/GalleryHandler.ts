@@ -1,9 +1,9 @@
-import type { GinkoSettings } from '../../../../composables/useGinkoSettings'
+import type { GinkoWebSettings } from '../../../../settings/settingsTypes'
+import type { BatchedTask } from '../../../../types/framework'
 import type { GalleryItem } from '../../../services/CacheService'
-import type { BatchedTask } from '../../../types/ginko'
 import type { FileHandler } from '../NuxtTaskProcessor'
-import fs from 'node:fs/promises'
-import path from 'node:path'
+import * as fs from 'node:fs/promises'
+import * as path from 'node:path'
 import { imageMeta } from 'image-meta'
 import { useGinkoProcessor } from '../../../../composables/useGinkoProcessor'
 import { useGinkoSettings } from '../../../../composables/useGinkoSettings'
@@ -35,13 +35,16 @@ export class GalleryHandler implements FileHandler {
 
   async handle(actionType: string, sourceRelativePath: string, oldRelativePath?: string): Promise<void> {
     const ginkoProcessor = useGinkoProcessor()
-    const settings: GinkoSettings = useGinkoSettings()
+    const settings: GinkoWebSettings = useGinkoSettings()
 
     try {
       switch (actionType) {
         case 'create':
         case 'rebuild': {
           const { outputRelativePath, uid } = await this.fileSystem.getAssetOutputPath(sourceRelativePath)
+          if (!settings.paths.vaultPath || !settings.paths.websitePath) {
+            throw new Error('Vault path or website path is not configured')
+          }
           const sourcePath = path.join(settings.paths.vaultPath, sourceRelativePath)
           const targetPath = path.join(settings.paths.websitePath, outputRelativePath)
 
@@ -102,6 +105,9 @@ export class GalleryHandler implements FileHandler {
 
         case 'modify': {
           const { outputRelativePath, uid } = await this.fileSystem.getAssetOutputPath(sourceRelativePath)
+          if (!settings.paths.vaultPath || !settings.paths.websitePath) {
+            throw new Error('Vault path or website path is not configured')
+          }
           const sourcePath = path.join(settings.paths.vaultPath, sourceRelativePath)
           const targetPath = path.join(settings.paths.websitePath, outputRelativePath)
 
@@ -193,7 +199,10 @@ export class GalleryHandler implements FileHandler {
     if (batch.fileType !== 'galleryFile' && batch.fileType !== 'galleryFolder') {
       return
     }
-    const settings: GinkoSettings = useGinkoSettings()
+    const settings: GinkoWebSettings = useGinkoSettings()
+    if (!settings.paths.websitePath) {
+      throw new Error('Website path is not configured')
+    }
     const galleryOutputPath = path.join(settings.paths.websitePath, 'content/_galleries/')
 
     try {

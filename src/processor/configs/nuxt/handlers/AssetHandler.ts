@@ -11,8 +11,6 @@ import { FileSystemService } from '../../../services/FileSystemService'
 export class AssetHandler implements FileHandler {
   private fileSystem: FileSystemService
   private cacheService: CacheService
-  private outputBasePath: string
-  private sourceBasePath: string
 
   constructor() {
     this.fileSystem = new FileSystemService()
@@ -43,6 +41,9 @@ export class AssetHandler implements FileHandler {
         case 'create':
         case 'rebuild': {
           const { outputRelativePath, uid } = await this.fileSystem.getAssetOutputPath(sourceRelativePath)
+          if (!settings.paths.vaultPath || !settings.paths.websitePath) {
+            throw new Error('Vault path or website path is not configured')
+          }
           const sourcePath = path.join(settings.paths.vaultPath, sourceRelativePath)
 
           await this.fileSystem.copyFile(sourcePath, path.join(settings.paths.websitePath, outputRelativePath))
@@ -82,6 +83,9 @@ export class AssetHandler implements FileHandler {
           }
 
           const { outputRelativePath, uid } = await this.fileSystem.getAssetOutputPath(sourceRelativePath)
+          if (!settings.paths.vaultPath) {
+            throw new Error('Vault path is not configured')
+          }
           const sourcePath = path.join(settings.paths.vaultPath, sourceRelativePath)
 
           // Delete the old file
@@ -89,6 +93,9 @@ export class AssetHandler implements FileHandler {
           this.cacheService.removeCacheItem(sourceRelativePath)
 
           // Copy the new file
+          if (!settings.paths.websitePath) {
+            throw new Error('Website path is not configured')
+          }
           await this.fileSystem.copyFile(sourcePath, path.join(settings.paths.websitePath, outputRelativePath))
 
           // Get image dimensions before adding to cache

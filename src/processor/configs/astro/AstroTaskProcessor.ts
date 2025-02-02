@@ -6,7 +6,7 @@ export class AstroTaskProcessor implements TaskProcessor {
     console.log('🔵 Processing Astro task:', {
       action: batch.action,
       fileType: batch.fileType,
-      files: batch.files.map(f => f.path),
+      files: batch.files,
     })
 
     // Simulate different processing times for different file types

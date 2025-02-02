@@ -38,7 +38,7 @@ export class NuxtTaskProcessor implements TaskProcessor {
       // Sort meta files by path length - longest first for deletes, shortest first for other actions
       const filesToProcess = batch.fileType === 'meta'
         ? [...batch.files].sort((a, b) => a.length - b.length, // Shortest first for other actions
-        )
+          )
         : batch.files
 
       for (const path of filesToProcess) {
