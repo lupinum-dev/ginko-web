@@ -4,7 +4,6 @@ import type { GinkoScope } from './resetModal'
 import { PluginSettingTab, Setting } from 'obsidian'
 import { ResetModal } from './resetModal'
 import { UTILITIES, WEBSITE_TEMPLATES } from './settingsConstants'
-import { DEFAULT_SETTINGS } from './settingsTypes'
 import { checkVaultFolder, getWebsitePath } from './settingsUtils'
 
 // Declare the electron shell type
@@ -13,6 +12,9 @@ declare global {
     require: (module: 'electron') => {
       shell: {
         openPath: (path: string) => Promise<string>
+      }
+      dialog: {
+        showOpenDialog: (options: any) => Promise<{ canceled: boolean, filePaths: string[] }>
       }
     }
   }
@@ -210,7 +212,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
   // Add method to handle folder selection
   private async handleFolderSelection(pathContent: HTMLElement): Promise<void> {
     // Use Electron's dialog to select folder
-    const { dialog } = window.require('electron').remote
+    const { dialog } = window.require('electron')
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
       title: 'Select Website Folder',
@@ -303,7 +305,6 @@ export class GinkoWebSettingTab extends PluginSettingTab {
       text: '📖 Learn about licensing',
       href: 'https://ginko.build/docs/ginko-web/license',
       cls: 'ginko-web-settings-learn-link',
-      target: '_blank',
     })
 
     const usageOptions = stepContent.createDiv('ginko-web-settings-usage-options')
@@ -458,10 +459,10 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     const languageStep = containerEl.createDiv('ginko-web-settings-step')
     languageStep.addClass('is-required')
     languageStep.toggleClass('is-active', this.plugin.settings.usage.isConfigured
-      && !!this.plugin.settings.paths.template
-      && (this.plugin.settings.languages.type === 'none' || !this.plugin.settings.languages.mainLanguage))
+    && !!this.plugin.settings.paths.template
+    && (this.plugin.settings.languages.type === 'none' || !this.plugin.settings.languages.mainLanguage))
     languageStep.toggleClass('is-completed', this.plugin.settings.languages.type !== 'none'
-      && !!this.plugin.settings.languages.mainLanguage)
+    && !!this.plugin.settings.languages.mainLanguage)
 
     // Step Header
     const languageHeader = languageStep.createDiv('ginko-web-settings-step-header')
@@ -575,11 +576,11 @@ export class GinkoWebSettingTab extends PluginSettingTab {
 
     // Update step completion status based on type and language selection
     languageStep.toggleClass('is-active', this.plugin.settings.usage.isConfigured
-      && !!this.plugin.settings.paths.template
-      && (this.plugin.settings.languages.type === 'none'
-        || (this.plugin.settings.languages.type === 'multi' && !this.plugin.settings.languages.mainLanguage)))
+    && !!this.plugin.settings.paths.template
+    && (this.plugin.settings.languages.type === 'none'
+      || (this.plugin.settings.languages.type === 'multi' && !this.plugin.settings.languages.mainLanguage)))
     languageStep.toggleClass('is-completed', (this.plugin.settings.languages.type === 'single')
-      || (this.plugin.settings.languages.type === 'multi' && !!this.plugin.settings.languages.mainLanguage))
+    || (this.plugin.settings.languages.type === 'multi' && !!this.plugin.settings.languages.mainLanguage))
 
     // Step 4: Path Configuration
     const pathStep = containerEl.createDiv('ginko-web-settings-step')
@@ -674,7 +675,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     const inclusionStep = containerEl.createDiv('ginko-web-settings-step')
     inclusionStep.addClass('is-optional')
     inclusionStep.toggleClass('is-active', this.plugin.settings.paths.pathConfigured
-      && (!this.plugin.settings.exclusions.ignoredFolders || !this.plugin.settings.exclusions.ignoredFiles))
+    && (!this.plugin.settings.exclusions.ignoredFolders || !this.plugin.settings.exclusions.ignoredFiles))
     inclusionStep.toggleClass('is-completed', !!this.plugin.settings.exclusions.ignoredFolders || !!this.plugin.settings.exclusions.ignoredFiles)
 
     // Step Header
@@ -722,7 +723,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     const utilitiesStep = containerEl.createDiv('ginko-web-settings-step')
     utilitiesStep.addClass('is-optional')
     utilitiesStep.toggleClass('is-active', this.plugin.settings.paths.pathConfigured
-      && Object.values(this.plugin.settings.utilities).every(v => !v))
+    && Object.values(this.plugin.settings.utilities).every(v => !v))
     utilitiesStep.toggleClass('is-completed', Object.values(this.plugin.settings.utilities).some(v => v))
 
     // Step Header

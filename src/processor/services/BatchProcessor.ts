@@ -1,5 +1,5 @@
-import type { Framework } from '../types/framework'
-import type { BatchedTask } from '../types/ginko'
+import type { Framework } from '../../types/framework'
+import type { BatchedTask } from '../../types/ginko'
 import type { TaskQueue } from './TaskQueue'
 import { fileTypeProcessingOrder } from '../configs/nuxt/fileTypes'
 import { FrameworkService } from './FrameworkService'
@@ -8,7 +8,7 @@ export class BatchProcessor {
   constructor(
     private taskQueue: TaskQueue,
     private framework: Framework,
-  ) {}
+  ) { }
 
   public async processBatches(): Promise<void> {
     const batches = this.taskQueue.getBatchedTasks()
@@ -31,8 +31,8 @@ export class BatchProcessor {
 
   private sortBatchesByProcessingOrder(batches: BatchedTask[]): BatchedTask[] {
     return [...batches].sort((a, b) => {
-      const indexA = fileTypeProcessingOrder.indexOf(a.fileType)
-      const indexB = fileTypeProcessingOrder.indexOf(b.fileType)
+      const indexA = fileTypeProcessingOrder.indexOf(a.fileType as any)
+      const indexB = fileTypeProcessingOrder.indexOf(b.fileType as any)
       return indexA - indexB
     })
   }

@@ -33,7 +33,7 @@ export interface GinkoWebSettings {
     [key: string]: boolean
   }
   paths: {
-    type: 'none' | 'standard' | 'custom' | 'relative' | 'absolute'
+    type: 'none' | 'standard' | 'custom'
     websitePath?: string
     vaultPath?: string
     template?: string

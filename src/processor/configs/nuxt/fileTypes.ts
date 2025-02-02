@@ -7,7 +7,7 @@ export const fileTypeProcessingOrder = [
   'other',
 ] as const
 
-interface FileTypeCheck {
+export interface FileTypeCheck {
   type: string
   check: (path: string) => boolean
 }

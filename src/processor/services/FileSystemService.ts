@@ -1,8 +1,9 @@
+import type { Buffer } from 'node:buffer'
 import type { GinkoWebSettings } from '../../settings/settingsTypes'
-import crypto from 'node:crypto'
+import * as crypto from 'node:crypto'
 import { promises as fs } from 'node:fs'
-import path from 'node:path'
-import matter from 'gray-matter'
+import * as path from 'node:path'
+const matter = require('gray-matter')
 import { useGinkoSettings } from '../../composables/useGinkoSettings'
 
 export class FileSystemService {
@@ -16,7 +17,7 @@ export class FileSystemService {
     }
   }
 
-  private getSettings(): GinkoSettings {
+  private getSettings(): GinkoWebSettings {
     return useGinkoSettings()
   }
 
@@ -102,6 +103,9 @@ export class FileSystemService {
 
   async resetOutputDirectory(): Promise<void> {
     const settings = this.getSettings()
+    if (!settings.paths.websitePath) {
+      throw new Error('Website path is not configured')
+    }
     const dirPath = settings.paths.websitePath
 
     try {
@@ -128,6 +132,10 @@ export class FileSystemService {
 
   private async generateFileUid(sourcePath: string): Promise<string> {
     const settings = this.getSettings()
+
+    if (!settings.paths.vaultPath) {
+      throw new Error('Vault path is not configured')
+    }
 
     const fullPath = path.join(settings.paths.vaultPath, sourcePath)
     const content = await this.readFile(fullPath)

@@ -1,4 +1,4 @@
-import type { Framework, FrameworkConfig } from '../types/framework'
+import type { Framework, FrameworkConfig } from '../../types/framework'
 import { AstroTaskProcessor } from '../configs/astro/AstroTaskProcessor'
 import { astroFileTypes } from '../configs/astro/fileTypes'
 import { astroPaths } from '../configs/astro/paths'

@@ -1,4 +1,4 @@
-import type { BatchedTask, FileAction, Task } from '../types/ginko'
+import type { BatchedTask, FileAction, Task } from '../../types/ginko'
 
 export class TaskQueue {
   private pendingTasks: Task[] = []

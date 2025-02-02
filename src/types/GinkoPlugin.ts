@@ -1,8 +1,8 @@
 import type { Plugin } from 'obsidian'
-import type { GinkoSettings } from '../utils/types'
+import type { GinkoWebSettings } from '../composables/useGinkoSettings'
 
 export interface GinkoPlugin extends Plugin {
-  settings: GinkoSettings
+  settings: GinkoWebSettings
   devServer: any
   getServerPort: () => number
   startDevServer: () => Promise<void>

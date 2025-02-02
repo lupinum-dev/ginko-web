@@ -1,6 +1,5 @@
 import type { DataAdapter } from 'obsidian'
 import { promises as fs } from 'node:fs'
-import { resolve } from 'node:path'
 
 export interface RuntimeCheckResult {
   valid: boolean
@@ -73,7 +72,8 @@ export async function checkVaultFolder(path: string): Promise<boolean> {
     await fs.stat(`${path}/.obsidian`)
     return true
   }
-  catch (_error) {
+  catch (error) {
+    console.error('Error checking vault folder:', error)
     return false
   }
 }

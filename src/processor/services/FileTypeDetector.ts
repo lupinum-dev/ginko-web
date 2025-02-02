@@ -1,8 +1,8 @@
-import type { Framework } from '../types/framework'
+import type { Framework } from '../../types/framework'
 import { FrameworkService } from './FrameworkService'
 
 export class FileTypeDetector {
-  constructor(private framework: Framework) {}
+  constructor(private framework: Framework) { }
 
   public detectFileType(path: string): string {
     const config = FrameworkService.getConfig(this.framework)

@@ -1,4 +1,4 @@
-import type { FileTypeCheck } from '../configs/nuxt/fileTypes'
+import type { FileTypeCheck } from '../processor/configs/nuxt/fileTypes'
 
 export type Framework = 'nuxt' | 'astro'
 

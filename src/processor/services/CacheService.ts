@@ -1,4 +1,5 @@
-import fs from 'node:fs/promises'
+import type { TFile, Vault } from 'obsidian'
+import * as fs from 'node:fs/promises'
 import { imageMeta } from 'image-meta'
 
 interface ImageSize {
@@ -189,7 +190,7 @@ export class CacheService {
 
         // If we found the image, add it to the new gallery
         if (movedImage && newGalleryId) {
-          const targetGallery = cache.galleries.find(g => g.id === newGalleryId)
+          const targetGallery = cache.galleries.find(g => g._id === newGalleryId)
           if (targetGallery) {
             targetGallery.children.push(movedImage)
           }
@@ -197,7 +198,7 @@ export class CacheService {
             // Create new gallery if it doesn't exist
             const galleryName = newSourcePath.match(/_galleries\/([^-\s]+)/)?.[1]
             cache.galleries.push({
-              id: newGalleryId,
+              _id: newGalleryId,
               name: galleryName,
               children: [movedImage],
             })
@@ -254,13 +255,12 @@ export class CacheService {
       const cache = this.getCache()
       const formattedCache = JSON.stringify(cache, null, 2) // Pretty print with 2 spaces
 
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
       const fileName = `ginko-cache.json`
 
       // Use Obsidian's vault API to create or overwrite the file
       const existingFile = vault.getAbstractFileByPath(fileName)
       if (existingFile) {
-        await vault.modify(existingFile, formattedCache)
+        await vault.modify(existingFile as TFile, formattedCache)
       }
       else {
         await vault.create(fileName, formattedCache)
@@ -300,7 +300,7 @@ export class CacheService {
     },
   }
 
-  findMatchingMetaItems(pathsToCheck: string[]): MetaItem[] {
+  findMatchingMetaItems(pathsToCheck: string[]): MetaCacheItem[] {
     const cachedMetaItems = this.meta.getAllMeta()
 
     return cachedMetaItems.filter(metaItem =>

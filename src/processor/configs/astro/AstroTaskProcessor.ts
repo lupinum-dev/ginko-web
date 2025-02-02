@@ -1,5 +1,5 @@
-import type { TaskProcessor } from '../../types/framework'
-import type { BatchedTask } from '../../types/ginko'
+import type { TaskProcessor } from '../../../types/framework'
+import type { BatchedTask } from '../../../types/ginko'
 
 export class AstroTaskProcessor implements TaskProcessor {
   async processTask(batch: BatchedTask): Promise<void> {

@@ -1,5 +1,5 @@
 import { basename, extname } from 'node:path'
-import matter from 'gray-matter'
+import * as matter from 'gray-matter'
 import { CacheService } from '../../services/CacheService'
 
 const generateRandomId = () => Math.random().toString(36).substring(2, 10)
@@ -338,12 +338,12 @@ export class GalleryModifier implements ContentModifier {
       /::ginko-gallery2\s*([\s\S]*?)::(?:\n|$)/g,
       (match, galleryContent) => {
         // Split content into lines and filter out empty lines
-        const lines = galleryContent.split('\n').filter(line => line.trim())
+        const lines = galleryContent.split('\n').filter((line: string) => line.trim())
 
         // Parse each ginko-image line into an object
         const images = lines
-          .map(line => this.parseGinkoImage(line))
-          .filter((img): img is Record<string, string> => img !== null)
+          .map((line: string) => this.parseGinkoImage(line))
+          .filter((img: Record<string, string> | null): img is Record<string, string> => img !== null)
 
         // Return the formatted gallery component
         return `:ginko-gallery2{:images='${JSON.stringify(images)}'}`

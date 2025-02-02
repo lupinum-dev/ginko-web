@@ -1,5 +1,5 @@
-import type { BatchCompletionHandler, TaskProcessor } from '../../types/framework'
-import type { BatchedTask } from '../../types/ginko'
+import type { BatchCompletionHandler, TaskProcessor } from '../../../types/framework'
+import type { BatchedTask } from '../../../types/ginko'
 import { nuxtFileTypes } from './fileTypes'
 import { AssetHandler } from './handlers/AssetHandler'
 import { GalleryHandler } from './handlers/GalleryHandler'
@@ -9,6 +9,7 @@ import { OtherHandler } from './handlers/OtherHandler'
 
 export interface FileHandler extends BatchCompletionHandler {
   handle: (eventType: string, sourcePath: string, oldPath?: string) => Promise<void>
+  afterCompletion?: (batch: BatchedTask) => Promise<void>
 }
 
 export class NuxtTaskProcessor implements TaskProcessor {
@@ -37,7 +38,7 @@ export class NuxtTaskProcessor implements TaskProcessor {
       // Sort meta files by path length - longest first for deletes, shortest first for other actions
       const filesToProcess = batch.fileType === 'meta'
         ? [...batch.files].sort((a, b) => a.length - b.length, // Shortest first for other actions
-          )
+        )
         : batch.files
 
       for (const path of filesToProcess) {

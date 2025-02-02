@@ -195,17 +195,14 @@ export default class GinkoWebPlugin extends Plugin {
 
       // Remove any existing click listeners before adding a new one
       const openSettings = () => {
-        this.app.setting.open()
-        this.app.setting.openTabById('ginko-web')
+        (this.app as any).setting.open()
+        (this.app as any).setting.openTabById('ginko-web')
       }
       this.statusBarItem.onclick = openSettings
     }
   }
 
   private registerFileMenu() {
-    // Remove any existing event handlers first
-    this.app.workspace.off('file-menu', this.handleFileMenu)
-
     // Only register if the colocation folder utility is enabled
     if (this.settings.utilities.colocationFolder) {
       this.registerEvent(

@@ -1,7 +1,7 @@
-import type { GinkoSettings } from '../../../../composables/useGinkoSettings'
+import type { GinkoWebSettings } from '../../../../composables/useGinkoSettings'
 import type { FileHandler } from '../NuxtTaskProcessor'
-import fs from 'node:fs/promises'
-import path from 'node:path'
+import * as fs from 'node:fs/promises'
+import * as path from 'node:path'
 import { imageMeta } from 'image-meta'
 import { useGinkoProcessor } from '../../../../composables/useGinkoProcessor'
 import { useGinkoSettings } from '../../../../composables/useGinkoSettings'
@@ -36,7 +36,7 @@ export class AssetHandler implements FileHandler {
 
   async handle(actionType: string, sourceRelativePath: string, oldRelativePath?: string): Promise<void> {
     const ginkoProcessor = useGinkoProcessor()
-    const settings: GinkoSettings = useGinkoSettings()
+    const settings: GinkoWebSettings = useGinkoSettings()
 
     try {
       switch (actionType) {
