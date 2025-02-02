@@ -71,11 +71,11 @@ export default defineComponent({
 
     const openInExplorer = async () => {
       try {
-        if (!props.plugin.settings?.outputDirectoryPath) {
+        if (!props.plugin.settings?.paths.websitePath) {
           throw new Error('Output directory not configured')
         }
 
-        const dirPath = path.resolve(props.plugin.settings.outputDirectoryPath)
+        const dirPath = path.resolve(props.plugin.settings.paths.websitePath)
         await shell.openPath(dirPath)
       }
       catch (error) {
@@ -202,12 +202,7 @@ export default defineComponent({
           <span class="label">Git Directory:</span>
           <span class="value">{{ gitDirectory }}</span>
         </div>
-        <button
-          v-if="hasValidDirectory"
-          class="action-button"
-          title="Open in File Explorer"
-          @click="openInExplorer"
-        >
+        <button v-if="hasValidDirectory" class="action-button" title="Open in File Explorer" @click="openInExplorer">
           Open in {{ explorerLabel }}
         </button>
       </div>
@@ -249,11 +244,7 @@ export default defineComponent({
     </div>
 
     <div v-if="showCommitDialog" class="commit-dialog">
-      <textarea
-        v-model="commitMessage"
-        placeholder="Enter commit message..."
-        rows="3"
-      />
+      <textarea v-model="commitMessage" placeholder="Enter commit message..." rows="3" />
       <div class="dialog-actions">
         <button :disabled="!commitMessage.trim()" @click="confirmCommit">
           Confirm
@@ -297,7 +288,9 @@ export default defineComponent({
   gap: 1.5rem;
 }
 
-.git-status, .git-actions, .git-log {
+.git-status,
+.git-actions,
+.git-log {
   background: var(--background-secondary);
   padding: 1rem;
   border-radius: 8px;
@@ -333,10 +326,21 @@ button:disabled {
   padding: 0.25rem 0;
 }
 
-.modified { color: var(--text-warning); }
-.added { color: var(--text-success); }
-.deleted { color: var(--text-error); }
-.renamed { color: var(--text-muted); }
+.modified {
+  color: var(--text-warning);
+}
+
+.added {
+  color: var(--text-success);
+}
+
+.deleted {
+  color: var(--text-error);
+}
+
+.renamed {
+  color: var(--text-muted);
+}
 
 .commit-dialog {
   position: fixed;

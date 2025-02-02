@@ -89,7 +89,6 @@ export class FileSystemService {
   }
 
   async ensureDir(dirPath: string): Promise<void> {
-    console.log('🎯 ensureDir', dirPath)
     try {
       if (dirPath === '/' || dirPath === '\\.cache') {
         throw new Error(`Invalid directory path: ${dirPath}. Must be a relative or project path.`)
@@ -103,7 +102,7 @@ export class FileSystemService {
 
   async resetOutputDirectory(): Promise<void> {
     const settings = this.getSettings()
-    const dirPath = settings.outputDirectoryPath
+    const dirPath = settings.paths.websitePath
 
     try {
       // Define paths to clean
@@ -130,7 +129,7 @@ export class FileSystemService {
   private async generateFileUid(sourcePath: string): Promise<string> {
     const settings = this.getSettings()
 
-    const fullPath = path.join(settings.sourceDirectoryPath, sourcePath)
+    const fullPath = path.join(settings.paths.vaultPath, sourcePath)
     const content = await this.readFile(fullPath)
     return crypto.createHash('md5').update(content).digest('hex')
   }

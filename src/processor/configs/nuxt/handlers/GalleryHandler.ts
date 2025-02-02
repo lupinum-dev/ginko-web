@@ -42,8 +42,8 @@ export class GalleryHandler implements FileHandler {
         case 'create':
         case 'rebuild': {
           const { outputRelativePath, uid } = await this.fileSystem.getAssetOutputPath(sourceRelativePath)
-          const sourcePath = path.join(settings.sourceDirectoryPath, sourceRelativePath)
-          const targetPath = path.join(settings.outputDirectoryPath, outputRelativePath)
+          const sourcePath = path.join(settings.paths.vaultPath, sourceRelativePath)
+          const targetPath = path.join(settings.paths.websitePath, outputRelativePath)
 
           // Copy the file first
           await this.fileSystem.copyFile(sourcePath, targetPath)
@@ -102,8 +102,8 @@ export class GalleryHandler implements FileHandler {
 
         case 'modify': {
           const { outputRelativePath, uid } = await this.fileSystem.getAssetOutputPath(sourceRelativePath)
-          const sourcePath = path.join(settings.sourceDirectoryPath, sourceRelativePath)
-          const targetPath = path.join(settings.outputDirectoryPath, outputRelativePath)
+          const sourcePath = path.join(settings.paths.vaultPath, sourceRelativePath)
+          const targetPath = path.join(settings.paths.websitePath, outputRelativePath)
 
           const cacheItem = this.cacheService.getCacheItemBySourcePath(sourceRelativePath)
           if (!cacheItem) {
@@ -194,7 +194,7 @@ export class GalleryHandler implements FileHandler {
       return
     }
     const settings: GinkoSettings = useGinkoSettings()
-    const galleryOutputPath = path.join(settings.outputDirectoryPath, 'content/_galleries/')
+    const galleryOutputPath = path.join(settings.paths.websitePath, 'content/_galleries/')
 
     try {
       await this.processGalleryOutput(galleryOutputPath)

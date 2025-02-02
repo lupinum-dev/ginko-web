@@ -43,9 +43,9 @@ export class AssetHandler implements FileHandler {
         case 'create':
         case 'rebuild': {
           const { outputRelativePath, uid } = await this.fileSystem.getAssetOutputPath(sourceRelativePath)
-          const sourcePath = path.join(settings.sourceDirectoryPath, sourceRelativePath)
+          const sourcePath = path.join(settings.paths.vaultPath, sourceRelativePath)
 
-          await this.fileSystem.copyFile(sourcePath, path.join(settings.outputDirectoryPath, outputRelativePath))
+          await this.fileSystem.copyFile(sourcePath, path.join(settings.paths.websitePath, outputRelativePath))
 
           // Get image dimensions before adding to cache
           const size = await this.getImageDimensions(sourcePath)
@@ -82,14 +82,14 @@ export class AssetHandler implements FileHandler {
           }
 
           const { outputRelativePath, uid } = await this.fileSystem.getAssetOutputPath(sourceRelativePath)
-          const sourcePath = path.join(settings.sourceDirectoryPath, sourceRelativePath)
+          const sourcePath = path.join(settings.paths.vaultPath, sourceRelativePath)
 
           // Delete the old file
           await this.fileSystem.deleteFile(cacheItem.targetPath)
           this.cacheService.removeCacheItem(sourceRelativePath)
 
           // Copy the new file
-          await this.fileSystem.copyFile(sourcePath, path.join(settings.outputDirectoryPath, outputRelativePath))
+          await this.fileSystem.copyFile(sourcePath, path.join(settings.paths.websitePath, outputRelativePath))
 
           // Get image dimensions before adding to cache
           const size = await this.getImageDimensions(sourcePath)

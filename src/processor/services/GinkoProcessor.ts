@@ -132,10 +132,10 @@ export class GinkoProcessor {
       }
 
       // Get target path from settings
-      if (!this.settings.paths.outputDirectoryPath) {
+      if (!this.settings.paths.websitePath) {
         throw new Error('Output directory path is not set in settings.')
       }
-      const targetPath = this.settings.paths.outputDirectoryPath
+      const targetPath = this.settings.paths.websitePath
 
       // Get all files from the vault
       const files = this.app.vault.getFiles()
@@ -170,15 +170,6 @@ export class GinkoProcessor {
     catch (error) {
       console.error(`❌ Error during ${type} rebuild:`, error)
       throw error
-    }
-  }
-
-  private getLogEmoji(type: RebuildType): string {
-    switch (type) {
-      case 'assets': return '📦'
-      case 'markdown': return '📝'
-      case 'all': return '🔄'
-      default: return '📎'
     }
   }
 

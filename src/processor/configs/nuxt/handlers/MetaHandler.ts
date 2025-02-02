@@ -130,7 +130,7 @@ export class MetaHandler implements FileHandler {
 
     switch (actionType) {
       case 'rebuild': {
-        const fullPath = path.join(settings.sourceDirectoryPath, sourcePath)
+        const fullPath = path.join(settings.paths.vaultPath, sourcePath)
         const { data: frontmatter } = await this.fileSystem.getFrontmatterContent(fullPath)
 
         // Create and cache meta object
@@ -259,10 +259,10 @@ export class MetaHandler implements FileHandler {
       const normalizedPath = path.endsWith('/') ? path : `${path}/`
 
       // Determine the language prefix
-      const langPrefix = locale === 'default' ? settings.defaultLocale : locale
+      const langPrefix = locale === 'default' ? settings.languages.mainLanguage : locale
 
       // Combine paths with language prefix
-      const jsonPath = `${settings.outputDirectoryPath}/content/${langPrefix}/${normalizedPath}.navigation.json`
+      const jsonPath = `${settings.paths.websitePath}/content/${langPrefix}/${normalizedPath}.navigation.json`
       // make sure path the content folder is createed
       await this.fileSystem.writeFile(jsonPath, JSON.stringify(content, null, 2))
     }
