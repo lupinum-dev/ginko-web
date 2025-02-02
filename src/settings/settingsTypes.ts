@@ -51,6 +51,9 @@ export interface GinkoWebSettings {
     ignoredFolders: string
     ignoredFiles: string
   }
+  inclusions: {
+    includedFolders: string
+  }
 }
 
 export interface PathValidationStatus {
@@ -149,6 +152,9 @@ export function ensureSettingsInitialized(settings: Partial<GinkoWebSettings>): 
     exclusions: {
       ignoredFolders: settings.exclusions?.ignoredFolders ?? '',
       ignoredFiles: settings.exclusions?.ignoredFiles ?? '',
+    },
+    inclusions: {
+      includedFolders: settings.inclusions?.includedFolders ?? '',
     },
   }
 }

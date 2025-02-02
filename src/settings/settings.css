@@ -859,3 +859,20 @@
   border-radius: 4px;
   line-height: 1.4;
 }
+
+.folder-selection-container {
+  margin: 16px 0;
+  padding: 16px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+}
+
+.folder-selection-container .folder-selection {
+  max-width: 100%;
+}
+
+/* Ensure proper spacing in settings */
+.setting-item + .folder-selection-container {
+  margin-top: 24px;
+}

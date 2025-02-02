@@ -2,6 +2,9 @@ import type { App } from 'obsidian'
 import type GinkoWebPlugin from '../main'
 import type { GinkoScope } from './resetModal'
 import { PluginSettingTab, Setting } from 'obsidian'
+import { createApp } from 'vue'
+import { ExclusionService } from '../processor/services/ExclusionService'
+import FolderSelection from '../ui/settings/components/FolderSelection.vue'
 import { ResetModal } from './resetModal'
 import { UTILITIES, WEBSITE_TEMPLATES } from './settingsConstants'
 import { DEFAULT_SETTINGS } from './settingsTypes'
@@ -20,10 +23,19 @@ declare global {
 
 export class GinkoWebSettingTab extends PluginSettingTab {
   plugin: GinkoWebPlugin
+  private folderSelectionApp: any = null
 
   constructor(app: App, plugin: GinkoWebPlugin) {
     super(app, plugin)
     this.plugin = plugin
+  }
+
+  hide() {
+    // Cleanup Vue app when settings tab is hidden
+    if (this.folderSelectionApp) {
+      this.folderSelectionApp.unmount()
+      this.folderSelectionApp = null
+    }
   }
 
   private createCopyButton(text: string): HTMLElement {
@@ -670,12 +682,10 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     // Update paths display
     this.updatePathsDisplay(pathsInfo)
 
-    // Step 5: Content Inclusion
+    // Step 5: Content Settings
     const inclusionStep = containerEl.createDiv('ginko-web-settings-step')
     inclusionStep.addClass('is-optional')
-    inclusionStep.toggleClass('is-active', this.plugin.settings.paths.pathConfigured
-      && (!this.plugin.settings.exclusions.ignoredFolders || !this.plugin.settings.exclusions.ignoredFiles))
-    inclusionStep.toggleClass('is-completed', !!this.plugin.settings.exclusions.ignoredFolders || !!this.plugin.settings.exclusions.ignoredFiles)
+    inclusionStep.toggleClass('is-active', this.plugin.settings.paths.pathConfigured)
 
     // Step Header
     const inclusionHeader = inclusionStep.createDiv('ginko-web-settings-step-header')
@@ -695,18 +705,32 @@ export class GinkoWebSettingTab extends PluginSettingTab {
       cls: 'ginko-web-settings-learn-link',
     })
 
-    // Exclusions Settings
-    new Setting(inclusionContent)
-      .setName('Ignored Folders')
-      .setDesc('Folders to exclude from processing (comma-separated)')
-      .addTextArea(text => text
-        .setPlaceholder('private, templates, archive')
-        .setValue(this.plugin.settings.exclusions.ignoredFolders)
-        .onChange(async (value) => {
-          this.plugin.settings.exclusions.ignoredFolders = value
-          await this.plugin.saveSettings()
-        }))
+    // Create container for Vue component
+    const folderSelectionContainer = inclusionContent.createDiv('folder-selection-container')
 
+    // Cleanup previous Vue app if it exists
+    if (this.folderSelectionApp) {
+      this.folderSelectionApp.unmount()
+    }
+
+    // Create and mount Vue app
+    this.folderSelectionApp = createApp(FolderSelection, {
+      app: this.app,
+      plugin: this.plugin,
+      onUpdateInclusions: async (inclusions: { includedFolders: string }) => {
+        // Update settings
+        this.plugin.settings.inclusions = inclusions
+        await this.plugin.saveSettings()
+
+        // Update the ExclusionService
+        const exclusionService = new ExclusionService(this.plugin)
+        exclusionService.updatePatterns(inclusions)
+      },
+    })
+
+    this.folderSelectionApp.mount(folderSelectionContainer)
+
+    // Add ignored files setting
     new Setting(inclusionContent)
       .setName('Ignored Files')
       .setDesc('Files to exclude from processing (comma-separated)')

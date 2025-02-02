@@ -1,90 +1,137 @@
-import type { GinkoWebSettings } from '../../settings/settingsTypes'
-import { minimatch } from 'minimatch'
+import type { TAbstractFile } from 'obsidian'
+import type GinkoWebPlugin from '../../main'
+import { TFile } from 'obsidian'
+import { DEFAULT_SETTINGS, ensureSettingsInitialized } from '../../settings/settingsTypes'
 
 export class ExclusionService {
-  private ignoredFolderPatterns: string[] = []
-  private ignoredFilePatterns: string[] = []
+  private includedFolders: Set<string>
+  private ignoredFiles: Set<string>
 
-  constructor(settings: GinkoWebSettings) {
-    this.updatePatterns(settings)
+  constructor(private plugin: GinkoWebPlugin) {
+    this.includedFolders = new Set()
+    this.ignoredFiles = new Set()
+    this.loadSettings()
   }
 
-  public updatePatterns(settings: GinkoWebSettings): void {
-    // Parse folder patterns
-    this.ignoredFolderPatterns = settings.exclusions.ignoredFolders
+  private loadSettings() {
+    // Ensure settings exist and are initialized
+    const settings = this.plugin.settings ?? DEFAULT_SETTINGS
+    const initializedSettings = ensureSettingsInitialized(settings)
+
+    // Load and normalize inclusions
+    const includedFolders = initializedSettings.inclusions.includedFolders
       .split(',')
       .map(p => p.trim())
       .filter(p => p.length > 0)
-      .map(p => this.normalizePattern(p))
+      .map(p => p.startsWith('/') ? p.slice(1) : p) // Remove leading slashes
+    this.includedFolders = new Set(includedFolders)
 
-    // Parse file patterns
-    this.ignoredFilePatterns = settings.exclusions.ignoredFiles
+    // Load and normalize file exclusions
+    const ignoredFiles = initializedSettings.exclusions.ignoredFiles
       .split(',')
       .map(p => p.trim())
       .filter(p => p.length > 0)
-      .map(p => this.normalizePattern(p))
+      .map(p => p.startsWith('/') ? p.slice(1) : p) // Remove leading slashes
+    this.ignoredFiles = new Set(ignoredFiles)
   }
 
-  private normalizePattern(pattern: string): string {
-    // Convert pattern to use forward slashes for consistency
-    pattern = pattern.replace(/\\/g, '/')
+  /**
+   * Checks if a path is a parent of another path
+   * @param parent The potential parent path
+   * @param child The potential child path
+   * @returns true if parent is a parent path of child
+   */
+  private isParentPath(parent: string, child: string): boolean {
+    // Normalize paths by removing leading/trailing slashes
+    const normalizedParent = parent.replace(/^\/+|\/+$/g, '')
+    const normalizedChild = child.replace(/^\/+|\/+$/g, '')
 
-    // If pattern doesn't contain a slash and doesn't start with **, make it match anywhere in the path
-    if (!pattern.includes('/') && !pattern.startsWith('**')) {
-      pattern = `**/${pattern}`
-    }
+    if (normalizedParent === normalizedChild)
+      return false
 
-    // Only add /** suffix for directory patterns that don't have an extension or wildcard
-    if (!pattern.includes('.') && !pattern.includes('*') && !pattern.endsWith('**')) {
-      pattern = `${pattern}/**`
-    }
-
-    // Ensure the pattern is properly formatted for minimatch
-    if (pattern.includes('*')) {
-      // Remove any duplicate ** patterns
-      pattern = pattern.replace(/\*{2,}/g, '**')
-    }
-
-    return pattern
+    // Check if child starts with parent path followed by a slash
+    return normalizedChild.startsWith(`${normalizedParent}/`)
   }
 
-  public isExcluded(filePath: string): boolean {
-    // Normalize path to use forward slashes
-    filePath = filePath.replace(/\\/g, '/')
-
-    // Common minimatch options for consistent behavior
-    const matchOptions = {
-      dot: true, // Match dotfiles
-      nobrace: true, // Disable brace expansion
-      nocase: true, // Case insensitive matching
-      matchBase: true, // Allow matching basename of filepath
+  /**
+   * Determines if a path should be included based on inclusion settings
+   * @param path The path to check
+   * @returns true if the path should be included
+   */
+  private isPathIncluded(path: string): boolean {
+    // If no inclusions are specified, nothing is included by default
+    if (this.includedFolders.size === 0) {
+      console.warn(`❌ No inclusions specified, excluding: ${path}`)
+      return false
     }
 
-    // Check file patterns first
-    for (const pattern of this.ignoredFilePatterns) {
-      if (minimatch(filePath, pattern, matchOptions)) {
+    // Normalize the path
+    const normalizedPath = path.replace(/^\/+|\/+$/g, '')
+
+    // Check if the path or any of its parents are explicitly included
+    for (const includedPath of this.includedFolders) {
+      const normalizedIncludedPath = includedPath.replace(/^\/+|\/+$/g, '')
+      if (normalizedPath === normalizedIncludedPath || this.isParentPath(normalizedIncludedPath, normalizedPath)) {
+        console.warn(`✅ Path included: ${normalizedPath} (matches included path: ${normalizedIncludedPath})`)
         return true
       }
     }
 
-    // Then check folder patterns
-    for (const pattern of this.ignoredFolderPatterns) {
-      if (minimatch(filePath, pattern, matchOptions)) {
-        return true
-      }
+    console.warn(`❌ Path not in included paths: ${normalizedPath}`)
+    return false
+  }
+
+  /**
+   * Determines if a file should be excluded from processing
+   * The logic follows these steps:
+   * 1. Root files are never included by default
+   * 2. Check if the file's path is included (if inclusions are specified)
+   * 3. For files, check file-specific exclusions
+   * @param file The file to check
+   * @returns true if the file should be excluded
+   */
+  isExcluded(file: TAbstractFile): boolean {
+    // Handle root files (no parent)
+    if (!file.parent) {
+      console.warn(`❌ Root file excluded: ${file.path}`)
+      return true // Root files are not included by default
     }
 
-    // Also check each directory segment against folder patterns
-    const segments = filePath.split('/')
-    for (let i = 0; i < segments.length; i++) {
-      const partialPath = segments.slice(0, i + 1).join('/')
-      for (const pattern of this.ignoredFolderPatterns) {
-        if (minimatch(partialPath, pattern, matchOptions)) {
+    console.warn(`\n📂 Checking file: ${file.path}`)
+    console.warn(`Current inclusions: ${Array.from(this.includedFolders).join(', ')}`)
+
+    // First check if the path is included
+    if (!this.isPathIncluded(file.parent.path)) {
+      return true
+    }
+
+    // For files, also check file-specific exclusions
+    if (file instanceof TFile) {
+      const normalizedPath = file.path.replace(/^\/+|\/+$/g, '')
+      for (const pattern of this.ignoredFiles) {
+        const normalizedPattern = pattern.replace(/^\/+|\/+$/g, '')
+        // Check if the file path contains the pattern
+        if (normalizedPath.includes(normalizedPattern)) {
+          console.warn(`🚫 File excluded by pattern: ${normalizedPath} (matches pattern: ${normalizedPattern})`)
           return true
         }
       }
     }
 
+    console.warn(`✅ File will be processed: ${file.path}`)
     return false
+  }
+
+  /**
+   * Updates the inclusion/exclusion patterns
+   * @param inclusions The new inclusion settings
+   */
+  updatePatterns(inclusions: { includedFolders: string }) {
+    // Initialize settings if they don't exist
+    if (!this.plugin.settings) {
+      this.plugin.settings = DEFAULT_SETTINGS
+    }
+    this.plugin.settings.inclusions = inclusions
+    this.loadSettings()
   }
 }
