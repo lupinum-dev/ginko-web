@@ -33,6 +33,33 @@ export class GalleryHandler implements FileHandler {
     this.cacheService = new CacheService()
   }
 
+  private async processImageForGallery(sourcePath: string): Promise<{ width: number, height: number } | undefined> {
+    const ext = path.extname(sourcePath).toLowerCase()
+    const imageExtensions = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.tiff', '.ico', '.heic', '.heif', '.avif'])
+
+    if (!imageExtensions.has(ext)) {
+      return undefined
+    }
+
+    try {
+      const imageBuffer = await fs.readFile(sourcePath)
+      const meta = imageMeta(imageBuffer)
+
+      if (!meta?.width || !meta?.height) {
+        return undefined
+      }
+
+      return {
+        width: meta.width,
+        height: meta.height,
+      }
+    }
+    catch (error) {
+      console.debug(`Unable to get dimensions for ${sourcePath}:`, error)
+      return undefined
+    }
+  }
+
   async handle(actionType: string, sourceRelativePath: string, oldRelativePath?: string): Promise<void> {
     const ginkoProcessor = useGinkoProcessor()
     const settings: GinkoWebSettings = useGinkoSettings()
@@ -51,14 +78,10 @@ export class GalleryHandler implements FileHandler {
           // Copy the file first
           await this.fileSystem.copyFile(sourcePath, targetPath)
 
-          // Add to assets cache with size information
-          const imageBuffer = await fs.readFile(sourcePath)
-          const meta = imageMeta(imageBuffer)
-          const size = {
-            width: meta.width || 0,
-            height: meta.height || 0,
-          }
+          // Get image dimensions only if it's an image file
+          const size = await this.processImageForGallery(sourcePath)
 
+          // Add to assets cache
           await this.cacheService.addCacheItem({
             id: uid,
             sourcePaths: [sourceRelativePath],
@@ -126,12 +149,7 @@ export class GalleryHandler implements FileHandler {
           await this.fileSystem.copyFile(sourcePath, targetPath)
 
           // Get new size information
-          const imageBuffer = await fs.readFile(sourcePath)
-          const meta = imageMeta(imageBuffer)
-          const size = {
-            width: meta.width || 0,
-            height: meta.height || 0,
-          }
+          const size = await this.processImageForGallery(sourcePath)
 
           // Add to asset cache with new size
           this.cacheService.addCacheItem({
@@ -211,10 +229,6 @@ export class GalleryHandler implements FileHandler {
     catch (error) {
       console.error('Failed to process gallery output:', error)
       throw error
-    }
-    finally {
-      const endTime = performance.now()
-      console.log(`Gallery JSON files deleted & created in ${(endTime - startTime).toFixed(2)} milliseconds.`)
     }
   }
 

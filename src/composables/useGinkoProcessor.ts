@@ -18,7 +18,6 @@ export function initializeGinkoProcessor(
 ): GinkoProcessor {
   // Create new instance if none exists
   if (!ginkoContext.tryUse()) {
-    console.log('Initializing Ginko Processor with settings:', settings)
     const processor = new GinkoProcessor(app, settings, framework)
     ginkoContext.set(processor)
   }

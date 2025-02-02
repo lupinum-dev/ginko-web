@@ -165,6 +165,12 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     // Reset path configuration when changing type
     if (value === 'none') {
       this.plugin.settings.paths.pathConfigured = false
+      this.plugin.settings.paths.websitePath = ''
+    }
+    else if (value === 'standard') {
+      // Set the website path for standard mode
+      const vaultPath = (this.app.vault.adapter as any).getBasePath()
+      this.plugin.settings.paths.websitePath = vaultPath.split('/').slice(0, -2).join('/')
     }
 
     await this.plugin.saveSettings()
@@ -459,10 +465,10 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     const languageStep = containerEl.createDiv('ginko-web-settings-step')
     languageStep.addClass('is-required')
     languageStep.toggleClass('is-active', this.plugin.settings.usage.isConfigured
-    && !!this.plugin.settings.paths.template
-    && (this.plugin.settings.languages.type === 'none' || !this.plugin.settings.languages.mainLanguage))
+      && !!this.plugin.settings.paths.template
+      && (this.plugin.settings.languages.type === 'none' || !this.plugin.settings.languages.mainLanguage))
     languageStep.toggleClass('is-completed', this.plugin.settings.languages.type !== 'none'
-    && !!this.plugin.settings.languages.mainLanguage)
+      && !!this.plugin.settings.languages.mainLanguage)
 
     // Step Header
     const languageHeader = languageStep.createDiv('ginko-web-settings-step-header')
@@ -576,11 +582,11 @@ export class GinkoWebSettingTab extends PluginSettingTab {
 
     // Update step completion status based on type and language selection
     languageStep.toggleClass('is-active', this.plugin.settings.usage.isConfigured
-    && !!this.plugin.settings.paths.template
-    && (this.plugin.settings.languages.type === 'none'
-      || (this.plugin.settings.languages.type === 'multi' && !this.plugin.settings.languages.mainLanguage)))
+      && !!this.plugin.settings.paths.template
+      && (this.plugin.settings.languages.type === 'none'
+        || (this.plugin.settings.languages.type === 'multi' && !this.plugin.settings.languages.mainLanguage)))
     languageStep.toggleClass('is-completed', (this.plugin.settings.languages.type === 'single')
-    || (this.plugin.settings.languages.type === 'multi' && !!this.plugin.settings.languages.mainLanguage))
+      || (this.plugin.settings.languages.type === 'multi' && !!this.plugin.settings.languages.mainLanguage))
 
     // Step 4: Path Configuration
     const pathStep = containerEl.createDiv('ginko-web-settings-step')
@@ -675,7 +681,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     const inclusionStep = containerEl.createDiv('ginko-web-settings-step')
     inclusionStep.addClass('is-optional')
     inclusionStep.toggleClass('is-active', this.plugin.settings.paths.pathConfigured
-    && (!this.plugin.settings.exclusions.ignoredFolders || !this.plugin.settings.exclusions.ignoredFiles))
+      && (!this.plugin.settings.exclusions.ignoredFolders || !this.plugin.settings.exclusions.ignoredFiles))
     inclusionStep.toggleClass('is-completed', !!this.plugin.settings.exclusions.ignoredFolders || !!this.plugin.settings.exclusions.ignoredFiles)
 
     // Step Header
@@ -723,7 +729,7 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     const utilitiesStep = containerEl.createDiv('ginko-web-settings-step')
     utilitiesStep.addClass('is-optional')
     utilitiesStep.toggleClass('is-active', this.plugin.settings.paths.pathConfigured
-    && Object.values(this.plugin.settings.utilities).every(v => !v))
+      && Object.values(this.plugin.settings.utilities).every(v => !v))
     utilitiesStep.toggleClass('is-completed', Object.values(this.plugin.settings.utilities).some(v => v))
 
     // Step Header

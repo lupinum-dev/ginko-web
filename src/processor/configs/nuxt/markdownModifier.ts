@@ -127,14 +127,6 @@ export class AssetLinkModifier implements ContentModifier {
     // Remove 'public/' prefix from targetPath if it exists
     const targetPath = `/${cacheItem.targetPath.replace(/^public\//, '')}`
 
-    // For debugging
-    console.log('🌟 Asset path processing:', {
-      original: assetPath,
-      normalized: normalizedPath,
-      targetPath,
-      size: cacheItem.size,
-    })
-
     return {
       targetPath,
       size: cacheItem.size,

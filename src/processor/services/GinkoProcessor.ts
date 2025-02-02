@@ -57,20 +57,18 @@ export class GinkoProcessor {
   public addTask(path: string, action: FileAction, oldPath?: string): void {
     // Check if Ginko is properly configured
     if (!isSetupComplete(this.settings)) {
-      console.warn('Ginko is not fully configured. Skipping file processing.')
+      console.error('Ginko is not fully configured. Skipping file processing.')
       this.showNotice('⚠️ Ginko is not fully configured. Please complete the setup in settings.')
       return
     }
 
     // Skip if path is excluded
     if (this.exclusionService.isExcluded(path)) {
-      console.warn(`Skipping excluded path: ${path}`)
       return
     }
 
     // For rename operations, also check if the old path was excluded
     if (action === 'rename' && oldPath && this.exclusionService.isExcluded(oldPath)) {
-      console.warn(`Skipping rename for excluded path: ${oldPath} -> ${path}`)
       return
     }
 
@@ -150,7 +148,6 @@ export class GinkoProcessor {
 
         // Skip excluded files
         if (this.exclusionService.isExcluded(file.path)) {
-          console.warn(`Skipping excluded path during rebuild: ${file.path}`)
           continue
         }
 

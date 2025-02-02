@@ -90,11 +90,8 @@ async function findNearestTemplate(vault: Vault, startPath: string): Promise<TFi
     const currentPath = pathSegments.join('/')
     const templatePath = `${currentPath}/_template.md`
 
-    console.log('Checking for template at:', templatePath)
-
     const templateFile = vault.getAbstractFileByPath(templatePath)
     if (templateFile instanceof TFile) {
-      console.log('Found template at:', templatePath)
       return templateFile
     }
 
@@ -105,7 +102,6 @@ async function findNearestTemplate(vault: Vault, startPath: string): Promise<TFi
   // Check root level
   const rootTemplate = vault.getAbstractFileByPath('_template.md')
   if (rootTemplate instanceof TFile) {
-    console.log('Found template at root: _template.md')
     return rootTemplate
   }
 
@@ -117,11 +113,6 @@ export async function createColocationFolder(
   parentPath: string,
   options: ColocationFolderOptions,
 ): Promise<string> {
-  console.log('Creating colocation folder with:', {
-    parentPath,
-    options,
-  })
-
   const parent = vault.getAbstractFileByPath(parentPath)
   if (!(parent instanceof TFolder)) {
     throw new TypeError('Parent must be a folder')
@@ -131,13 +122,6 @@ export async function createColocationFolder(
   const uid = uuidv4().split('-')[0]
   const newFolderName = `${options.title} - ${uid}+`
   const newFolderPath = `${parent.path}/${newFolderName}`
-
-  console.log('Folder structure to create:', {
-    parentFolder: parent.path,
-    newFolderName,
-    newFolderPath,
-    languageSlugs: options.slugs,
-  })
 
   try {
     // Create the main folder

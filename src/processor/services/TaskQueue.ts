@@ -10,27 +10,12 @@ export class TaskQueue {
     const taskKey = this.getTaskKey(task.path, task.action)
 
     if (this.processingTasks.has(taskKey)) {
-      console.log(taskKey)
-      console.log('Skipping duplicate task:', {
-        path: task.path,
-        action: task.action,
-        fileType: task.fileType,
-        oldPath: task.oldPath,
-      })
       return
     }
 
     if (!this.taskRetries.has(taskKey)) {
       this.taskRetries.set(taskKey, 0)
     }
-
-    console.log('Adding task:', {
-      path: task.path,
-      action: task.action,
-      fileType: task.fileType,
-      oldPath: task.oldPath,
-      retries: this.taskRetries.get(taskKey),
-    })
 
     this.pendingTasks.push(task)
   }

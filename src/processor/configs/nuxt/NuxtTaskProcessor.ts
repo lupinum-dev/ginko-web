@@ -26,32 +26,16 @@ export class NuxtTaskProcessor implements TaskProcessor {
   }
 
   async processTask(batch: BatchedTask): Promise<void> {
-    const startTime = performance.now()
-    console.log('🟡 Processing Nuxt task:', {
-      action: batch.action,
-      fileType: batch.fileType,
-      paths: batch.files,
-      oldPath: batch.oldPath,
-    })
-
     try {
       // Sort meta files by path length - longest first for deletes, shortest first for other actions
       const filesToProcess = batch.fileType === 'meta'
         ? [...batch.files].sort((a, b) => a.length - b.length, // Shortest first for other actions
-          )
+        )
         : batch.files
 
       for (const path of filesToProcess) {
         await this.processFile(path, batch.action, batch.oldPath)
       }
-
-      const duration = (performance.now() - startTime).toFixed(2)
-      console.log('🟢 Completed Nuxt task:', {
-        action: batch.action,
-        fileType: batch.fileType,
-        processedFiles: batch.files.length,
-        duration: `${duration}ms`,
-      })
 
       // Call completion handler if it exists
       const fileType = this.detectFileType(batch.files[0])

@@ -11,23 +11,59 @@ import { FileSystemService } from '../../../services/FileSystemService'
 export class AssetHandler implements FileHandler {
   private fileSystem: FileSystemService
   private cacheService: CacheService
+  private readonly imageExtensions = new Set([
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.webp',
+    '.svg',
+    '.bmp',
+    '.tiff',
+    '.ico',
+    '.heic',
+    '.heif',
+    '.avif',
+  ])
 
   constructor() {
     this.fileSystem = new FileSystemService()
     this.cacheService = new CacheService()
   }
 
+  private isImage(filePath: string): boolean {
+    const ext = path.extname(filePath).toLowerCase()
+    return this.imageExtensions.has(ext)
+  }
+
   private async getImageDimensions(sourcePath: string) {
+    // Early return for non-image files without attempting to read them
+    if (!this.isImage(sourcePath)) {
+      return undefined
+    }
+
     try {
+      // Check if file exists and is readable before attempting to process
+      await fs.access(sourcePath, fs.constants.R_OK)
       const imageBuffer = await fs.readFile(sourcePath)
-      const meta = imageMeta(imageBuffer)
-      return {
-        width: meta.width || 0,
-        height: meta.height || 0,
+
+      try {
+        const meta = imageMeta(imageBuffer)
+        if (!meta?.width || !meta?.height) {
+          return undefined
+        }
+        return {
+          width: meta.width,
+          height: meta.height,
+        }
+      }
+      catch (metaError) {
+        console.debug(`Unable to parse image metadata for ${sourcePath}:`, metaError)
+        return undefined
       }
     }
     catch (error) {
-      console.warn(`Failed to get image dimensions for ${sourcePath}:`, error)
+      console.debug(`Unable to read file ${sourcePath}:`, error)
       return undefined
     }
   }
@@ -48,14 +84,14 @@ export class AssetHandler implements FileHandler {
 
           await this.fileSystem.copyFile(sourcePath, path.join(settings.paths.websitePath, outputRelativePath))
 
-          // Get image dimensions before adding to cache
-          const size = await this.getImageDimensions(sourcePath)
+          // Only attempt to get image dimensions for actual image files
+          const size = await (this.isImage(sourcePath) ? this.getImageDimensions(sourcePath) : undefined)
 
           await this.cacheService.addCacheItem({
             id: uid,
             sourcePaths: [sourceRelativePath],
             targetPath: outputRelativePath,
-            size, // Add the size property
+            size,
           })
           break
         }
@@ -99,13 +135,13 @@ export class AssetHandler implements FileHandler {
           await this.fileSystem.copyFile(sourcePath, path.join(settings.paths.websitePath, outputRelativePath))
 
           // Get image dimensions before adding to cache
-          const size = await this.getImageDimensions(sourcePath)
+          const size = this.isImage(sourcePath) ? await this.getImageDimensions(sourcePath) : undefined
 
           this.cacheService.addCacheItem({
             id: uid,
             sourcePaths: [sourceRelativePath],
             targetPath: outputRelativePath,
-            size, // Add the size property
+            size,
           })
           await ginkoProcessor.rebuildMarkdown()
           break

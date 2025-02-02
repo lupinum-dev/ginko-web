@@ -115,7 +115,6 @@ export default class GinkoWebPlugin extends Plugin {
         const ginkoProcessor = useGinkoProcessor()
         await ginkoProcessor.rebuild()
         new Notice('🟢 Processing completed')
-        // console.log('Processing completed for all vault files');
       }
       catch (error) {
         console.error(`Error during processing: ${error.message}`)
@@ -196,7 +195,7 @@ export default class GinkoWebPlugin extends Plugin {
       // Remove any existing click listeners before adding a new one
       const openSettings = () => {
         (this.app as any).setting.open()
-        (this.app as any).setting.openTabById('ginko-web')
+          (this.app as any).setting.openTabById('ginko-web')
       }
       this.statusBarItem.onclick = openSettings
     }
@@ -218,11 +217,6 @@ export default class GinkoWebPlugin extends Plugin {
                     this.settings,
                     this.settings.utilities.lastUsedTemplate,
                     async (result) => {
-                      console.log('Modal submitted with:', {
-                        result,
-                        targetFolder: file.path,
-                      })
-
                       try {
                         // Update the last used template setting
                         this.settings.utilities.lastUsedTemplate = result.useTemplate
@@ -256,11 +250,6 @@ export default class GinkoWebPlugin extends Plugin {
                     this.settings,
                     this.settings.utilities.lastUsedTemplate,
                     async (result) => {
-                      console.log('Modal submitted with:', {
-                        result,
-                        sourceFile: file.path,
-                      })
-
                       try {
                         // Update the last used template setting
                         this.settings.utilities.lastUsedTemplate = result.useTemplate

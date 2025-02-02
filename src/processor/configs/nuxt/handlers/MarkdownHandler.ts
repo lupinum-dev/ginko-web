@@ -52,13 +52,6 @@ export class MarkdownHandler implements FileHandler {
     const localeMatch = fileNameWithoutExt.match(/^(.+)__([a-z]{2})$/)
     const colocationMatch = beforeLastPart.match(/^(?:\d+\.)?\s*(.+?)\s*-\s*([a-z0-9]+)\+$/)
 
-    console.log('Parsing File Info:', {
-      fileNameWithoutExt,
-      beforeLastPart,
-      localeMatch,
-      colocationMatch,
-    })
-
     return {
       isLocalized: !!localeMatch,
       locale: localeMatch ? localeMatch[2] : null,
@@ -92,14 +85,6 @@ export class MarkdownHandler implements FileHandler {
       .trim()
 
     const fileName = `${sanitizedBaseName}-${fileInfo.colocationId}`
-
-    console.log('Colocated Path Generation:', {
-      baseName: fileInfo.baseName,
-      sanitizedBaseName,
-      colocationId: fileInfo.colocationId,
-      generatedFileName: fileName,
-      sourcePathParts,
-    })
 
     if (fileInfo.locale === settings.languages.mainLanguage) {
       const dirPath = sourcePathParts.slice(0, -2)
@@ -155,21 +140,10 @@ export class MarkdownHandler implements FileHandler {
     // Ensure target directory exists and write the processed content
     await this.fileSystem.ensureDir(path.dirname(targetPath))
     await this.fileSystem.writeFile(targetPath, processedContent)
-    console.warn('Processed and copied file to:', targetPath)
   }
 
   async handle(actionType: string, sourcePath: string): Promise<void> {
     const settings = this.getSettings()
-
-    console.warn('Debug - Handle method called:', {
-      actionType,
-      sourcePath,
-      settings: {
-        websitePath: settings.paths.websitePath,
-        outputDirectoryPath: settings.paths.outputDirectoryPath,
-        mainLanguage: settings.languages.mainLanguage,
-      },
-    })
 
     // Validate required paths
     if (!settings.paths.websitePath) {
@@ -181,29 +155,15 @@ export class MarkdownHandler implements FileHandler {
       case 'modify':
       case 'create': {
         const fullPath = path.join(settings.paths.websitePath, sourcePath)
-        console.warn('Debug - Path joining:', {
-          websitePath: settings.paths.websitePath,
-          sourcePath,
-          fullPath,
-        })
+
         const sourcePathParts = sourcePath.split('/')
 
         const lastPart = sourcePathParts[sourcePathParts.length - 1].trim()
         const beforeLastPart = sourcePathParts[sourcePathParts.length - 2]?.trim() || ''
 
-        console.log('Processing File:', {
-          sourcePath,
-          lastPart,
-          beforeLastPart,
-        })
-
         const fileInfo = this.parseFileInfo(lastPart, beforeLastPart)
 
-        console.log('File Info:', fileInfo)
-
         const outputPath = `content/${this.generateOutputPath(sourcePath, fileInfo, sourcePathParts)}`
-
-        console.log('Generated Output Path:', outputPath)
 
         await this.copyToTarget(fullPath, outputPath)
         break
@@ -215,12 +175,10 @@ export class MarkdownHandler implements FileHandler {
         const beforeLastPart = sourcePathParts[sourcePathParts.length - 2]?.trim() || ''
 
         const fileInfo = this.parseFileInfo(lastPart, beforeLastPart)
-        console.log('File Info for deletion:', fileInfo)
 
         const outputPath = `content/${this.generateOutputPath(sourcePath, fileInfo, sourcePathParts)}`
         const fullTargetPath = path.join(settings.paths.websitePath, outputPath)
 
-        console.log('Deleting file at:', fullTargetPath)
         await this.fileSystem.deleteFile(fullTargetPath)
         break
       }
@@ -228,11 +186,6 @@ export class MarkdownHandler implements FileHandler {
   }
 
   async afterCompletion(batch: BatchedTask): Promise<void> {
-    if (batch.fileType === 'markdown') {
-      console.log('📝 Markdown batch processing complete!', {
-        action: batch.action,
-        files: batch.files.length,
-      })
-    }
+
   }
 }

@@ -14,7 +14,7 @@ export class BatchProcessor {
     const batches = this.taskQueue.getBatchedTasks()
     const config = FrameworkService.getConfig(this.framework)
 
-    this.logBatchProcessing(batches)
+    // this.logBatchProcessing(batches)
 
     const sortedBatches = this.sortBatchesByProcessingOrder(batches)
 
@@ -37,15 +37,15 @@ export class BatchProcessor {
     })
   }
 
-  private logBatchProcessing(batches: BatchedTask[]): void {
-    console.log(`Processing ${batches.length} batches for ${this.framework}:`, {
-      batches: batches.map(batch => ({
-        action: batch.action,
-        fileType: batch.fileType,
-        fileCount: batch.files.length,
-      })),
-    })
-  }
+  // private logBatchProcessing(batches: BatchedTask[]): void {
+  //   console.log(`Processing ${batches.length} batches for ${this.framework}:`, {
+  //     batches: batches.map(batch => ({
+  //       action: batch.action,
+  //       fileType: batch.fileType,
+  //       fileCount: batch.files.length,
+  //     })),
+  //   })
+  // }
 
   private handleSuccessfulBatch(batch: BatchedTask): void {
     batch.files.forEach((path) => {
