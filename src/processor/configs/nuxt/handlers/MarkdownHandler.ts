@@ -1,4 +1,4 @@
-import type { GinkoSettings } from '../../../../composables/useGinkoSettings'
+import type { GinkoWebSettings } from '../../../../composables/useGinkoSettings'
 import type { BatchedTask } from '../../../types/framework'
 import type { ContentModifier } from '../markdownModifier'
 import type { FileHandler } from '../NuxtTaskProcessor'
@@ -44,7 +44,7 @@ export class MarkdownHandler implements FileHandler {
     ]
   }
 
-  private getSettings(): GinkoSettings {
+  private getSettings(): GinkoWebSettings {
     return useGinkoSettings()
   }
 
@@ -81,7 +81,7 @@ export class MarkdownHandler implements FileHandler {
     const settings = this.getSettings()
     const fileName = path.basename(sourcePath, '.md')
     const dirPath = path.dirname(sourcePath)
-    return `${fileInfo.locale || settings.defaultLocale}/${dirPath}/${fileName}.md`
+    return `${fileInfo.locale || settings.languages.mainLanguage}/${dirPath}/${fileName}.md`
   }
 
   private generateColocatedOutputPath(fileInfo: FileInfo, sourcePathParts: string[]): string {
@@ -102,12 +102,12 @@ export class MarkdownHandler implements FileHandler {
       sourcePathParts,
     })
 
-    if (fileInfo.locale === settings.defaultLocale) {
+    if (fileInfo.locale === settings.languages.mainLanguage) {
       const dirPath = sourcePathParts.slice(0, -2)
         .join('/')
         .replace(/\s+/g, '-')
         .toLowerCase()
-      return `${settings.defaultLocale}/${dirPath}/${fileName}.md`
+      return `${settings.languages.mainLanguage}/${dirPath}/${fileName}.md`
     }
 
     const checkLocalizedPath = `${sourcePathParts.slice(0, -2).join('/')}/`
@@ -125,40 +125,66 @@ export class MarkdownHandler implements FileHandler {
   }
 
   private async processMarkdownContent(sourcePath: string): Promise<string> {
-    const { data: frontmatter, content } = await this.fileSystem.getFrontmatterContent(sourcePath)
-
-    // Apply all modifiers to the content
-    const modifiedContent = this.modifiers.reduce(
-      (currentContent, modifier) => modifier.modify(currentContent, frontmatter),
-      content,
-    )
-
-    // The modifiedContent now includes the updated frontmatter from matter.stringify()
-    return modifiedContent
+    try {
+      const { data: frontmatter, content } = await this.fileSystem.getFrontmatterContent(sourcePath)
+      // Apply all modifiers to the content
+      const modifiedContent = this.modifiers.reduce(
+        (currentContent, modifier) => modifier.modify(currentContent, frontmatter),
+        content,
+      )
+      return modifiedContent
+    }
+    catch (error) {
+      if (error.code === 'ENOENT') {
+        // File doesn't exist yet, return empty content with default frontmatter
+        return '---\ntitle: Untitled\n---\n\n'
+      }
+      throw error
+    }
   }
 
   private async copyToTarget(sourcePath: string, outputPath: string): Promise<void> {
     const settings = this.getSettings()
-    const targetPath = path.join(settings.outputDirectoryPath, outputPath)
+    const targetPath = path.join(settings.paths.websitePath, outputPath)
 
     // Process markdown content before copying
     const processedContent = await this.processMarkdownContent(sourcePath)
 
     // Ensure target directory exists and write the processed content
-    // Using writeFile will automatically overwrite if the file exists
+    await this.fileSystem.ensureDir(path.dirname(targetPath))
     await this.fileSystem.writeFile(targetPath, processedContent)
-    console.log('Processed and copied file to:', targetPath)
+    console.warn('Processed and copied file to:', targetPath)
   }
 
   async handle(actionType: string, sourcePath: string, oldPath?: string): Promise<void> {
     const ginkoProcessor = useGinkoProcessor()
     const settings = this.getSettings()
 
+    console.warn('Debug - Handle method called:', {
+      actionType,
+      sourcePath,
+      settings: {
+        websitePath: settings.paths.websitePath,
+        outputDirectoryPath: settings.paths.outputDirectoryPath,
+        mainLanguage: settings.languages.mainLanguage,
+      },
+    })
+
+    // Validate required paths
+    if (!settings.paths.websitePath) {
+      throw new Error('Website path is not configured')
+    }
+
     switch (actionType) {
       case 'rebuild':
       case 'modify':
       case 'create': {
-        const fullPath = path.join(settings.sourceDirectoryPath, sourcePath)
+        const fullPath = path.join(settings.paths.websitePath, sourcePath)
+        console.warn('Debug - Path joining:', {
+          websitePath: settings.paths.websitePath,
+          sourcePath,
+          fullPath,
+        })
         const sourcePathParts = sourcePath.split('/')
 
         const lastPart = sourcePathParts[sourcePathParts.length - 1].trim()
@@ -191,7 +217,7 @@ export class MarkdownHandler implements FileHandler {
         console.log('File Info for deletion:', fileInfo)
 
         const outputPath = `content/${this.generateOutputPath(sourcePath, fileInfo, sourcePathParts)}`
-        const fullTargetPath = path.join(settings.outputDirectoryPath, outputPath)
+        const fullTargetPath = path.join(settings.paths.websitePath, outputPath)
 
         console.log('Deleting file at:', fullTargetPath)
         await this.fileSystem.deleteFile(fullTargetPath)

@@ -1,6 +1,7 @@
 import type { Menu, TAbstractFile } from 'obsidian'
 import type { GinkoWebSettings } from './settings/settingsTypes'
 import { Notice, Plugin, setIcon, TFile, TFolder } from 'obsidian'
+import { initializeFileTypeDetector } from './composables/useFileType'
 import { initializeGinkoProcessor, useGinkoProcessor } from './composables/useGinkoProcessor'
 import { initializeGinkoSettings, updateGinkoSettings } from './composables/useGinkoSettings'
 import { CacheService } from './processor/services/CacheService'
@@ -24,6 +25,7 @@ export default class GinkoWebPlugin extends Plugin {
 
     // Initialize Ginko Settings
     initializeGinkoSettings(this.settings)
+    initializeFileTypeDetector('nuxt')
 
     // Welcome view
     this.registerView(
