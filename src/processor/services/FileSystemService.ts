@@ -3,7 +3,7 @@ import type { GinkoWebSettings } from '../../settings/settingsTypes'
 import * as crypto from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
-import * as matter from 'gray-matter'
+import { parseYAML } from 'confbox'
 import { useGinkoSettings } from '../../composables/useGinkoSettings'
 
 export class FileSystemService {
@@ -157,10 +157,22 @@ export class FileSystemService {
   }> {
     try {
       const fileContent = await this.readFile(filePath)
-      const { data, content } = matter(fileContent)
+      const contentStr = fileContent.toString()
+      const yamlMatch = contentStr.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
+
+      if (!yamlMatch) {
+        return {
+          data: {},
+          content: contentStr,
+        }
+      }
+
+      const [, yamlContent, markdownContent] = yamlMatch
+      const data = parseYAML(yamlContent)
+
       return {
-        data,
-        content,
+        data: data as Record<string, any>,
+        content: markdownContent.trim(),
       }
     }
     catch (error) {

@@ -1,5 +1,5 @@
 import { basename, extname } from 'node:path'
-import * as matter from 'gray-matter'
+import { parseYAML } from 'confbox'
 import { CacheService } from '../../services/CacheService'
 
 const generateRandomId = () => Math.random().toString(36).substring(2, 10)
@@ -217,7 +217,9 @@ export class AssetLinkModifier implements ContentModifier {
     )
 
     // Return both the modified content and updated frontmatter
-    return matter.stringify(modifiedContent, updatedFrontmatter)
+    return `---\n${Object.entries(updatedFrontmatter)
+      .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
+      .join('\n')}\n---\n${modifiedContent}`
   }
 }
 

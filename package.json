@@ -30,7 +30,6 @@
     "@codemirror/state": "^6.5.0",
     "@codemirror/view": "^6.36.1",
     "confbox": "^0.1.8",
-    "gray-matter": "^4.0.3",
     "image-meta": "^0.2.1",
     "minimatch": "^9.0.0",
     "nanoid": "^5.0.9",
