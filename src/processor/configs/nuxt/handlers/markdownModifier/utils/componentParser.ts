@@ -6,21 +6,25 @@ function parseProps(optionsStr: string): Record<string, string> {
     return props
 
   const optionsRegex = /(\w+)=["']([^"']*)["']|(\w+)/g
-  let optionMatch: RegExpExecArray | null
+  let match: RegExpExecArray | null = null
 
-  while ((optionMatch = optionsRegex.exec(optionsStr))) {
-    const [, key, value, flagKey] = optionMatch
-    if (key && value !== undefined) {
-      // Convert camelCase to kebab-case
-      const kebabKey = key.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()
-      props[kebabKey] = value
+  // Using a do-while loop to avoid assignment in while condition
+  do {
+    match = optionsRegex.exec(optionsStr)
+    if (match) {
+      const [, key, value, flagKey] = match
+      if (key && value !== undefined) {
+        // Convert camelCase to kebab-case
+        const kebabKey = key.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()
+        props[kebabKey] = value
+      }
+      else if (flagKey) {
+        // Handle boolean flags without values
+        const kebabKey = flagKey.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()
+        props[kebabKey] = 'true'
+      }
     }
-    else if (flagKey) {
-      // Handle boolean flags without values
-      const kebabKey = flagKey.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()
-      props[kebabKey] = 'true'
-    }
-  }
+  } while (match)
 
   return props
 }
@@ -63,7 +67,8 @@ export function getComponentInfo(content: string): ComponentInfo | null {
         childContent = []
       }
 
-      const childMatch = trimmedLine.match(/^--([a-z0-9-]+)(?:\((.*?)\))?\s*(.*)$/i)
+      // Using a more specific regex pattern to avoid backtracking issues
+      const childMatch = trimmedLine.match(/^--([\w-]+)(?:\(([^)]*)\))?\s*([^\n]*)/)
       if (childMatch) {
         const [, childType, childOptionsStr, childMainContent] = childMatch
         currentPosition++

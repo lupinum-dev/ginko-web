@@ -10,6 +10,7 @@ import { AssetLinkModifier, GalleryModifier, HighlightModifier, LinkModifier } f
 import { CalloutModifier } from './markdownModifier/CalloutModifier'
 import { FaqModifier } from './markdownModifier/FAQ'
 import { FileTreeModifier } from './markdownModifier/FileTreeModifier'
+import { LayoutModifier } from './markdownModifier/LayoutModifier'
 import { StepsModifier } from './markdownModifier/StepsModifier'
 import { TabsModifier } from './markdownModifier/TabsModifier'
 
@@ -40,6 +41,7 @@ export class MarkdownHandler implements FileHandler {
       new FileTreeModifier(),
       new FaqModifier(),
       new StepsModifier(),
+      new LayoutModifier(),
     ]
   }
 
