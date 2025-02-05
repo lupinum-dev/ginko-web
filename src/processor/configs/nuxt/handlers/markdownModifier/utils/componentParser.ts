@@ -13,39 +13,13 @@ function parseProps(optionsStr: string): Record<string, string> {
     if (key && value !== undefined) {
       // Convert camelCase to kebab-case
       const kebabKey = key.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()
-
-      // Special handling for auto and slash to combine into auto-slash
-      if (kebabKey === 'auto' && props.slash !== undefined) {
-        props['auto-slash'] = value
-        delete props.slash
-      }
-      else if (kebabKey === 'slash' && props.auto !== undefined) {
-        props['auto-slash'] = props.auto
-        delete props.auto
-      }
-      else if (kebabKey === 'auto-slash') {
-        props['auto-slash'] = value
-      }
-      else {
-        props[kebabKey] = value
-      }
+      props[kebabKey] = value
     }
     else if (flagKey) {
       // Handle boolean flags without values
       const kebabKey = flagKey.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase()
-      if (kebabKey === 'show-arrow' || kebabKey === 'showarrow') {
-        props['show-arrow'] = 'true'
-      }
-      else {
-        props[kebabKey] = 'true'
-      }
+      props[kebabKey] = 'true'
     }
-  }
-
-  // Post-process to ensure consistent property names
-  if (props.showarrow !== undefined) {
-    props['show-arrow'] = props.showarrow
-    delete props.showarrow
   }
 
   return props
@@ -81,7 +55,7 @@ export function getComponentInfo(content: string): ComponentInfo | null {
       isCollectingMainContent = false
       // If we have a current child, save it before starting a new one
       if (currentChild) {
-        const content = childContent.join('\n')
+        const content = childContent.join('\n').trim()
         if (content)
           currentChild.content = content
 
@@ -101,15 +75,20 @@ export function getComponentInfo(content: string): ComponentInfo | null {
         }
 
         // Only set main if it's provided
-        if (childMainContent?.trim())
+        if (childMainContent?.trim()) {
           currentChild.main = childMainContent.trim()
+          // Remove markdown formatting from title and store in props
+          const plainTitle = childMainContent.replace(/[*=_~`]/g, '').trim()
+          if (plainTitle && !currentChild.props.title)
+            currentChild.props.title = plainTitle
+        }
       }
     }
     // Check for end of main component
     else if (trimmedLine === '::') {
       // Save the last child if exists
       if (currentChild) {
-        const content = childContent.join('\n')
+        const content = childContent.join('\n').trim()
         if (content)
           currentChild.content = content
 
@@ -118,9 +97,11 @@ export function getComponentInfo(content: string): ComponentInfo | null {
       break
     }
     // Add content to current child or main component
-    else if (trimmedLine) {
-      if (isCollectingMainContent)
-        mainComponentContent.push(line)
+    else if (currentChild) {
+      childContent.push(line)
+    }
+    else if (isCollectingMainContent && trimmedLine) {
+      mainComponentContent.push(line)
     }
   }
 

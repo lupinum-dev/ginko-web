@@ -1,94 +1,43 @@
 import type { ContentModifier } from '../../markdownModifier'
-
-interface Tab {
-  title: string
-  content: string[]
-}
+import type { ComponentInfo } from './types/ComponentInfo'
+import { getComponentInfo } from './utils/componentParser'
 
 export class TabsModifier implements ContentModifier {
-  // Match tabs block with specific opening and closing patterns
-  private readonly TABS_BLOCK_REGEX = /^([~`]{3,4})tabs\n([\s\S]*?)^\1(?:\n|$)/gm
+  // Match tabs block with new syntax
+  private readonly TABS_REGEX = /^::tabs(?:\(.*?\))?\n([\s\S]*?)^::/gm
 
   modify(content: string): string {
-    return content.replace(this.TABS_BLOCK_REGEX, (_, fence, tabsContent) => {
-      const tabs = this.parseTabs(tabsContent)
-      return this.formatTabs(tabs)
+    return content.replace(this.TABS_REGEX, (match) => {
+      const componentInfo = this.getComponentInfo(match)
+      console.log('Component info:', componentInfo)
+      if (!componentInfo) {
+        console.error('Failed to parse component info')
+        return match
+      }
+
+      return this.formatTabs(componentInfo)
     })
   }
 
-  private parseTabs(content: string): Tab[] {
-    const tabs: Tab[] = []
-    let currentTab: Tab | null = null
-    let buffer: string[] = []
-
-    // Split content into lines and process each line
-    const lines = content.split('\n')
-    let inCodeBlock = false
-    let codeBlockFence = ''
-
-    for (const line of lines) {
-      // Handle code block detection
-      if (line.match(/^[~`]{3,4}[a-z0-9]*$/i)) {
-        if (!inCodeBlock) {
-          inCodeBlock = true
-          codeBlockFence = line.match(/^[~`]{3,4}/)?.[0] || ''
-        }
-        else if (line.startsWith(codeBlockFence)) {
-          inCodeBlock = false
-          codeBlockFence = ''
-        }
-      }
-
-      // Skip empty lines before first tab
-      if (!currentTab && line.trim() === '') {
-        continue
-      }
-
-      // Only process tab markers if we're not in a code block
-      if (!inCodeBlock && line.startsWith('---')) {
-        // If we have a current tab, push it to our tabs array
-        if (currentTab) {
-          // Remove trailing empty lines
-          while (buffer.length > 0 && buffer[buffer.length - 1].trim() === '') {
-            buffer.pop()
-          }
-          currentTab.content = buffer
-          tabs.push(currentTab)
-          buffer = []
-        }
-
-        // Create new tab with the title (remove leading '---' and trim)
-        const title = line.slice(3).trim()
-        currentTab = { title, content: [] }
-        continue
-      }
-
-      // If we have a current tab, add content to it
-      if (currentTab) {
-        buffer.push(line)
-      }
-    }
-
-    // Don't forget to add the last tab
-    if (currentTab && buffer.length > 0) {
-      // Remove trailing empty lines
-      while (buffer.length > 0 && buffer[buffer.length - 1].trim() === '') {
-        buffer.pop()
-      }
-      currentTab.content = buffer
-      tabs.push(currentTab)
-    }
-
-    return tabs
+  getComponentInfo(content: string): ComponentInfo | null {
+    return getComponentInfo(content)
   }
 
-  private formatTabs(tabs: Tab[]): string {
-    if (tabs.length === 0)
+  private formatTabs(componentInfo: ComponentInfo): string {
+    if (!componentInfo.children?.length) {
       return ''
+    }
 
-    const tabsContent = tabs.map((tab) => {
-      const content = tab.content.join('\n')
-      return `::tab{title="${this.escapeQuotes(tab.title)}"}\n${content}\n::`
+    const tabsContent = componentInfo.children.map((child) => {
+      // Props are already processed in the parser, including the title
+      const propsStr = Object.entries(child.props)
+        .map(([key, value]) => `${key}="${this.escapeQuotes(value)}"`)
+        .join(' ')
+
+      // Use content if available, otherwise use main
+      const content = child.content || child.main || ''
+
+      return `::tab{${propsStr}}\n${content}\n::`
     }).join('\n')
 
     return `::tabs\n${tabsContent}\n::`

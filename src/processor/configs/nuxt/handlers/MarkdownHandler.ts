@@ -35,7 +35,7 @@ export class MarkdownHandler implements FileHandler {
       new AssetLinkModifier(),
       new GalleryModifier(),
       new HighlightModifier(),
-      new CalloutModifier(),
+      // new CalloutModifier(),
       new TabsModifier(),
       new FileTreeModifier(),
       new FaqModifier(),
