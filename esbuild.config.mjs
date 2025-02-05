@@ -61,7 +61,7 @@ const jsContext = await esbuild.context({
   logLevel: 'info',
   sourcemap: prod ? false : 'inline',
   treeShaking: true,
-  outfile: `${process.env.OUTPATH}/main.js` || './main.js',
+  outfile: prod ? 'main.js' : `${process.env.OUTPATH}/main.js`,
   entryNames: '[name]',
   minify: prod,
   loader: { '.css': 'css' },
@@ -69,7 +69,7 @@ const jsContext = await esbuild.context({
 
 const cssContext = await esbuild.context({
   entryPoints: ['src/main.css'],
-  outfile: `${process.env.OUTPATH}/styles.css` || './styles.css',
+  outfile: prod ? 'styles.css' : `${process.env.OUTPATH}/styles.css`,
   bundle: true,
   allowOverwrite: true,
   minify: false,
