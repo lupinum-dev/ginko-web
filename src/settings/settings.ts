@@ -170,7 +170,9 @@ export class GinkoWebSettingTab extends PluginSettingTab {
     else if (value === 'standard') {
       // Set the website path for standard mode
       const vaultPath = (this.app.vault.adapter as any).getBasePath()
-      this.plugin.settings.paths.websitePath = vaultPath.split('/').slice(0, -2).join('/')
+      // Split by both forward and back slashes to handle Windows and Unix paths
+      const pathParts = vaultPath.split(/[/\\]/)
+      this.plugin.settings.paths.websitePath = pathParts.slice(0, -2).join('/')
     }
 
     await this.plugin.saveSettings()
