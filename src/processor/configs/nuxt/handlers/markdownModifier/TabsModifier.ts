@@ -37,7 +37,7 @@ export class TabsModifier implements ContentModifier {
       // Use content if available, otherwise use main
       const content = child.content || child.main || ''
 
-      return `::tab{${propsStr}}\n${content}\n::`
+      return `::div{${propsStr}}\n${content}\n::`
     }).join('\n')
 
     return `::tabs\n${tabsContent}\n::`
