@@ -92,6 +92,7 @@ export class AssetHandler implements FileHandler {
             sourcePaths: [sourceRelativePath],
             targetPath: outputRelativePath,
             size,
+
           })
           break
         }

@@ -154,7 +154,10 @@ export class MarkdownHandler implements FileHandler {
       case 'rebuild':
       case 'modify':
       case 'create': {
-        const fullPath = path.join(settings.paths.websitePath, sourcePath)
+        if (!settings.paths.vaultPath) {
+          throw new Error('Vault path is not configured')
+        }
+        const fullPath = path.join(settings.paths.vaultPath, sourcePath)
 
         const sourcePathParts = sourcePath.split('/')
 

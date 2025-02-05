@@ -3,7 +3,7 @@ import type { GinkoWebSettings } from '../../settings/settingsTypes'
 import * as crypto from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import * as path from 'node:path'
-const matter = require('gray-matter')
+import matter from 'gray-matter'
 import { useGinkoSettings } from '../../composables/useGinkoSettings'
 
 export class FileSystemService {
@@ -164,6 +164,7 @@ export class FileSystemService {
       }
     }
     catch (error) {
+      console.error('Error getting frontmatter content:', error)
       throw this.wrapError('read frontmatter', filePath, undefined, error)
     }
   }

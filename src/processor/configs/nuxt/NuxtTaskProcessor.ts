@@ -33,6 +33,7 @@ export class NuxtTaskProcessor implements TaskProcessor {
         )
         : batch.files
 
+      console.log('Files to process:', filesToProcess)
       for (const path of filesToProcess) {
         await this.processFile(path, batch.action, batch.oldPath)
       }
