@@ -219,16 +219,42 @@ export class GinkoWebSettingTab extends PluginSettingTab {
 
   // Add method to handle folder selection
   private async handleFolderSelection(pathContent: HTMLElement): Promise<void> {
-    // Use Electron's dialog to select folder
-    const { dialog } = window.require('electron')
-    const result = await dialog.showOpenDialog({
-      properties: ['openDirectory'],
-      title: 'Select Website Folder',
-      buttonLabel: 'Select Folder',
-    })
+    try {
+      // Get electron from window.require or global require
+      const electron = window.require ? window.require('electron') : require('electron')
+      const { dialog } = electron.remote || electron
 
-    if (!result.canceled && result.filePaths.length > 0) {
-      await this.handleCustomPathChange(result.filePaths[0], pathContent)
+      if (!dialog || !dialog.showOpenDialog) {
+        console.error('Electron dialog API not available')
+        return
+      }
+
+      const result = await dialog.showOpenDialog({
+        properties: ['openDirectory', 'createDirectory', 'dontAddToRecent'],
+        title: 'Select Website Folder',
+        buttonLabel: 'Select Folder',
+        defaultPath: this.plugin.settings.paths.websitePath || undefined,
+        message: 'Choose the folder where your website files will be stored',
+      })
+
+      if (!result.canceled && result.filePaths.length > 0) {
+        // Get the selected path and normalize it
+        const selectedPath = result.filePaths[0].replace(/\\/g, '/')
+        await this.handleCustomPathChange(selectedPath, pathContent)
+      }
+    }
+    catch (error) {
+      console.error('Error opening folder dialog:', error)
+      // Fallback to text input if dialog fails
+      const customPathSetting = new Setting(pathContent)
+        .setName('Custom Path')
+        .setDesc('Enter the full path to your website folder')
+        .addText(text => text
+          .setPlaceholder('C:/path/to/your/website')
+          .setValue(this.plugin.settings.paths.websitePath || '')
+          .onChange(async (value) => {
+            await this.handleCustomPathChange(value, pathContent)
+          }))
     }
   }
 

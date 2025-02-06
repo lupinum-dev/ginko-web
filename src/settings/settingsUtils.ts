@@ -1,5 +1,6 @@
 import type { DataAdapter } from 'obsidian'
 import { promises as fs } from 'node:fs'
+import * as path from 'path'
 
 export interface RuntimeCheckResult {
   valid: boolean
@@ -13,12 +14,20 @@ export interface WebsitePathInfo {
 }
 
 /**
+ * Normalizes a path to use forward slashes and removes trailing slashes
+ */
+function normalizePath(inputPath: string): string {
+  // Convert backslashes to forward slashes and remove trailing slashes
+  return inputPath.replace(/\\/g, '/').replace(/\/+$/, '')
+}
+
+/**
  * Checks if a given path contains a website project and determines its runtime
  */
-export async function checkWebsiteFolder(path: string): Promise<RuntimeCheckResult> {
+export async function checkWebsiteFolder(folderPath: string): Promise<RuntimeCheckResult> {
   try {
-    // Remove any trailing slashes from the path
-    const cleanPath = path.replace(/\/+$/, '')
+    // Remove any trailing slashes from the path and normalize
+    const cleanPath = normalizePath(folderPath)
 
     // Check for package managers
     const packageJsonPath = `${cleanPath}/package.json`
@@ -67,9 +76,9 @@ export async function checkWebsiteFolder(path: string): Promise<RuntimeCheckResu
 /**
  * Checks if a given path contains an Obsidian vault
  */
-export async function checkVaultFolder(path: string): Promise<boolean> {
+export async function checkVaultFolder(folderPath: string): Promise<boolean> {
   try {
-    await fs.stat(`${path}/.obsidian`)
+    await fs.stat(`${folderPath}/.obsidian`)
     return true
   }
   catch (error) {
@@ -90,16 +99,18 @@ export async function getWebsitePath(
     return { path: '<Not configured>', status: 'error' }
 
   let websitePath: string
-  const vaultPath = (adapter as any).basePath || ''
+  const vaultPath = normalizePath((adapter as any).basePath || '')
 
   if (websitePathType === 'standard') {
-    websitePath = vaultPath.split('/').slice(0, -2).join('/') // Go up two levels
+    // For standard path, go up two levels from vault path
+    const pathParts = vaultPath.split(/[/\\]/)
+    websitePath = pathParts.slice(0, -2).join('/')
   }
   else {
     if (!customPath)
       return { path: '<Not set>', status: 'error' }
 
-    websitePath = customPath
+    websitePath = normalizePath(customPath)
   }
 
   // Check if the folder exists and contains required files
