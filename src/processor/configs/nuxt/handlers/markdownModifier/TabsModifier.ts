@@ -40,7 +40,7 @@ export class TabsModifier implements ContentModifier {
       return `::div{${propsStr}}\n${content}\n::`
     }).join('\n')
 
-    return `::tabs\n${tabsContent}\n::`
+    return `::ginko-tabs\n${tabsContent}\n::`
   }
 
   private escapeQuotes(str: string): string {

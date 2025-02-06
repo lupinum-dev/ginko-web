@@ -36,10 +36,10 @@ export class LayoutModifier implements ContentModifier {
       // If the column has props, use layout with a single column
       if (Object.keys(child.props).length > 0) {
         const propsStr = this.formatProps(child.props)
-        return `${indent}::layout\n${indent}::col${propsStr}\n${content}${needsNewline ? '\n' : ''}${indent}::\n${indent}::`
+        return `${indent}::ginko-layout\n${indent}::col${propsStr}\n${content}${needsNewline ? '\n' : ''}${indent}::\n${indent}::`
       }
 
-      return `${indent}::center\n${content}${needsNewline ? '\n' : ''}${indent}::`
+      return `${indent}::ginko-center\n${content}${needsNewline ? '\n' : ''}${indent}::`
     }
 
     // Multiple columns use layout component
@@ -53,10 +53,10 @@ export class LayoutModifier implements ContentModifier {
       // Each column is wrapped in a col component
       // Add a newline after content only if it doesn't end with one
       const needsNewline = !content.endsWith('\n')
-      return `${indent}::col${propsStr}\n${content}${needsNewline ? '\n' : ''}${indent}::`
+      return `${indent}::div${propsStr}\n${content}${needsNewline ? '\n' : ''}${indent}::`
     }).join('\n')
 
-    return `${indent}::layout\n${columnsContent}\n${indent}::`
+    return `${indent}::ginko-layout\n${columnsContent}\n${indent}::`
   }
 
   private preserveIndentation(content: string, baseIndent: string): string {

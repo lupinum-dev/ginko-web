@@ -47,7 +47,7 @@ export class FileTreeModifier implements ContentModifier {
       .map(([key, value]) => `${key}: ${value}`)
       .join('\n')
 
-    return `::file-tree
+    return `::ginko-file-tree
 ---
 ${optionsYaml}
 tree:
