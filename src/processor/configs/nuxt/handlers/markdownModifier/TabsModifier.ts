@@ -37,7 +37,7 @@ export class TabsModifier implements ContentModifier {
       // Use content if available, otherwise use main
       const content = child.content || child.main || ''
 
-      return `::div{${propsStr}}\n${content}\n::`
+      return `::ginko-tab{${propsStr}}\n${content}\n::`
     }).join('\n')
 
     return `::ginko-tabs\n${tabsContent}\n::`

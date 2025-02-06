@@ -53,7 +53,7 @@ export class LayoutModifier implements ContentModifier {
       // Each column is wrapped in a col component
       // Add a newline after content only if it doesn't end with one
       const needsNewline = !content.endsWith('\n')
-      return `${indent}::div${propsStr}\n${content}${needsNewline ? '\n' : ''}${indent}::`
+      return `${indent}::ginko-column${propsStr}\n${content}${needsNewline ? '\n' : ''}${indent}::`
     }).join('\n')
 
     return `${indent}::ginko-layout\n${columnsContent}\n${indent}::`
