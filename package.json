@@ -1,9 +1,9 @@
 {
   "name": "ginko-web",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Ginko Web is a plugin that allows you to publish your Obsidian notes to the web.",
   "author": "Lupinum OG",
-  "license": "Apache-2.0",
+  "license": "BSL-1.1",
   "keywords": [
     "ginko",
     "web",
