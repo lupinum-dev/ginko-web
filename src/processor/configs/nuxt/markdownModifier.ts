@@ -101,8 +101,8 @@ export class AssetLinkModifier implements ContentModifier {
   }
 
   private processAssetPath(assetPath: string): { targetPath: string, size?: { width: number, height: number } } {
-    // First decode the entire path to handle URL encoded characters
-    const decodedPath = decodeURIComponent(assetPath)
+    // First decode the entire path and normalize backslashes to forward slashes
+    const decodedPath = decodeURIComponent(assetPath).replace(/\\/g, '/')
 
     // Split the path into parts and filter out empty segments
     const parts = decodedPath
@@ -124,8 +124,8 @@ export class AssetLinkModifier implements ContentModifier {
       return { targetPath: assetPath } // Return original path if not found
     }
 
-    // Remove 'public/' prefix from targetPath if it exists
-    const targetPath = `/${cacheItem.targetPath.replace(/^public\//, '')}`
+    // Remove 'public/' prefix and normalize any backslashes in targetPath
+    const targetPath = `/${cacheItem.targetPath.replace(/^public\//, '').replace(/\\/g, '/')}`
 
     return {
       targetPath,
@@ -177,6 +177,8 @@ export class AssetLinkModifier implements ContentModifier {
             heroImage = targetPath
             updatedFrontmatter.hero_image = targetPath
           }
+
+          console.log('targetPath', targetPath)
 
           if (isImage) {
             // Build the custom-image component with all properties
