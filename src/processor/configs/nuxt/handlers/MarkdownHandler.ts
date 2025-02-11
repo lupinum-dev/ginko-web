@@ -32,11 +32,11 @@ export class MarkdownHandler implements FileHandler {
     this.fileSystem = new FileSystemService()
     this.cacheService = new CacheService()
     this.modifiers = [
+      new CalloutModifier(),
       new LinkModifier(),
       new AssetLinkModifier(),
       new GalleryModifier(),
       new HighlightModifier(),
-      // new CalloutModifier(),
       new TabsModifier(),
       new FileTreeModifier(),
       new FaqModifier(),
