@@ -3,8 +3,8 @@ import type { ComponentInfo } from './types/ComponentInfo'
 import { getComponentInfo } from './utils/componentParser'
 
 export class TabsModifier implements ContentModifier {
-  // Match tabs block with new syntax
-  private readonly TABS_REGEX = /^::tabs(?:\(.*?\))?\n([\s\S]*?)^::/gm
+  // Match tabs block with new syntax, allowing for optional whitespace
+  private readonly TABS_REGEX = /^::tabs\s*(?:\(.*?\))?\n([\s\S]*?)^::/gm
 
   modify(content: string): string {
     return content.replace(this.TABS_REGEX, (match) => {
