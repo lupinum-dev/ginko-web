@@ -1,6 +1,8 @@
 ## New Release
 pnpm build <- check if its buildling
+change version in package.json
 pnpm run version
+check in latest commits
 git tag -a 0.0.1 -m "0.0.1"
 git push origin 0.0.1
 
