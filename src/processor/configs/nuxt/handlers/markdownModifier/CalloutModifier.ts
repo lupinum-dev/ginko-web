@@ -4,21 +4,20 @@ import { stripMarkdown } from '../../utils/markdown'
 export class CalloutModifier implements ContentModifier {
   modify(content: string): string {
     // Match Obsidian-style callouts and convert them to ginko-callout format
-    const calloutRegex: RegExp = /^>\s*\[!\s*(\w+)\](\-?)\s*(.*)?\n((?:>(?:>\s*.*|>\s*)(?:\n|$))*)/gm;
+    const calloutRegex: RegExp = /^>\s*\[!\s*(\w+)\](\-?)\s*(.*)?\n((?:>(?:.*?)(?:\n|$))*)/gm;
 
     let processedContent = content.replace(calloutRegex, (match: string, type: string, collapsible: string, titleLine: string | undefined, content: string) => {
-      // Clean up the content by removing the leading '> ' from each line
+      // Clean up the content by removing the leading '>' from each line
       // and preserving empty lines within the callout
       const cleanContent = content
         .split('\n')
         .map((line: string) => {
-          // Handle empty lines that only contain '>'
+          // Handle empty lines
           if (line.trim() === '>') return '';
-          // Remove leading '> ' while preserving indentation
+          // Remove leading '>' while preserving the rest of the line exactly as is
           return line.replace(/^>\s?/, '');
         })
         .join('\n')
-        .replace(/\n{3,}/g, '\n\n') // Replace multiple consecutive newlines with double newlines
         .trim();
 
       // Determine if callout is collapsed (has the '-' symbol)
