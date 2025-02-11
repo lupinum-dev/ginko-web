@@ -81,12 +81,16 @@ export class MarkdownHandler implements FileHandler {
   private generateColocatedOutputPath(fileInfo: FileInfo, sourcePathParts: string[]): string {
     const settings = this.getSettings()
 
+    // Extract numeric prefix if it exists in the colocation folder name
+    const colocationFolder = sourcePathParts[sourcePathParts.length - 2]
+    const numericPrefix = colocationFolder.match(/^(\d+\.)/)?.[1] || ''
+
     const sanitizedBaseName = fileInfo.baseName
       .replace(/\s+/g, '-')
       .toLowerCase()
       .trim()
 
-    const fileName = `${sanitizedBaseName}-${fileInfo.colocationId}`
+    const fileName = `${numericPrefix}${sanitizedBaseName}-${fileInfo.colocationId}`
 
     if (fileInfo.locale === settings.languages.mainLanguage) {
       const dirPath = sourcePathParts.slice(0, -2)
@@ -134,6 +138,8 @@ export class MarkdownHandler implements FileHandler {
     if (!settings.paths.websitePath) {
       throw new Error('Website path is not configured')
     }
+
+    console.log('Copying to target:', sourcePath, outputPath)
     const targetPath = path.join(settings.paths.websitePath, outputPath)
 
     // Process markdown content before copying
@@ -168,6 +174,7 @@ export class MarkdownHandler implements FileHandler {
 
         const fileInfo = this.parseFileInfo(lastPart, beforeLastPart)
 
+        console.log('Generating output path:', sourcePath, fileInfo, sourcePathParts)
         const outputPath = `content/${this.generateOutputPath(sourcePath, fileInfo, sourcePathParts)}`
 
         await this.copyToTarget(fullPath, outputPath)
