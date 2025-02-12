@@ -125,10 +125,12 @@ export class AssetLinkModifier implements ContentModifier {
     }
 
     // Remove 'public/' prefix and normalize any backslashes in targetPath
-    const targetPath = `/${cacheItem.targetPath.replace(/^public\//, '').replace(/\\/g, '/')}`
+    const targetPath = cacheItem.targetPath
+      .replace(/^public[\\/]/, '') // Remove public/ or public\ prefix
+      .replace(/\\/g, '/') // Normalize backslashes to forward slashes
 
     return {
-      targetPath,
+      targetPath: `/${targetPath}`, // Ensure leading slash
       size: cacheItem.size,
     }
   }
