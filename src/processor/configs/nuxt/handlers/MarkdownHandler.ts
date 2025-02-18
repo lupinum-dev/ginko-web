@@ -92,13 +92,6 @@ export class MarkdownHandler implements FileHandler {
 
     const fileName = `${numericPrefix}${sanitizedBaseName}-${fileInfo.colocationId}`
 
-    if (fileInfo.locale === settings.languages.mainLanguage) {
-      const dirPath = sourcePathParts.slice(0, -2)
-        .join('/')
-        .replace(/\s+/g, '-')
-        .toLowerCase()
-      return `${settings.languages.mainLanguage}/${dirPath}/${fileName}.md`
-    }
 
     const checkLocalizedPath = `${sourcePathParts.slice(0, -2).join('/')}/`
     const metaItem = this.cacheService.meta.getMetaItem(checkLocalizedPath)
