@@ -158,26 +158,38 @@ export class FileSystemService {
     try {
       const fileContent = await this.readFile(filePath)
       const contentStr = fileContent.toString()
-      const yamlMatch = contentStr.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/)
+
+      // Stricter regex requiring frontmatter to be at start of file
+      const yamlMatch = contentStr.match(/^---\s*\r?\n([\s\S]*?)\r?\n---\s*(\r?\n|$)([\s\S]*)/)
 
       if (!yamlMatch) {
         return {
           data: {},
-          content: contentStr,
+          content: contentStr.trim(),
         }
       }
 
-      const [, yamlContent, markdownContent] = yamlMatch
-      const data = parseYAML(yamlContent)
+      const [, yamlContent, , markdownContent] = yamlMatch
+
+      // Add try/catch around YAML parsing
+      let data = {}
+      try {
+        data = yamlContent.trim() ? parseYAML(yamlContent) : {}
+      } catch (e) {
+        console.error('Invalid YAML frontmatter:', e.message)
+      }
 
       return {
         data: data as Record<string, any>,
-        content: markdownContent.trim(),
+        content: markdownContent?.trim() || '',
       }
     }
     catch (error) {
-      console.error('Error getting frontmatter content:', error)
-      throw this.wrapError('read frontmatter', filePath, undefined, error)
+      console.error('Error processing file:', error)
+      return {
+        data: { title: 'Untitled' },
+        content: ''
+      }
     }
   }
 
