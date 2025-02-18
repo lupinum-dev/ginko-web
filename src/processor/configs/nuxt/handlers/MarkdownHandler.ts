@@ -14,6 +14,7 @@ import { LayoutModifier } from './markdownModifier/LayoutModifier'
 import { StepsModifier } from './markdownModifier/StepsModifier'
 import { TabsModifier } from './markdownModifier/TabsModifier'
 import { slugify } from '../utils/slugify'
+import { stringifyYAML } from 'confbox'
 
 interface FileInfo {
   isLocalized: boolean
@@ -107,13 +108,34 @@ export class MarkdownHandler implements FileHandler {
 
   private async processMarkdownContent(sourcePath: string): Promise<string> {
     try {
+
       const { data: frontmatter, content } = await this.fileSystem.getFrontmatterContent(sourcePath)
+
+
       // Apply all modifiers to the content
-      const modifiedContent = this.modifiers.reduce(
-        (currentContent, modifier) => modifier.modify(currentContent, frontmatter),
-        content,
-      )
-      return modifiedContent
+      let modifiedContent = content
+      for (const modifier of this.modifiers) {
+        const before = modifiedContent
+        modifiedContent = modifier.modify(modifiedContent, frontmatter)
+
+      }
+
+      // Remove any empty frontmatter that might have been added by modifiers
+      modifiedContent = modifiedContent.replace(/^---\s*\n\s*---\s*\n/, '')
+      // Check if content already has valid frontmatter
+      const hasFrontmatterMarkers = modifiedContent.trim().match(/^---\s*\n[\s\S]+?\n---\s*\n/)
+      // Only add frontmatter if it doesn't already exist and we have data
+      const hasKeys = Object.keys(frontmatter).length > 0
+      if (hasFrontmatterMarkers) {
+        return modifiedContent
+      }
+      const yamlString = hasKeys ? stringifyYAML(frontmatter) : ''
+      const frontmatterYaml = hasKeys
+        ? `---\n${yamlString.trim()}\n---\n\n`
+        : ''
+      const finalContent = `${frontmatterYaml}${modifiedContent}`
+
+      return finalContent
     }
     catch (error) {
       if (error.code === 'ENOENT') {
