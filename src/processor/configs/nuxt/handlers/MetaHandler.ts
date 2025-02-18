@@ -5,6 +5,7 @@ import { useGinkoProcessor } from '../../../../composables/useGinkoProcessor'
 import { useGinkoSettings } from '../../../../composables/useGinkoSettings'
 import { CacheService } from '../../../services/CacheService'
 import { FileSystemService } from '../../../services/FileSystemService'
+import { slugify } from '../utils/slugify'
 
 interface SlugTranslations {
   default: string
@@ -43,7 +44,10 @@ export class MetaHandler implements FileHandler {
         default: `${currentDir}/`,
         ...Object.entries(langTranslations).reduce((acc, [lang, slug]) => ({
           ...acc,
-          [lang]: `${parentDir}/${prefix}${slug}/`,
+          [lang]: `${parentDir}/${prefix}${slugify(slug, {
+            separator: '-',
+            preserveLeadingNumbers: true
+          })}/`,
         }), {}),
       },
     }

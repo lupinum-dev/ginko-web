@@ -4,3 +4,5 @@ export function stripMarkdown(text: string): string {
     .replace(/\s+/g, ' ') // Normalize whitespace
     .trim()
 }
+
+

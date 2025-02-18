@@ -13,6 +13,7 @@ import { FileTreeModifier } from './markdownModifier/FileTreeModifier'
 import { LayoutModifier } from './markdownModifier/LayoutModifier'
 import { StepsModifier } from './markdownModifier/StepsModifier'
 import { TabsModifier } from './markdownModifier/TabsModifier'
+import { slugify } from '../utils/slugify'
 
 interface FileInfo {
   isLocalized: boolean
@@ -81,17 +82,15 @@ export class MarkdownHandler implements FileHandler {
   private generateColocatedOutputPath(fileInfo: FileInfo, sourcePathParts: string[]): string {
     const settings = this.getSettings()
 
-    // Extract numeric prefix if it exists in the colocation folder name
     const colocationFolder = sourcePathParts[sourcePathParts.length - 2]
     const numericPrefix = colocationFolder.match(/^(\d+\.)/)?.[1] || ''
 
-    const sanitizedBaseName = fileInfo.baseName
-      .replace(/\s+/g, '-')
-      .toLowerCase()
-      .trim()
+    const sanitizedBaseName = slugify(fileInfo.baseName, {
+      separator: '-',
+      preserveLeadingNumbers: true
+    })
 
     const fileName = `${numericPrefix}${sanitizedBaseName}-${fileInfo.colocationId}`
-
 
     const checkLocalizedPath = `${sourcePathParts.slice(0, -2).join('/')}/`
     const metaItem = this.cacheService.meta.getMetaItem(checkLocalizedPath)
@@ -102,9 +101,8 @@ export class MarkdownHandler implements FileHandler {
 
     const dirPath = sourcePathParts.slice(0, -2)
       .join('/')
-      .replace(/\s+/g, '-')
-      .toLowerCase()
-    return `${fileInfo.locale}/${dirPath}/${fileName}.md`
+
+    return `${fileInfo.locale || settings.languages.mainLanguage}/${dirPath}/${fileName}.md`
   }
 
   private async processMarkdownContent(sourcePath: string): Promise<string> {

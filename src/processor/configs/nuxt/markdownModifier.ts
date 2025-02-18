@@ -206,11 +206,11 @@ export class AssetLinkModifier implements ContentModifier {
           }
           else if (isVideo) {
             const label = cleanAltText || `Video: ${fileName}`
-            return `:video-player{src="${targetPath}" label="${label}"}`
+            return `:ginko-video{src="${targetPath}" label="${label}"}`
           }
           else {
             const label = cleanAltText || `Download ${fileName}`
-            return `:download-file{src="${targetPath}" label="${label}"}`
+            return `:ginko-download{src="${targetPath}" label="${label}"}`
           }
         }
         catch (error) {
