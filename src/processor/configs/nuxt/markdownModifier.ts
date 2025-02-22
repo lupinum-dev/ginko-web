@@ -75,7 +75,8 @@ export class LinkModifier implements ContentModifier {
 
 export class AssetLinkModifier implements ContentModifier {
   private readonly imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.avif']
-  private readonly videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.wmv', '.flv', '.mkv']
+  private readonly videoExtensions = ['.mp4', '.webm']
+  private readonly audioExtensions = ['.mp3', '.wav', '.ogg']
 
   private normalizePath(path: string): string[] {
     return path.split('/').filter(Boolean).map(decodeURIComponent)
@@ -98,6 +99,11 @@ export class AssetLinkModifier implements ContentModifier {
   private isVideoFile(filename: string): boolean {
     const ext = extname(filename).toLowerCase()
     return this.videoExtensions.includes(ext)
+  }
+
+  private isAudioFile(filename: string): boolean {
+    const ext = extname(filename).toLowerCase()
+    return this.audioExtensions.includes(ext)
   }
 
   private processAssetPath(assetPath: string): { targetPath: string, size?: { width: number, height: number } } {
@@ -171,7 +177,7 @@ export class AssetLinkModifier implements ContentModifier {
           const fileName = basename(targetPath)
           const isImage = this.isImageFile(fileName)
           const isVideo = this.isVideoFile(fileName)
-
+          const isAudio = this.isAudioFile(fileName)
           // Parse alt text and properties
           const { cleanAltText, properties } = this.parseAltText(altText)
 
@@ -205,12 +211,24 @@ export class AssetLinkModifier implements ContentModifier {
             return imageComponent
           }
           else if (isVideo) {
-            const label = cleanAltText || `Video: ${fileName}`
-            return `:ginko-video{src="${targetPath}" label="${label}"}`
+            const labelProp = cleanAltText ? ` label="${cleanAltText}"` : ''
+            return `:ginko-video{src="${targetPath}"${labelProp}}\n`
+          }
+          else if (isAudio) {
+            const labelProp = cleanAltText ? ` label="${cleanAltText}"` : ''
+            return `:ginko-audio{src="${targetPath}"${labelProp}}\n`
           }
           else {
-            const label = cleanAltText || `Download ${fileName}`
-            return `:ginko-download{src="${targetPath}" label="${label}"}`
+            // For downloads, use original filename if no alt text
+            let label = cleanAltText
+            if (!label) {
+              // Extract original filename from the asset path
+              const pathParts = assetPath.split('/')
+              const lastPart = pathParts[pathParts.length - 1]
+              label = decodeURIComponent(lastPart)
+            }
+            const labelProp = label ? ` label="${label}"` : ''
+            return `:ginko-download{src="${targetPath}"${labelProp}}\n`
           }
         }
         catch (error) {

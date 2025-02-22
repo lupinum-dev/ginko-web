@@ -13,6 +13,7 @@ import { FileTreeModifier } from './markdownModifier/FileTreeModifier'
 import { LayoutModifier } from './markdownModifier/LayoutModifier'
 import { StepsModifier } from './markdownModifier/StepsModifier'
 import { TabsModifier } from './markdownModifier/TabsModifier'
+import { QuizModifier } from './markdownModifier/QuizModifier'
 import { slugify } from '../utils/slugify'
 import { stringifyYAML } from 'confbox'
 
@@ -38,12 +39,13 @@ export class MarkdownHandler implements FileHandler {
       new LinkModifier(),
       new AssetLinkModifier(),
       new GalleryModifier(),
-      new HighlightModifier(),
       new TabsModifier(),
       new FileTreeModifier(),
       new FaqModifier(),
       new StepsModifier(),
       new LayoutModifier(),
+      new QuizModifier(),
+      new HighlightModifier(),
     ]
   }
 
