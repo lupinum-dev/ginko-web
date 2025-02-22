@@ -76,6 +76,7 @@ export class LinkModifier implements ContentModifier {
 export class AssetLinkModifier implements ContentModifier {
   private readonly imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.avif']
   private readonly videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.wmv', '.flv', '.mkv']
+  private readonly audioExtensions = ['.mp3', '.wav', '.ogg', '.opus', '.aac', '.flac']
 
   private normalizePath(path: string): string[] {
     return path.split('/').filter(Boolean).map(decodeURIComponent)
@@ -98,6 +99,11 @@ export class AssetLinkModifier implements ContentModifier {
   private isVideoFile(filename: string): boolean {
     const ext = extname(filename).toLowerCase()
     return this.videoExtensions.includes(ext)
+  }
+
+  private isAudioFile(filename: string): boolean {
+    const ext = extname(filename).toLowerCase()
+    return this.audioExtensions.includes(ext)
   }
 
   private processAssetPath(assetPath: string): { targetPath: string, size?: { width: number, height: number } } {
@@ -171,7 +177,7 @@ export class AssetLinkModifier implements ContentModifier {
           const fileName = basename(targetPath)
           const isImage = this.isImageFile(fileName)
           const isVideo = this.isVideoFile(fileName)
-
+          const isAudio = this.isAudioFile(fileName)
           // Parse alt text and properties
           const { cleanAltText, properties } = this.parseAltText(altText)
 
@@ -207,6 +213,10 @@ export class AssetLinkModifier implements ContentModifier {
           else if (isVideo) {
             const label = cleanAltText || `Video: ${fileName}`
             return `:ginko-video{src="${targetPath}" label="${label}"}`
+          }
+          else if (isAudio) {
+            const label = cleanAltText || `Audio: ${fileName}`
+            return `:ginko-audio{src="${targetPath}" label="${label}"}`
           }
           else {
             const label = cleanAltText || `Download ${fileName}`

@@ -37,7 +37,9 @@ export class QuizModifier implements ContentModifier {
     return content.replace(this.QUIZ_REGEX, (match) => {
       const quiz = this.parseQuiz(match);
       // Create the ginko-quiz component with stringified questions
-      return `:ginko-quiz{:questions='${JSON.stringify(quiz.questions)}'}`;
+      // Use HTML entities for quotes in the JSON string
+      // TODO: FIX "" in content
+      return `:ginko-quiz{:questions='${JSON.stringify(quiz.questions).replace(/'/g, "&apos;")}'}`;
     });
   }
 
