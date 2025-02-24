@@ -7,7 +7,7 @@
         "question": "What is the **basic unit** of *information*?",
         "options": [
           {
-            "text": "A number between 0 and 1",
+            "text": "A number between $0$ and $1$",
             "correct": false
           },
           {
@@ -24,7 +24,7 @@
           }
         ],
         "feedback": {
-          "correct": "Perfect! The basic unit of information is indeed a yes/no decision, which equals one bit. This is fundamental to all digital communication.",
+          "correct": "Perfect! The basic unit of information is indeed a `yes/no` decision, which equals one bit. This is fundamental to all digital communication.",
           "hint": "Think about the simplest possible way to represent information - what is the most basic choice that can be made?"
         }
       },
@@ -57,37 +57,6 @@
           {
             "term": "Information Content ($H$)",
             "definition": "Average information per character considering probabilities"
-          }
-        ],
-        "feedback": {
-          "correct": "Excellent! These fundamental concepts are key to understanding information theory.",
-          "hint": "Consider how each concept relates to the process of encoding and transmitting information."
-        }
-      },
-      {
-        "type": "match",
-        "difficulty": "hard",
-        "question": "Match these images with their *correct counterpart*:",
-        "pairs": [
-          {
-            "term": {
-              "src": "/image1.png",
-              "figure": "Text **below**"
-            },
-            "definition": {
-              "src": "/image2.png",
-              "figure": "Text **below**"
-            }
-          },
-          {
-            "term": {
-              "src": "/image3.png",
-              "figure": "Text **below**"
-            },
-            "definition": {
-              "src": "/image4.png",
-              "figure": "Text **below**"
-            }
           }
         ],
         "feedback": {
@@ -133,33 +102,6 @@
         }
       },
       {
-        "type": "select",
-        "difficulty": "hard",
-        "question": "What is the **optimal base** $B$ for a number system to minimize the designation space $R$?",
-        "options": [
-          {
-            "text": "2 (binary)",
-            "correct": false
-          },
-          {
-            "text": "3 (ternary)",
-            "correct": false
-          },
-          {
-            "text": "e (≈ 2.71828)",
-            "correct": true
-          },
-          {
-            "text": "10 (decimal)",
-            "correct": false
-          }
-        ],
-        "feedback": {
-          "correct": "Perfect! While e is mathematically optimal, binary $(B=2)$ is more practical for technical implementation.",
-          "hint": "Consider why we use binary despite it not being mathematically optimal."
-        }
-      },
-      {
         "type": "choose",
         "difficulty": "medium",
         "options": "Designation Space | Signal Set | Information Content | Base",
@@ -170,66 +112,12 @@
         }
       },
       {
-        "type": "select",
-        "difficulty": "medium",
-        "question": "What happens to the **information content** $H$ of a signal when its probability $p$ increases?",
-        "options": [
-          {
-            "text": "It stays the same",
-            "correct": false
-          },
-          {
-            "text": "It increases linearly",
-            "correct": false
-          },
-          {
-            "text": "It decreases",
-            "correct": true
-          },
-          {
-            "text": "It increases exponentially",
-            "correct": false
-          }
-        ],
-        "feedback": {
-          "correct": "Excellent! More frequent signals carry less information because they are more predictable.",
-          "hint": "Consider why rare events are more informative than common ones."
-        }
-      },
-      {
         "type": "blank",
         "difficulty": "hard",
         "question": "For signals `a`, `b`, `c` occurring with probabilities $p(a)=0.5$, $p(b)=0.25$, $p(c)=0.25$, the entropy $H =$ ++1.75 | 1,75++ bit/character.",
         "feedback": {
           "correct": "Perfect! You understand how to calculate entropy for signals with different probabilities.",
           "hint": "Remember the formula $H = Σ p_i × ld(1/p_i)$."
-        }
-      },
-      {
-        "type": "select",
-        "difficulty": "medium",
-        "question": "Which **property** of information theory is utilized in *data compression*?",
-        "options": [
-          {
-            "text": "Signal set size",
-            "correct": false
-          },
-          {
-            "text": "Designation space",
-            "correct": false
-          },
-          {
-            "text": "Varying character probabilities",
-            "correct": true
-          },
-          {
-            "text": "Base number system",
-            "correct": false
-          }
-        ],
-        "feedback": {
-          "correct": "Excellent! Data compression takes advantage of varying probabilities to reduce average message length.",
-          "hint": "Think about why some characters need fewer bits than others in compressed data."
         }
       },
       {
@@ -246,34 +134,7 @@
           "correct": "Perfect! This sequence shows the logical process for calculating designation space.",
           "hint": "Consider why each step is necessary and how they build on each other."
         }
-      },
-      {
-        "type": "select",
-        "difficulty": "hard",
-        "question": "For a **license plate** system with 26 letters and 10 digits, what determines the total signal set $V$?",
-        "options": [
-          {
-            "text": "The sum of all possible characters",
-            "correct": false
-          },
-          {
-            "text": "The product of possibilities at each position",
-            "correct": true
-          },
-          {
-            "text": "The average of letters and numbers",
-            "correct": false
-          },
-          {
-            "text": "The maximum of letters or numbers",
-            "correct": false
-          }
-        ],
-        "feedback": {
-          "correct": "Correct! The total number of possibilities is the product of the possibilities at each position.",
-          "hint": "Think about how combinations are calculated in probability theory."
-        }
       }
-    ],
+    ]
   }
 }
