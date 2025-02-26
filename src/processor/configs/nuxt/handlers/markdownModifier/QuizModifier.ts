@@ -538,6 +538,8 @@ export class QuizModifier implements ContentModifier {
     if (isTableFormat) {
       // Process table format
       let hasImages = false;
+      let isFirstContentRow = true;  // Flag to track if we're on the first content row
+
       for (const line of lines) {
         if (line.trim().startsWith('=>')) {
           correctFeedback = line.substring(2).trim();
@@ -547,11 +549,14 @@ export class QuizModifier implements ContentModifier {
           const match = line.match(this.TABLE_ROW_REGEX);
           if (match) {
             const [, term, definition] = match;
-            if (!line.includes('---')) {  // Skip header separator row
-              if (!questionText && term.includes('Match')) {
+            // Skip header separator row (contains dashes)
+            if (!line.includes('---')) {
+              if (isFirstContentRow) {
+                // First content row contains the question
                 questionText = term.trim();
+                isFirstContentRow = false;
               } else {
-                // Check for images in the term and definition
+                // All subsequent rows are term-definition pairs
                 const termImageMatch = term.match(this.IMAGE_REGEX);
                 const defImageMatch = definition.match(this.IMAGE_REGEX);
 
