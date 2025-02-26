@@ -1,140 +1,136 @@
-{
-  "quiz": {
-    "questions": [
+[
+  {
+    "type": "select",
+    "difficulty": "medium",
+    "question": "What is the **basic unit** of *information*?",
+    "options": [
       {
-        "type": "select",
-        "difficulty": "medium",
-        "question": "What is the **basic unit** of *information*?",
-        "options": [
-          {
-            "text": "A number between $0$ and $1$",
-            "correct": false
-          },
-          {
-            "text": "A yes/no decision",
-            "correct": true
-          },
-          {
-            "text": "A decimal digit",
-            "correct": false
-          },
-          {
-            "text": "A letter from the alphabet",
-            "correct": false
-          }
-        ],
-        "feedback": {
-          "correct": "Perfect! The basic unit of information is indeed a `yes/no` decision, which equals one bit. This is fundamental to all digital communication.",
-          "hint": "Think about the simplest possible way to represent information - what is the most basic choice that can be made?"
-        }
+        "text": "A number between $0$ and $1$",
+        "correct": false
       },
       {
-        "type": "blank",
-        "difficulty": "medium",
-        "question": "For a binary system with $V=1000$ possible signals, the decision content $G = ld$(++1000++) $≈$ ++9.97 | 9,97++ bit.",
-        "feedback": {
-          "correct": "Very good! The calculation of decision content is important for coding messages.",
-          "hint": "Think about the formula $G = ld(V)$ for decision content."
-        }
+        "text": "A yes/no decision",
+        "correct": true
       },
       {
-        "type": "match",
-        "difficulty": "hard",
-        "question": "Match these **information theory concepts** with their *correct definitions*:",
-        "pairs": [
-          {
-            "term": "Decision Content ($G$)",
-            "definition": "Number of yes/no decisions needed to identify a signal"
-          },
-          {
-            "term": "Designation Space ($R$)",
-            "definition": "Number of characters needed to select from the signal set"
-          },
-          {
-            "term": "Signal Set ($V$)",
-            "definition": "Total number of possible signal combinations"
-          },
-          {
-            "term": "Information Content ($H$)",
-            "definition": "Average information per character considering probabilities"
-          }
-        ],
-        "feedback": {
-          "correct": "Excellent! These fundamental concepts are key to understanding information theory.",
-          "hint": "Consider how each concept relates to the process of encoding and transmitting information."
-        }
+        "text": "A decimal digit",
+        "correct": false
       },
       {
-        "type": "select",
-        "difficulty": "medium",
-        "question": "In a **number system** with base $B$, what is the relationship between the signal set $V$ and the number of digits $n$?",
-        "options": [
-          {
-            "text": "$V = n × B$",
-            "correct": false
-          },
-          {
-            "text": "$V = B^n$",
-            "correct": true
-          },
-          {
-            "text": "$V = B/n$",
-            "correct": false
-          },
-          {
-            "text": "$V = n/B$",
-            "correct": false
-          }
-        ],
-        "feedback": {
-          "correct": "Correct! The formula $V = B^n$ shows how the number of possible combinations grows exponentially with the number of digits.",
-          "hint": "Think about how many possibilities exist for each digit position."
-        }
-      },
-      {
-        "type": "blank",
-        "limit": 2,
-        "difficulty": "hard",
-        "question": "For a 4-digit decimal number, the designation space $R =$ ++40++ and the signal set $V =$ ++10000++. For a 10-digit binary number, $R =$ ++20++ and $V =$ ++1024++.",
-        "feedback": {
-          "correct": "Excellent! You understand how to calculate designation space and signal set size for different number systems.",
-          "hint": "Remember the formulas $R = n × B$ and $V = B^n$."
-        }
-      },
-      {
-        "type": "choose",
-        "difficulty": "medium",
-        "options": "Designation Space | Signal Set | Information Content | Base",
-        "question": "The ++Designation Space++ $R$ for base $B$ and signal set $V$ is calculated as $R = B × log_B(V)$.",
-        "feedback": {
-          "correct": "Correct! This formula is fundamental for calculating the required number of characters.",
-          "hint": "Think about how this relates to the efficiency of different number systems."
-        }
-      },
-      {
-        "type": "blank",
-        "difficulty": "hard",
-        "question": "For signals `a`, `b`, `c` occurring with probabilities $p(a)=0.5$, $p(b)=0.25$, $p(c)=0.25$, the entropy $H =$ ++1.75 | 1,75++ bit/character.",
-        "feedback": {
-          "correct": "Perfect! You understand how to calculate entropy for signals with different probabilities.",
-          "hint": "Remember the formula $H = Σ p_i × ld(1/p_i)$."
-        }
-      },
-      {
-        "type": "sort",
-        "difficulty": "medium",
-        "question": "Order these **steps** in calculating the *designation space* $R$ for a signal set:",
-        "items": [
-          "Determine the base $B$ of the number system",
-          "Calculate the number of positions $n$ needed",
-          "Multiply $n$ by $B$ to get $R$",
-          "Verify if compression is possible based on probabilities"
-        ],
-        "feedback": {
-          "correct": "Perfect! This sequence shows the logical process for calculating designation space.",
-          "hint": "Consider why each step is necessary and how they build on each other."
-        }
+        "text": "A letter from the alphabet",
+        "correct": false
       }
-    ]
+    ],
+    "feedback": {
+      "correct": "Perfect! The basic unit of information is indeed a `yes/no` decision, which equals one bit. This is fundamental to all digital communication.",
+      "hint": "Think about the simplest possible way to represent information - what is the most basic choice that can be made?"
+    }
+  },
+  {
+    "type": "blank",
+    "difficulty": "medium",
+    "question": "For a binary system with $V=1000$ possible signals, the decision content $G = ld$(++1000++) $≈$ ++9.97 | 9,97++ bit.",
+    "feedback": {
+      "correct": "Very good! The calculation of decision content is important for coding messages.",
+      "hint": "Think about the formula $G = ld(V)$ for decision content."
+    }
+  },
+  {
+    "type": "match",
+    "difficulty": "hard",
+    "question": "Match these **information theory concepts** with their *correct definitions*:",
+    "pairs": [
+      {
+        "term": "Decision Content ($G$)",
+        "definition": "Number of yes/no decisions needed to identify a signal"
+      },
+      {
+        "term": "Designation Space ($R$)",
+        "definition": "Number of characters needed to select from the signal set"
+      },
+      {
+        "term": "Signal Set ($V$)",
+        "definition": "Total number of possible signal combinations"
+      },
+      {
+        "term": "Information Content ($H$)",
+        "definition": "Average information per character considering probabilities"
+      }
+    ],
+    "feedback": {
+      "correct": "Excellent! These fundamental concepts are key to understanding information theory.",
+      "hint": "Consider how each concept relates to the process of encoding and transmitting information."
+    }
+  },
+  {
+    "type": "select",
+    "difficulty": "medium",
+    "question": "In a **number system** with base $B$, what is the relationship between the signal set $V$ and the number of digits $n$?",
+    "options": [
+      {
+        "text": "$V = n × B$",
+        "correct": false
+      },
+      {
+        "text": "$V = B^n$",
+        "correct": true
+      },
+      {
+        "text": "$V = B/n$",
+        "correct": false
+      },
+      {
+        "text": "$V = n/B$",
+        "correct": false
+      }
+    ],
+    "feedback": {
+      "correct": "Correct! The formula $V = B^n$ shows how the number of possible combinations grows exponentially with the number of digits.",
+      "hint": "Think about how many possibilities exist for each digit position."
+    }
+  },
+  {
+    "type": "blank",
+    "limit": 2,
+    "difficulty": "hard",
+    "question": "For a 4-digit decimal number, the designation space $R =$ ++40++ and the signal set $V =$ ++10000++. For a 10-digit binary number, $R =$ ++20++ and $V =$ ++1024++.",
+    "feedback": {
+      "correct": "Excellent! You understand how to calculate designation space and signal set size for different number systems.",
+      "hint": "Remember the formulas $R = n × B$ and $V = B^n$."
+    }
+  },
+  {
+    "type": "choose",
+    "difficulty": "medium",
+    "options": "Designation Space | Signal Set | Information Content | Base",
+    "question": "The ++Designation Space++ $R$ for base $B$ and signal set $V$ is calculated as $R = B × log_B(V)$.",
+    "feedback": {
+      "correct": "Correct! This formula is fundamental for calculating the required number of characters.",
+      "hint": "Think about how this relates to the efficiency of different number systems."
+    }
+  },
+  {
+    "type": "blank",
+    "difficulty": "hard",
+    "question": "For signals `a`, `b`, `c` occurring with probabilities $p(a)=0.5$, $p(b)=0.25$, $p(c)=0.25$, the entropy $H =$ ++1.75 | 1,75++ bit/character.",
+    "feedback": {
+      "correct": "Perfect! You understand how to calculate entropy for signals with different probabilities.",
+      "hint": "Remember the formula $H = Σ p_i × ld(1/p_i)$."
+    }
+  },
+  {
+    "type": "sort",
+    "difficulty": "medium",
+    "question": "Order these **steps** in calculating the *designation space* $R$ for a signal set:",
+    "items": [
+      "Determine the base $B$ of the number system",
+      "Calculate the number of positions $n$ needed",
+      "Multiply $n$ by $B$ to get $R$",
+      "Verify if compression is possible based on probabilities"
+    ],
+    "feedback": {
+      "correct": "Perfect! This sequence shows the logical process for calculating designation space.",
+      "hint": "Consider why each step is necessary and how they build on each other."
+    }
   }
-}
+]

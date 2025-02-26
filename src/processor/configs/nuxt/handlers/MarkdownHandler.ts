@@ -35,7 +35,6 @@ export class MarkdownHandler implements FileHandler {
     this.fileSystem = new FileSystemService()
     this.cacheService = new CacheService()
     this.modifiers = [
-      new CalloutModifier(),
       new LinkModifier(),
       new AssetLinkModifier(),
       new GalleryModifier(),
@@ -46,6 +45,7 @@ export class MarkdownHandler implements FileHandler {
       new LayoutModifier(),
       new QuizModifier(),
       new HighlightModifier(),
+      new CalloutModifier(),
     ]
   }
 

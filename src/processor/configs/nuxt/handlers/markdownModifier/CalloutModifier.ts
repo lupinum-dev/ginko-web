@@ -3,7 +3,7 @@ import { stripMarkdown } from '../../utils/markdown'
 
 export class CalloutModifier implements ContentModifier {
   // Match both new and old style callouts
-  private readonly NEW_CALLOUT_REGEX = /^::([\w-]+)(?:\s*(?:-|\+)?(?:\s*--title\s+([^\n]+))?)?\n([\s\S]*?)^::/gm
+  private readonly NEW_CALLOUT_REGEX = /^::((?:note|warning|info|danger|tip)(?:-)?)(?:\s*(?:-|\+)?(?:\s*--title\s+([^\n]+))?)?\n([\s\S]*?)^::/gm
   private readonly OBSIDIAN_CALLOUT_REGEX = /^>\s*\[!\s*(\w+)\](\-|\+)?(?:[ \t]+([^\n]+))?\n((?:>(?:.*?)(?:\n|$))*)/gm
 
   modify(content: string): string {
@@ -71,6 +71,8 @@ export class CalloutModifier implements ContentModifier {
 
     // Ensure proper spacing between callouts by adding an extra newline
     processedContent = processedContent.replace(/\n::\n::/g, '\n::\n\n::')
+    // Ensure there is an empty line after a callout block if not already present
+    processedContent = processedContent.replace(/(::\n)(?!\n)/g, '$1\n')
 
     return processedContent
   }
