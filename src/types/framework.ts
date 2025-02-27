@@ -1,6 +1,6 @@
 import type { FileTypeCheck } from '../processor/configs/nuxt/fileTypes'
 
-export type Framework = 'nuxt' | 'astro'
+export type Framework = 'nuxt' | 'astro' | 'docusaurus'
 
 export interface FrameworkConfig {
   fileTypes: FileTypeCheck[]

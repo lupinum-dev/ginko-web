@@ -28,7 +28,7 @@ export class GinkoProcessor {
   constructor(
     private app: App,
     private settings: GinkoWebSettings,
-    framework: Framework = 'nuxt',
+    framework: Framework = settings.paths.template,
   ) {
     this.fileTypeDetector = new FileTypeDetector(framework)
     this.taskQueue = new TaskQueue()

@@ -5,6 +5,9 @@ import { astroPaths } from '../configs/astro/paths'
 import { nuxtFileTypes } from '../configs/nuxt/fileTypes'
 import { NuxtTaskProcessor } from '../configs/nuxt/NuxtTaskProcessor'
 import { nuxtPaths } from '../configs/nuxt/paths'
+import { docusaurusFileTypes } from '../configs/docusaurus/fileTypes'
+import { DocusaurusTaskProcessor } from '../configs/docusaurus/DocusaurusTaskProcessor'
+import { docusaurusPaths } from '../configs/docusaurus/paths'
 
 export class FrameworkService {
   private static configs: Record<Framework, FrameworkConfig> = {
@@ -17,6 +20,11 @@ export class FrameworkService {
       fileTypes: astroFileTypes,
       taskProcessor: new AstroTaskProcessor(),
       paths: astroPaths,
+    },
+    docusaurus: {
+      fileTypes: docusaurusFileTypes,
+      taskProcessor: new DocusaurusTaskProcessor(),
+      paths: docusaurusPaths,
     },
   }
 

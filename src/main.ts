@@ -25,7 +25,7 @@ export default class GinkoWebPlugin extends Plugin {
 
     // Initialize Ginko Settings
     initializeGinkoSettings(this.settings)
-    initializeFileTypeDetector('nuxt')
+    initializeFileTypeDetector(this.settings.paths.template)
 
     // Welcome view
     this.registerView(
@@ -43,7 +43,11 @@ export default class GinkoWebPlugin extends Plugin {
     await this.updateStatusBar()
 
     // Initialize Ginko Processor
-    initializeGinkoProcessor(this.app, this.settings, 'nuxt')
+    if (this.settings.paths.template) {
+      initializeGinkoProcessor(this.app, this.settings, this.settings.paths.template)
+    }
+
+
 
     // Register file menu event
     this.registerFileMenu()

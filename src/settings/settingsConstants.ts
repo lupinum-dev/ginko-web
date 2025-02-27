@@ -8,7 +8,7 @@ export const WEBSITE_TEMPLATES: WebsiteTemplate[] = [
     description: 'Beautiful documentation template with Nuxt UI Pro components',
   },
   {
-    id: 'nuxt-ui-pro-saas',
+    id: 'nuxt-ui-pro-docs',
     name: 'Nuxt UI Pro SaaS',
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256"><path fill="#00DC82" d="M96.3 117.5c3-4.5 7.6-7.5 12.9-7.5h38.4c5.3 0 9.9 3 12.9 7.5l19.2 30c3 4.5 3 10.5 0 15l-19.2 30c-3 4.5-7.6 7.5-12.9 7.5h-38.4c-5.3 0-9.9-3-12.9-7.5l-19.2-30c-3-4.5-3-10.5 0-15l19.2-30Z"/></svg>',
     description: 'SaaS template with authentication and billing',
@@ -20,7 +20,7 @@ export const WEBSITE_TEMPLATES: WebsiteTemplate[] = [
     description: 'Modern static website generator by Facebook/Meta',
   },
   {
-    id: 'astro-starlight',
+    id: 'starlight',
     name: 'Astro Starlight',
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256"><path fill="#FF5D01" d="M163.008 19.198c6.177-7.363 17.082-8.38 24.586-2.375c7.504 6.006 8.525 16.711 2.348 24.074L84.698 164.902c-6.177 7.363-17.082 8.38-24.586 2.375c-7.504-6.006-8.525-16.711-2.348-24.074l105.244-124.005Z"/></svg>',
     description: 'Documentation theme for Astro with full-featured markdown support',

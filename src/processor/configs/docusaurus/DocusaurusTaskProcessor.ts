@@ -1,12 +1,17 @@
 import type { TaskProcessor } from '../../../types/framework'
 import type { BatchedTask } from '../../../types/ginko'
 
-export class AstroTaskProcessor implements TaskProcessor {
+export class DocusaurusTaskProcessor implements TaskProcessor {
   async processTask(batch: BatchedTask): Promise<void> {
+
+    console.log('Processing Docusaurus task:', batch)
+
 
     // Simulate different processing times for different file types
     const delay = this.getProcessingDelay(batch.fileType)
     await new Promise(resolve => setTimeout(resolve, delay))
+
+
   }
 
   private getProcessingDelay(fileType: string): number {

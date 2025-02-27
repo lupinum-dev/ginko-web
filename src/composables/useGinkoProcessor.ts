@@ -14,7 +14,7 @@ export const useGinkoProcessor = ginkoContext.use
 export function initializeGinkoProcessor(
   app: App,
   settings: GinkoWebSettings,
-  framework: Framework = 'nuxt',
+  framework: Framework = settings.paths.template,
 ): GinkoProcessor {
   // Create new instance if none exists
   if (!ginkoContext.tryUse()) {
