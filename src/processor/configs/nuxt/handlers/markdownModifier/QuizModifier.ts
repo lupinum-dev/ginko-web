@@ -46,15 +46,29 @@ export class QuizModifier implements ContentModifier {
   private readonly CHECKBOX_REGEX = /^(?:\t)*- \[([ x])\] (.*)$/;
   private readonly IMAGE_REGEX = /!\[.*?\]\((.*?)\)(?:<br>)?([^|]*)?/;
   private readonly HIGHLIGHT_REGEX = /\+\+([^+]+)\+\+/g;
-  private readonly NUMBERED_ITEM_REGEX = /^(?:\t)*\d+\.\s+(.*)$/;
+  private readonly NUMBERED_ITEM_REGEX = /^(?:\t)*(\d+)\.\s+(.*)$/;
   private readonly BULLET_ITEM_REGEX = /^(?:\t)*-\s+(.*)$/;
   private readonly TABLE_ROW_REGEX = /^\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|$/;
 
   modify(content: string): string {
+    console.log('🎯 QuizModifier processing content');
+
+    // First check if there are any quizzes in the content
+    if (!this.QUIZ_REGEX.test(content)) {
+      console.log('🎯 No quizzes found in content');
+      return content;
+    }
+
+    // Reset the regex lastIndex to ensure it starts from the beginning
+    this.QUIZ_REGEX.lastIndex = 0;
+
     const modified = content.replace(this.QUIZ_REGEX, (match, capturedContent) => {
+      console.log('🎯 Found quiz match:', match.substring(0, 50) + '...');
 
       try {
+        // Use the full match which includes the quiz markers
         const quiz = this.parseQuiz(match);
+
         // Create the ginko-quiz component with stringified questions
         // Use HTML entities for quotes in the JSON string
         const jsonString = JSON.stringify(quiz.questions)
@@ -62,6 +76,7 @@ export class QuizModifier implements ContentModifier {
           .replace(/\\"/g, "&quot;");
 
         const result = `:ginko-quiz{:questions='${jsonString}'}`;
+        console.log('🎯 Transformed quiz to component:', result.substring(0, 50) + '...');
         return result;
       } catch (error) {
         console.error('🎯 Error processing quiz:', error);
@@ -74,30 +89,48 @@ export class QuizModifier implements ContentModifier {
 
   private parseQuiz(content: string): Quiz {
     const quiz: Quiz = { questions: [] };
+    console.log('🎯 Parsing quiz content:', content);
+
+    // Remove the quiz markers
+    const cleanContent = content
+      .replace(/^::quiz\n/, '')
+      .replace(/^::ginko-callout\{type="quiz"\}\n/, '')
+      .replace(/\n::$/, '');
+
+    console.log('🎯 Cleaned quiz content:', cleanContent);
 
     // Split content into blocks by '--' prefix, keeping the '--' prefix
-    const blocks = content.split(/(?=^--)/m).filter(block => block.trim());
+    const blocks = cleanContent.split(/(?=^--)/m).filter(block => block.trim());
+    console.log('🎯 Found blocks:', blocks.length);
 
     blocks.forEach((block, index) => {
+      console.log(`🎯 Processing block ${index + 1}:`, block.substring(0, 50) + '...');
 
       try {
         if (block.startsWith('--select')) {
+          console.log('🎯 Identified as select block');
           this.parseSelectBlock(block, quiz);
         } else if (block.startsWith('--blank')) {
+          console.log('🎯 Identified as blank block');
           this.parseBlankBlock(block, quiz);
         } else if (block.startsWith('--choose')) {
+          console.log('🎯 Identified as choose block');
           this.parseChooseBlock(block, quiz);
         } else if (block.startsWith('--sort')) {
+          console.log('🎯 Identified as sort block');
           this.parseSortBlock(block, quiz);
         } else if (block.startsWith('--match')) {
+          console.log('🎯 Identified as match block');
           this.parseMatchBlock(block, quiz);
         } else {
+          console.log('🎯 Unknown block type:', block.substring(0, 20));
         }
       } catch (error) {
         console.error('🎯 Error processing block:', error);
       }
     });
 
+    console.log('🎯 Final quiz object:', JSON.stringify(quiz, null, 2));
     return quiz;
   }
 
@@ -245,8 +278,11 @@ export class QuizModifier implements ContentModifier {
   }
 
   private parseSortBlock(block: string, quiz: Quiz): void {
+    console.log('🎯 Processing sort block:', block);
+
     const difficultyMatch = block.match(/--sort\(difficulty="([^"]+)"\)/);
     const difficulty = difficultyMatch ? difficultyMatch[1] : 'medium';
+    console.log('🎯 Difficulty:', difficulty);
 
     // Remove the header line and any trailing ::
     const lines = block
@@ -255,42 +291,84 @@ export class QuizModifier implements ContentModifier {
       .split('\n')
       .filter(line => line.trim());
 
+    console.log('🎯 Processed lines:', lines);
+
     let questionText = '';
     let correctFeedback = '';
     let hintFeedback = '';
     const items: string[] = [];
+    const answers: Array<{ text: string; position: number }> = [];
+    let currentPosition = 1;
 
     for (const line of lines) {
+      console.log('🎯 Processing line:', line);
 
       if (line.trim().startsWith('=>')) {
         correctFeedback = line.substring(2).trim();
+        console.log('🎯 Found correct feedback:', correctFeedback);
       } else if (line.trim().startsWith('=<')) {
         hintFeedback = line.substring(2).trim();
+        console.log('🎯 Found hint feedback:', hintFeedback);
       } else {
         const numberedMatch = line.match(this.NUMBERED_ITEM_REGEX);
         const bulletMatch = line.match(this.BULLET_ITEM_REGEX);
 
         if (numberedMatch || bulletMatch) {
-          const itemText = (numberedMatch || bulletMatch)![1].trim();
+          const itemText = (numberedMatch) ? numberedMatch[2].trim() : bulletMatch![1].trim();
           items.push(itemText);
+          console.log('🎯 Added item:', itemText);
+
+          // If it's a numbered item, extract the position from the number
+          if (numberedMatch) {
+            const position = parseInt(numberedMatch[1], 10);
+            console.log('🎯 Numbered item with position:', position);
+            answers.push({
+              text: itemText,
+              position: position
+            });
+          } else if (bulletMatch) {
+            // For bullet items, assign positions sequentially
+            console.log('🎯 Bullet item with assigned position:', currentPosition);
+            answers.push({
+              text: itemText,
+              position: currentPosition++
+            });
+          }
         } else if (line.trim()) {
           questionText = line.trim();
+          console.log('🎯 Found question text:', questionText);
         }
       }
     }
+
+    // Make sure we have answers for all items
+    if (items.length > 0 && answers.length === 0) {
+      console.log('🎯 No positions found, assigning default sequential positions');
+      // If no positions were found, assign sequential positions
+      items.forEach((item, index) => {
+        answers.push({
+          text: item,
+          position: index + 1
+        });
+      });
+    }
+
+    console.log('🎯 Final items:', items);
+    console.log('🎯 Final answers with positions:', answers);
 
     const question = {
       type: 'sort',
       difficulty,
       question: questionText,
       items,
+      answers,
       feedback: {
         correct: correctFeedback,
         hint: hintFeedback
       }
     };
 
-
+    console.log('🎯 Final sort question:', JSON.stringify(question, null, 2));
     quiz.questions.push(question);
   }
 
@@ -407,3 +485,4 @@ export class QuizModifier implements ContentModifier {
     quiz.questions.push(question);
   }
 }
+
