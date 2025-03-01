@@ -70,10 +70,13 @@ export class QuizModifier implements ContentModifier {
         const quiz = this.parseQuiz(match);
 
         // Create the ginko-quiz component with stringified questions
-        // Use HTML entities for quotes in the JSON string
+        // Use HTML entities for quotes in the JSON string and properly escape LaTeX
         const jsonString = JSON.stringify(quiz.questions)
           .replace(/'/g, "&apos;")
-          .replace(/\\"/g, "&quot;");
+          .replace(/\\"/g, "&quot;")
+          .replace(/\\\\/g, "\\\\\\\\") // Escape backslashes in LaTeX
+          .replace(/\\{/g, "\\\\{") // Escape curly braces in LaTeX
+          .replace(/\\}/g, "\\\\}");
 
         const idAttr = id ? `id="${id}"` : '';
         const result = `:ginko-quiz{${idAttr} :questions='${jsonString}'}`;
