@@ -24,12 +24,16 @@ export class SnippetModifier implements ContentModifier {
 
       // Format the content: escape quotes and preserve newlines
       const formattedContent = this.escapeQuotes(snippetContent)
-      return `:ginko-snippet{content="${formattedContent}"}`
+      return `<ginko-snippet>${formattedContent}</ginko-snippet>`
     })
   }
 
   private escapeQuotes(str: string): string {
-    return str.replace(/"/g, '\\"')
+    return str
+      .replace(/\\/g, '\\\\') // First escape backslashes
+      .replace(/</g, '&lt;')  // Escape < to prevent HTML injection
+      .replace(/>/g, '&gt;')  // Escape > to prevent HTML injection
+      .replace(/\n/g, '<br>') // Replace newlines with <br> tags
   }
 
 
