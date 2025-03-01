@@ -16,7 +16,7 @@ import { TabsModifier } from './markdownModifier/TabsModifier'
 import { QuizModifier } from './markdownModifier/QuizModifier'
 import { slugify } from '../utils/slugify'
 import { stringifyYAML } from 'confbox'
-
+import { SnippetModifier } from './markdownModifier/SnippetModifier'
 interface FileInfo {
   isLocalized: boolean
   locale: string | null
@@ -46,6 +46,7 @@ export class MarkdownHandler implements FileHandler {
       new QuizModifier(),
       new HighlightModifier(),
       new CalloutModifier(),
+      new SnippetModifier(),
     ]
   }
 
