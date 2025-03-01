@@ -134,6 +134,17 @@ export default class GinkoWebPlugin extends Plugin {
     const ribbonIcons: RibbonIcon[] = [
       { id: 'upload', name: 'Ginko Process' },
       {
+        id: 'key', name: 'Create ID', handler: async () => {
+          try {
+            const { copyIdToClipboard } = await import('./tools/createId')
+            copyIdToClipboard()
+          } catch (error) {
+            console.error('Failed to create ID:', error)
+            new Notice('❌ Failed to create ID')
+          }
+        }
+      },
+      {
         id: 'database',
         name: 'Export GinkoCache',
         handler: async () => {
