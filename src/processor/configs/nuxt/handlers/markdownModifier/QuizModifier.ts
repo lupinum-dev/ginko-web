@@ -42,7 +42,7 @@ interface Quiz {
 }
 
 export class QuizModifier implements ContentModifier {
-  private readonly QUIZ_REGEX = /^(?:::quiz|::ginko-callout\{type="quiz"\})\n([\s\S]*?)^::/gm;
+  private readonly QUIZ_REGEX = /^(?:::quiz(?:\(id="([^"]+)"\))?)\n([\s\S]*?)^::/gm;
   private readonly CHECKBOX_REGEX = /^(?:\t)*- \[([ x])\] (.*)$/;
   private readonly IMAGE_REGEX = /!\[.*?\]\((.*?)\)(?:<br>)?([^|]*)?/;
   private readonly HIGHLIGHT_REGEX = /\+\+([^+]+)\+\+/g;
@@ -62,7 +62,7 @@ export class QuizModifier implements ContentModifier {
     // Reset the regex lastIndex to ensure it starts from the beginning
     this.QUIZ_REGEX.lastIndex = 0;
 
-    const modified = content.replace(this.QUIZ_REGEX, (match, capturedContent) => {
+    const modified = content.replace(this.QUIZ_REGEX, (match, id) => {
       console.log('🎯 Found quiz match:', match.substring(0, 50) + '...');
 
       try {
@@ -75,7 +75,8 @@ export class QuizModifier implements ContentModifier {
           .replace(/'/g, "&apos;")
           .replace(/\\"/g, "&quot;");
 
-        const result = `:ginko-quiz{:questions='${jsonString}'}`;
+        const idAttr = id ? `id="${id}"` : '';
+        const result = `:ginko-quiz{${idAttr} :questions='${jsonString}'}`;
         console.log('🎯 Transformed quiz to component:', result.substring(0, 50) + '...');
         return result;
       } catch (error) {
