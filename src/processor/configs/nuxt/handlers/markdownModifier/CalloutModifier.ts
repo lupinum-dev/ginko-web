@@ -3,10 +3,52 @@ import { stripMarkdown } from '../../utils/markdown'
 
 export class CalloutModifier implements ContentModifier {
   // Match both new and old style callouts
-  private readonly NEW_CALLOUT_REGEX = /^::((?:note|warning|info|danger|tip)(?:-)?)(?:\s*(?:-|\+)?(?:\s*--title\s+([^\n]+))?)?\n([\s\S]*?)^::/gm
-  private readonly OBSIDIAN_CALLOUT_REGEX = /^>\s*\[!\s*(\w+)\](\-|\+)?(?:[ \t]+([^\n]+))?\n((?:>(?:.*?)(?:\n|$))*)/gm
+  private readonly NEW_CALLOUT_REGEX = /^::((?:note|warning|info|danger|tip|quiz)(?:-)?)(?:\s*(?:-|\+)?(?:\s*--title\s+([^\n]+))?)?\n([\s\S]*?)^::/gm
+  // Updated regex to better handle title and content separation with proper line handling
+  // Also handle pipe-separated types by allowing pipe characters in the type capture group
+  private readonly OBSIDIAN_CALLOUT_REGEX = /^>\s*\[!([\w\s|]+)\](\-|\+)?(?:\s+([^\n]+))?\n((?:>\s*[^\n]*(?:\n|$))*)/gm
+  private readonly CODE_BLOCK_REGEX = /```[\s\S]*?```/g
 
   modify(content: string): string {
+    // Split content into code blocks and non-code blocks
+    const segments: { isCode: boolean; content: string }[] = []
+    let lastIndex = 0
+
+    content.replace(this.CODE_BLOCK_REGEX, (match, offset) => {
+      // Add text before code block
+      if (offset > lastIndex) {
+        segments.push({
+          isCode: false,
+          content: content.slice(lastIndex, offset)
+        })
+      }
+      // Add code block
+      segments.push({
+        isCode: true,
+        content: match
+      })
+      lastIndex = offset + match.length
+      return match
+    })
+
+    // Add remaining content after last code block
+    if (lastIndex < content.length) {
+      segments.push({
+        isCode: false,
+        content: content.slice(lastIndex)
+      })
+    }
+
+    // Process each segment
+    return segments.map(segment => {
+      if (segment.isCode) {
+        return segment.content
+      }
+      return this.processNonCodeContent(segment.content)
+    }).join('')
+  }
+
+  private processNonCodeContent(content: string): string {
     // First handle new style callouts
     let processedContent = content.replace(this.NEW_CALLOUT_REGEX, (match, type: string, title: string | undefined, content: string) => {
       // Extract collapse state and title from the type if present
@@ -29,44 +71,41 @@ export class CalloutModifier implements ContentModifier {
     processedContent = processedContent.replace(this.OBSIDIAN_CALLOUT_REGEX, (
       match: string,
       type: string,
-      collapsible: string,
-      inlineTitle: string | undefined,
-      contentText: string
+      collapsible: string | undefined,
+      title: string | undefined,
+      contentText: string | undefined
     ) => {
+      // Clean up type (handle pipe-separated types by taking the first one)
+      const cleanType = type.split('|')[0].trim().toLowerCase()
+
       // Determine if callout is collapsed (has the '-' symbol)
       const isCollapsed = collapsible === '-' ? ' collapsed' : ''
 
-      // Split the callout content into lines (preserving empty lines)
-      let lines = contentText.split('\n')
+      // Handle title if present - only use it if it doesn't start with '>'
+      // This prevents the first line of content from being treated as a title
+      const titleAttr = title && !title.trim().startsWith('>') ? ` title="${title.trim()}"` : ''
 
-      // Determine title attribute only if provided inline.
-      let titleAttr = ''
-      if (inlineTitle && inlineTitle.trim()) {
-        titleAttr = ` title="${inlineTitle.trim()}"`
+      // Process content
+      let cleanedContent = ''
+      if (contentText) {
+        cleanedContent = contentText
+          .split('\n')
+          .map(line => line.replace(/^>\s*/, '').trimEnd())
+          .filter(line => line.length > 0)
+          .join('\n')
       }
 
-      // Now clean up remaining content lines:
-      // Remove the leading '>' from each line while preserving empty lines,
-      // and skip any lines that are image embeds (starting with "![[").
-      const cleanedContent = lines
-        .map((line: string) => {
-          // If the line is exactly a '>' then ignore it
-          if (line.trim() === '>') return ''
-          const cleanedLine = line.replace(/^>\s?/, '')
-          return cleanedLine.trim().startsWith('![[') ? null : cleanedLine
-        })
-        .filter((line) => line !== null)
-        .join('\n')
-        .trim()
-
-      // If there's no remaining content, check for a title-only condition
-      if (!cleanedContent) {
-        const extraProp = titleAttr ? ' title-only' : ''
-        return `::ginko-callout{type="${type.toLowerCase()}"${titleAttr}${extraProp}${isCollapsed}}\n::`
+      // If title starts with '>', it's actually content that was incorrectly captured as title
+      if (title && title.trim().startsWith('>')) {
+        const titleContent = title.replace(/^>\s*/, '').trim()
+        cleanedContent = titleContent + (cleanedContent ? '\n' + cleanedContent : '')
       }
 
-      // Construct the ginko-callout with the inline title (if provided) and cleaned content
-      return `::ginko-callout{type="${type.toLowerCase()}"${titleAttr}${isCollapsed}}\n${cleanedContent}\n::`
+      // If there's no content but there is a title, add title-only property
+      const extraProp = !cleanedContent && titleAttr ? ' title-only' : ''
+
+      // Construct the ginko-callout
+      return `::ginko-callout{type="${cleanType}"${titleAttr}${extraProp}${isCollapsed}}\n${cleanedContent}\n::`
     })
 
     // Ensure proper spacing between callouts by adding an extra newline
