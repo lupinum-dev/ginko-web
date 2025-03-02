@@ -23,11 +23,11 @@ Single column content
 Single column with props
 ::`
 
-    const expected = `::ginko-layout
+    const expected = `:::ginko-layout
 ::col{size="lg"}
 Single column with props
 ::
-::`
+:::`
 
     expect(layoutModifier.modify(input)).toBe(expected)
   })
@@ -40,14 +40,14 @@ First column
 Second column
 ::`
 
-    const expected = `::ginko-layout
+    const expected = `:::ginko-layout
 ::ginko-column
 First column
 ::
 ::ginko-column
 Second column
 ::
-::`
+:::`
 
     expect(layoutModifier.modify(input)).toBe(expected)
   })
@@ -201,14 +201,14 @@ First column
 Second column
 ::`
 
-    const expected = `::ginko-layout{type="card"}
+    const expected = `:::ginko-layout{type="card"}
 ::ginko-column
 First column
 ::
 ::ginko-column
 Second column
 ::
-::`
+:::`
 
     expect(layoutModifier.modify(input)).toBe(expected)
   })
@@ -219,11 +219,11 @@ Second column
 Content with outline type
 ::`
 
-    const expected = `::ginko-layout{type="outline"}
+    const expected = `:::ginko-layout{type="outline"}
 ::col{size="lg"}
 Content with outline type
 ::
-::`
+:::`
 
     expect(layoutModifier.modify(input)).toBe(expected)
   })
@@ -240,22 +240,22 @@ Another column
 ::`
 
       const expected = type === 'none'
-        ? `::ginko-layout
+        ? `:::ginko-layout
 ::ginko-column
 Content with none type
 ::
 ::ginko-column
 Another column
 ::
-::`
-        : `::ginko-layout{type="${type}"}
+:::`
+        : `:::ginko-layout{type="${type}"}
 ::ginko-column
 Content with ${type} type
 ::
 ::ginko-column
 Another column
 ::
-::`
+:::`
 
       expect(layoutModifier.modify(input)).toBe(expected)
     }
@@ -292,6 +292,6 @@ Content in column two
     expect(output).toContain("```markdown\n::layout(type=\"border\")\n--col\nContent in column one\n--col\nContent in column two\n::\n```")
 
     // Actual layout should be converted with type
-    expect(output).toContain("::ginko-layout{type=\"border\"}\n::ginko-column\nContent in column one\n::\n::ginko-column\nContent in column two\n::\n::")
+    expect(output).toContain(":::ginko-layout{type=\"border\"}\n::ginko-column\nContent in column one\n::\n::ginko-column\nContent in column two\n::\n:::")
   })
 })

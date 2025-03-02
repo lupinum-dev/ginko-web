@@ -84,7 +84,7 @@ export class LayoutModifier implements ContentModifier {
       // If the column has props, use layout with a single column
       if (Object.keys(child.props).length > 0) {
         const propsStr = this.formatProps(child.props)
-        return `${indent}::ginko-layout${typeProps}\n${indent}::col${propsStr}\n${content}${needsNewline ? '\n' : ''}${indent}::\n${indent}::`
+        return `${indent}:::ginko-layout${typeProps}\n${indent}::col${propsStr}\n${content}${needsNewline ? '\n' : ''}${indent}::\n${indent}:::`
       }
 
       // For single column without props, use ginko-center with type if provided
@@ -105,7 +105,7 @@ export class LayoutModifier implements ContentModifier {
       return `${indent}::ginko-column${propsStr}\n${content}${needsNewline ? '\n' : ''}${indent}::`
     }).join('\n')
 
-    return `${indent}::ginko-layout${typeProps}\n${columnsContent}\n${indent}::`
+    return `${indent}:::ginko-layout${typeProps}\n${columnsContent}\n${indent}:::`
   }
 
   private preserveIndentation(content: string, baseIndent: string): string {
