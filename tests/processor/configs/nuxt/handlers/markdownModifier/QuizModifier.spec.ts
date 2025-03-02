@@ -229,30 +229,5 @@ The capital of Italy is __________.
       // Check that the second quiz is a blank type
       expect(result).toContain('"type":"blank"')
     })
-
-    it('should handle the ginko-callout format for quizzes', () => {
-      const content = `::ginko-callout{type="quiz"}
---select(difficulty="easy")
-What is the capital of Spain?
-- [ ] Lisbon
-- [x] Madrid
-- [ ] Barcelona
-- [ ] Valencia
-=> Correct! Madrid is the capital of Spain.
-=< Hint: It's located in the center of the country.
-::
-`
-      const result = quizModifier.modify(content)
-
-      // Check that the result is a ginko-quiz component
-      expect(result).toContain(':ginko-quiz')
-
-      // Check that the JSON contains the correct question type
-      expect(result).toContain('"type":"select"')
-
-      // Check that the JSON contains the correct options
-      expect(result).toContain('"text":"Madrid"')
-      expect(result).toContain('"correct":true')
-    })
   })
 }) 

@@ -96,10 +96,10 @@ export class QuizModifier implements ContentModifier {
     console.log('🎯 Parsing quiz content:', content);
 
     // Remove the quiz markers
-    const cleanContent = content
-      .replace(/^::quiz\n/, '')
-      .replace(/^::ginko-callout\{type="quiz"\}\n/, '')
-      .replace(/\n::$/, '');
+    let cleanContent = content;
+
+    // Handle only ::quiz format
+    cleanContent = content.replace(/^::quiz(?:\(id="[^"]+"\))?\n/, '').replace(/\n::$/, '');
 
     console.log('🎯 Cleaned quiz content:', cleanContent);
 
