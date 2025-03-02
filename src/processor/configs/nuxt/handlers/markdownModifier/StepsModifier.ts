@@ -2,116 +2,202 @@ import type { ContentModifier } from '../../markdownModifier'
 
 /**
  * Converts steps sections into structured step components
- * Handles both h2 and h3 level steps based on the type parameter
+ * Handles the ::steps syntax with --step markers
  */
 export class StepsModifier implements ContentModifier {
-  private addNoBleedToGinkoImage(content: string): string {
-    return content.replace(
-      /(:ginko-image\{[^}]*)\}/g,
-      (match, group) => {
-        return group.includes('nobleed') ? match : `${group} nobleed}`
-      },
+  modify(content: string, frontmatter: Record<string, any> = {}): string {
+    // Skip processing if content is inside a code block
+    const codeBlockRegex = /```[\s\S]*?```/g
+    const codeBlocks: string[] = []
+
+    // Replace code blocks with placeholders
+    const contentWithoutCodeBlocks = content.replace(codeBlockRegex, (match) => {
+      const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`
+      codeBlocks.push(match)
+      return placeholder
+    })
+
+    // Process steps blocks - including the closing tag in our match
+    let processedContent = contentWithoutCodeBlocks.replace(
+      /::steps(?:\(([^)]*)\))?\s*([\s\S]*?)::(?:\s|$)/g,
+      (match, attributes, stepsContent, offset, string) => {
+        // Parse attributes for the steps container
+        const containerAttrs = this.parseContainerAttributes(attributes || '')
+
+        // Process individual steps
+        const formattedSteps = this.processSteps(stepsContent)
+
+        // Get any whitespace after the closing tag
+        const afterMatch = string.substring(offset + match.length)
+        const whitespaceAfter = afterMatch.match(/^(\s*)/)?.[1] || ''
+
+        // Return the formatted steps block with proper closing tag and preserve whitespace
+        return `::ginko-steps${containerAttrs}\n${formattedSteps}::${whitespaceAfter}`
+      }
     )
+
+    // Restore code blocks
+    codeBlocks.forEach((block, index) => {
+      processedContent = processedContent.replace(`__CODE_BLOCK_${index}__`, block)
+    })
+
+    return processedContent
   }
 
-  private parseStepContent(content: string, headingLevel: string): string {
-    const lines = content.split('\n')
-    const steps: string[] = []
-    let currentStep = ''
-    let isInStep = false
-    let isTitleSection = false
+  private parseContainerAttributes(attributesStr: string): string {
+    if (!attributesStr.trim()) {
+      return '{level="h2"}'
+    }
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i]
+    // Parse the attributes
+    const attributes = new Map<string, string>()
+    const standaloneAttrs: string[] = []
 
-      // Skip empty lines at the beginning
-      if (!isInStep && !line.trim())
-        continue
+    // Set default level if not specified
+    if (!attributesStr.includes('level=')) {
+      attributes.set('level', 'h2')
+    }
 
-      // Check if this is a title section (## heading)
-      if (!isTitleSection && line.match(/^##\s/)) {
-        isTitleSection = true
-        continue
-      }
+    // Extract key="value" pairs
+    const keyValueRegex = /(\w+)=["']([^"']*)["']/g
+    let match
 
-      // Process step headings (### level)
-      if (line.startsWith('###')) {
-        if (currentStep) {
-          steps.push(currentStep.trim())
-        }
-        currentStep = `${line}\n`
-        isInStep = true
-      }
-      else if (isInStep) {
-        currentStep += `${line}\n`
+    while ((match = keyValueRegex.exec(attributesStr)) !== null) {
+      const [, key, value] = match
+      attributes.set(key, value)
+    }
+
+    // Extract standalone attributes
+    const standaloneRegex = /\b(\w+)\b(?![=:"])/g
+    let standaloneMatch
+    const processedKeys = new Set<string>()
+
+    // Create a temporary string with key-value pairs removed to find standalone attributes
+    let tmpStr = attributesStr.replace(keyValueRegex, '')
+
+    while ((standaloneMatch = standaloneRegex.exec(tmpStr)) !== null) {
+      const [, key] = standaloneMatch
+      // Skip keys that are already processed as key-value pairs
+      if (!attributes.has(key) && !processedKeys.has(key)) {
+        standaloneAttrs.push(key)
+        processedKeys.add(key)
       }
     }
 
-    // Add the last step if exists
-    if (currentStep) {
-      steps.push(currentStep.trim())
+    // Format the attributes
+    let result = ''
+
+    // Add level first
+    if (attributes.has('level')) {
+      result += `level="${attributes.get('level')}"`
+      attributes.delete('level')
     }
 
-    // Format each step with ginko-step component and process ginko-images
-    return steps
-      .map((step) => {
-        const processedStep = this.addNoBleedToGinkoImage(step)
-        return `::ginko-step\n${processedStep}\n::`
-      })
-      .join('\n')
+    // Add remaining key-value attributes
+    for (const [key, value] of attributes.entries()) {
+      if (result) result += ' '
+      result += `${key}="${value}"`
+    }
+
+    // Add standalone attributes
+    if (standaloneAttrs.length > 0) {
+      if (result) result += ' '
+      result += standaloneAttrs.join(' ')
+    }
+
+    return `{${result}}`
   }
 
-  private detectTypeAndTitle(content: string): { type: string, title: string } {
-    const lines = content.split('\n')
-    const firstHeadingLine = lines.find(line => line.match(/^##[^#]/)) // Only match ## exactly
+  private processSteps(stepsContent: string): string {
+    // Split content by --step markers
+    // Using a workaround for the 's' flag by using [\s\S] instead
+    const stepRegex = /--step(?:\(([^)]*)\))?\s*([\s\S]*?)(?=(?:--step|$))/g
+    let formattedSteps = ''
+    let match
+    let stepNumber = 1
 
-    if (!firstHeadingLine) {
-      return { type: 'h3', title: '' }
+    while ((match = stepRegex.exec(stepsContent)) !== null) {
+      const [, stepAttributes, stepContent] = match
+
+      // Extract title and content
+      const contentLines = stepContent.trim().split('\n')
+      const title = contentLines[0].trim()
+
+      // Get content lines after title, preserving empty lines but trimming the content as a whole
+      let content = ''
+      if (contentLines.length > 1) {
+        content = contentLines.slice(1).join('\n').trim()
+      }
+
+      // Format the step with step number
+      const attributesStr = this.formatStepAttributes(stepAttributes || '', title, stepNumber)
+      formattedSteps += `::ginko-step${attributesStr} \n${content}\n::\n`
+
+      // Increment step number for the next step
+      stepNumber++
     }
 
-    // Only if we find an exact ## heading, use it as title and type h2
-    return {
-      type: 'h2',
-      title: firstHeadingLine.replace(/^##\s*/, '').trim(),
-    }
+    return formattedSteps
   }
 
-  modify(content: string, frontmatter: Record<string, any>): string {
-    return content.replace(
-      /\+\+steps(?:\{([^}]+)\})?\s*([\s\S]*?)\+\+/g,
-      (match, attributes, stepsContent) => {
-        // Parse existing attributes if any
-        const attrMap = new Map<string, string>()
-        if (attributes) {
-          attributes.split(/\s+/).forEach((attr: string) => {
-            const [key, value] = attr.split('=')
-            if (key && value) {
-              attrMap.set(
-                key,
-                value.replace(/["']/g, ''), // Remove quotes
-              )
-            }
-          })
-        }
+  private formatStepAttributes(attributesStr: string, title: string, stepNumber: number): string {
+    // Start with the title attribute
+    const attributes = new Map<string, string>([
+      ['title', title],
+      ['step', stepNumber.toString()] // Add step number
+    ])
+    const standaloneAttrs: string[] = []
 
-        // Detect type and title from content if not provided in attributes
-        const { type: detectedType, title: detectedTitle } = this.detectTypeAndTitle(stepsContent)
-        const type = attrMap.get('type') || detectedType
+    if (!attributesStr.trim()) {
+      return `{title="${title}" step="${stepNumber}"}`
+    }
 
-        // Only include title in attributes if it exists
-        const title = attrMap.get('title') || detectedTitle
-        const attributeString = title
-          ? `{ type="${type}" title="${title}"}`
-          : `{ type="${type}"}`
+    // Extract key="value" pairs
+    const keyValueRegex = /(\w+)=["']([^"']*)["']/g
+    let match
 
-        // Determine heading level based on type
-        const headingLevel = type === 'h2' ? '###' : '####'
+    while ((match = keyValueRegex.exec(attributesStr)) !== null) {
+      const [, key, value] = match
+      attributes.set(key, value)
+    }
 
-        // Format the steps content
-        const formattedContent = this.parseStepContent(stepsContent, headingLevel)
+    // Extract standalone attributes
+    // Create a temporary string with key-value pairs removed to find standalone attributes
+    let tmpStr = attributesStr.replace(keyValueRegex, '')
+    const standaloneRegex = /\b(\w+)\b(?![=:"])/g
+    let standaloneMatch
+    const processedKeys = new Set<string>()
 
-        return `::ginko-steps${attributeString}\n\n${formattedContent}\n\n::`
-      },
-    )
+    while ((standaloneMatch = standaloneRegex.exec(tmpStr)) !== null) {
+      const [, key] = standaloneMatch
+      // Skip keys that are already processed as key-value pairs
+      if (!attributes.has(key) && !processedKeys.has(key)) {
+        standaloneAttrs.push(key)
+        processedKeys.add(key)
+      }
+    }
+
+    // Format the attributes with title first, then step
+    let result = `title="${attributes.get('title')}" step="${attributes.get('step')}"`
+    attributes.delete('title')
+    attributes.delete('step')
+
+    // Add icon if present
+    if (attributes.has('icon')) {
+      result += ` icon="${attributes.get('icon')}"`
+      attributes.delete('icon')
+    }
+
+    // Add remaining key-value attributes
+    for (const [key, value] of attributes.entries()) {
+      result += ` ${key}="${value}"`
+    }
+
+    // Add standalone attributes
+    if (standaloneAttrs.length > 0) {
+      result += ` ${standaloneAttrs.join(' ')}`
+    }
+
+    return `{${result}}`
   }
 }
