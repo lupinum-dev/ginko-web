@@ -396,4 +396,63 @@ Content 2
 
     expect(result).toBe(expected);
   });
+
+  it('should correctly render steps blocks with nested steps', () => {
+    const ast: GinkoAST = {
+      type: 'document',
+      content: [
+        {
+          type: 'block',
+          name: 'ginko-steps',
+          properties: [
+            { name: 'level', value: 'h3' }
+          ],
+          content: [
+            {
+              type: 'block',
+              name: 'ginko-step',
+              properties: [
+                { name: 'label', value: 'Step 1' }
+              ],
+              content: [
+                {
+                  type: 'text',
+                  content: 'Content of Step 1\n'
+                }
+              ]
+            },
+            {
+              type: 'block',
+              name: 'ginko-step',
+              properties: [
+                { name: 'label', value: 'Step 2' }
+              ],
+              content: [
+                {
+                  type: 'text',
+                  content: 'Content of Step 2\n'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    };
+
+    const result = astToMarkdown(ast);
+
+    const expected = `::ginko-steps{level="h3"}
+:::ginko-step{label="Step 1"}
+Content of Step 1
+
+:::
+:::ginko-step{label="Step 2"}
+Content of Step 2
+
+:::
+::
+`;
+
+    expect(result).toBe(expected);
+  });
 });
