@@ -103,6 +103,8 @@ export class MarkdownHandler implements FileHandler {
 
       // Parse the content into a Ginko AST
       const ast = parseMarkdown(content)
+      // to JSON
+      console.log('ast', JSON.stringify(ast, null, 2))
 
       // Apply all modifiers to the AST
       let modifiedAst = ast

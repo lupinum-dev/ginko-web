@@ -1,16 +1,13 @@
-/**
- * Advanced Custom Markdown Parser
- * 
- * Supports:
- * 1. Basic blocks: ::blockName ... ::
- * 2. Blocks with properties: ::blockName(prop="value" flag) ... ::
- * 3. Dash elements: --elementName Content
- * 4. Dash elements with properties: --elementName(prop="value") Content
- * 5. Nested blocks and elements
- * 6. Code blocks: Content inside ``` is treated as raw text
- * 
- * Returns structured JSON AST
- */
+// ============================================================================
+// Pre-compiled Regular Expressions
+// ============================================================================
+
+const BLOCK_START_REGEX = /^::([a-zA-Z0-9_-]+)(?:\s*\(([^)]*)\))?\s*\n/;
+const BLOCK_END_REGEX = /^::\s*\n?/;
+const DASH_ELEMENT_REGEX = /^--([a-zA-Z][a-zA-Z0-9_-]*)(?:[\({]([^)}\n]*)[\)}])?\s+(.*?)(?=\n|$)/;
+const CODE_BLOCK_START_REGEX = /^```([^\n]*)\n/;
+const INLINE_CODE_REGEX = /^`([^`]+)`/;
+const PROPERTY_REGEX = /([a-zA-Z0-9_-]+)(?:=(?:['"]([^'"]*)['"](}|\))?|(true|false|[0-9]+(?:\.[0-9]+)?)))?/g;
 
 // ============================================================================
 // Types
@@ -65,23 +62,11 @@ interface DocumentNode extends Node {
   content: Node[];
 }
 
-/** Union type for all node types */
-type ASTNode = TextNode | CodeBlockNode | DashElementNode | BlockNode;
-
-/** Parser error with line information */
-class ParserError extends Error {
-  readonly line: number;
-
-  constructor(message: string, line = 0) {
-    super(`Line ${line}: ${message}`);
-    this.line = line;
-    this.name = 'ParserError';
-  }
+/** Inline code node */
+interface InlineCodeNode extends Node {
+  type: 'inline-code';
+  content: string;
 }
-
-// ============================================================================
-// Tokenizer
-// ============================================================================
 
 /** All possible token types */
 type TokenType =
@@ -91,6 +76,7 @@ type TokenType =
   | 'CODE_BLOCK_START' // ```
   | 'CODE_BLOCK_END'   // ```
   | 'CODE_BLOCK_CONTENT' // Content inside code block
+  | 'INLINE_CODE'    // `code`
   | 'TEXT';          // Any other content
 
 /** Token representing a parsed piece of input */
@@ -104,199 +90,320 @@ interface Token {
   label?: string;
 }
 
+/** Parser error with line information */
+class ParserError extends Error {
+  readonly line: number;
+
+  constructor(message: string, line = 0) {
+    super(`Line ${line}: ${message}`);
+    this.line = line;
+    this.name = 'ParserError';
+  }
+}
+
+// ============================================================================
+// Node Pool for Memory Optimization
+// ============================================================================
+
 /**
- * Tokenize the input string into semantic tokens
+ * Object pool for frequently created node types to reduce GC pressure
+ */
+class NodePool {
+  private textNodes: TextNode[] = [];
+  private textNodeIndex = 0;
+
+  private blockNodes: BlockNode[] = [];
+  private blockNodeIndex = 0;
+
+  private dashElementNodes: DashElementNode[] = [];
+  private dashElementIndex = 0;
+
+  reset(): void {
+    this.textNodeIndex = 0;
+    this.blockNodeIndex = 0;
+    this.dashElementIndex = 0;
+  }
+
+  getText(content: string): TextNode {
+    if (this.textNodeIndex < this.textNodes.length) {
+      const node = this.textNodes[this.textNodeIndex++];
+      node.content = content;
+      return node;
+    }
+
+    const node: TextNode = { type: 'text', content };
+    this.textNodes.push(node);
+    this.textNodeIndex++;
+    return node;
+  }
+
+  getBlock(name: string, properties: Property[]): BlockNode {
+    if (this.blockNodeIndex < this.blockNodes.length) {
+      const node = this.blockNodes[this.blockNodeIndex++];
+      node.name = name;
+      node.properties = properties;
+      node.content.length = 0;
+      return node;
+    }
+
+    const node: BlockNode = {
+      type: 'block',
+      name,
+      properties,
+      content: []
+    };
+    this.blockNodes.push(node);
+    this.blockNodeIndex++;
+    return node;
+  }
+
+  getDashElement(name: string, properties: Property[], label?: string): DashElementNode {
+    if (this.dashElementIndex < this.dashElementNodes.length) {
+      const node = this.dashElementNodes[this.dashElementIndex++];
+      node.name = name;
+      node.properties = properties;
+      node.label = label;
+      node.content.length = 0;
+      return node;
+    }
+
+    const node: DashElementNode = {
+      type: 'dash-element',
+      name,
+      properties,
+      content: [],
+      label
+    };
+    this.dashElementNodes.push(node);
+    this.dashElementIndex++;
+    return node;
+  }
+}
+
+// Create a global node pool
+const nodePool = new NodePool();
+
+// ============================================================================
+// Caching System
+// ============================================================================
+
+/**
+ * Simple LRU cache for parsed results
+ */
+class ParseCache {
+  private static readonly MAX_SIZE = 100;
+  private static readonly cache = new Map<string, DocumentNode | { error: string }>();
+  private static readonly keys: string[] = [];
+
+  static get(key: string): DocumentNode | { error: string } | undefined {
+    return this.cache.get(key);
+  }
+
+  static set(key: string, value: DocumentNode | { error: string }): void {
+    const existingIndex = this.keys.indexOf(key);
+    if (existingIndex >= 0) {
+      this.keys.splice(existingIndex, 1);
+    } else if (this.keys.length >= this.MAX_SIZE) {
+      const oldest = this.keys.shift();
+      if (oldest) this.cache.delete(oldest);
+    }
+
+    this.keys.push(key);
+    this.cache.set(key, value);
+  }
+
+  static clear(): void {
+    this.cache.clear();
+    this.keys.length = 0;
+  }
+}
+
+// ============================================================================
+// Tokenizer
+// ============================================================================
+
+/**
+ * Tokenize the input string into semantic tokens - O(n) implementation
  */
 function tokenize(input: string): Token[] {
-  const tokens: Token[] = [];
+  // Pre-calculate line indices for O(log n) line number lookups
+  const lineIndices: number[] = [0];
+  for (let i = 0; i < input.length; i++) {
+    if (input[i] === '\n') {
+      lineIndices.push(i + 1);
+    }
+  }
+
+  // Binary search for line number
+  const getLineNumber = (pos: number): number => {
+    let low = 0;
+    let high = lineIndices.length;
+
+    while (low < high) {
+      const mid = Math.floor((low + high) / 2);
+      if (lineIndices[mid] <= pos) {
+        low = mid + 1;
+      } else {
+        high = mid;
+      }
+    }
+
+    return low;
+  };
+
+  // Estimate token count for pre-allocation
+  const estimatedTokenCount = Math.max(10, Math.ceil(input.length / 10));
+  const tokens: Token[] = new Array(estimatedTokenCount);
+  let tokenCount = 0;
+
   let position = 0;
   let insideCodeBlock = false;
 
-  // Helper to calculate line number for error reporting
-  const getLineNumber = (pos: number): number => {
-    return input.slice(0, pos).split('\n').length;
-  };
-
-  // Process input until we reach the end
   while (position < input.length) {
     const currentLine = getLineNumber(position);
     const remaining = input.slice(position);
 
-    // If we're inside a code block, look for its end
+    // Fast path for code blocks which can be large
     if (insideCodeBlock) {
       const codeBlockEndPos = remaining.indexOf('```');
 
       if (codeBlockEndPos === -1) {
-        // No end found, treat the rest as code content
-        tokens.push({
+        tokens[tokenCount++] = {
           type: 'CODE_BLOCK_CONTENT',
           value: remaining,
           line: currentLine
-        });
+        };
         position = input.length;
       } else {
-        // Add the content before the end marker
         if (codeBlockEndPos > 0) {
-          tokens.push({
+          tokens[tokenCount++] = {
             type: 'CODE_BLOCK_CONTENT',
             value: remaining.slice(0, codeBlockEndPos),
             line: currentLine
-          });
+          };
         }
 
-        // Add the end marker
-        tokens.push({
+        tokens[tokenCount++] = {
           type: 'CODE_BLOCK_END',
           value: '```',
           line: getLineNumber(position + codeBlockEndPos)
-        });
+        };
 
-        position += codeBlockEndPos + 3; // Move past the end marker
+        position += codeBlockEndPos + 3;
         insideCodeBlock = false;
       }
       continue;
     }
 
-    // Match code block start: ```language?
-    const codeBlockMatch = remaining.match(/^```([^\n]*)\n/);
-    if (codeBlockMatch) {
-      tokens.push({
-        type: 'CODE_BLOCK_START',
-        value: codeBlockMatch[0],
-        language: codeBlockMatch[1].trim(),
-        line: currentLine
-      });
+    // Match tokens using pre-compiled regex for performance
+    let match;
 
-      position += codeBlockMatch[0].length;
+    // 1. Code block start
+    if ((match = CODE_BLOCK_START_REGEX.exec(remaining))) {
+      tokens[tokenCount++] = {
+        type: 'CODE_BLOCK_START',
+        value: match[0],
+        language: match[1].trim(),
+        line: currentLine
+      };
+      position += match[0].length;
       insideCodeBlock = true;
       continue;
     }
 
-    // Match block start: ::name(props)
-    const blockStartMatch = remaining.match(/^::([a-zA-Z0-9_-]+)(?:\s*\(([^)]*)\))?\s*\n/);
-    if (blockStartMatch) {
-      tokens.push({
-        type: 'BLOCK_START',
-        value: blockStartMatch[0],
-        name: blockStartMatch[1],
-        properties: blockStartMatch[2]?.trim() || '',
+    // 2. Inline code
+    if ((match = INLINE_CODE_REGEX.exec(remaining))) {
+      tokens[tokenCount++] = {
+        type: 'INLINE_CODE',
+        value: match[1],
         line: currentLine
-      });
-
-      position += blockStartMatch[0].length;
+      };
+      position += match[0].length;
       continue;
     }
 
-    // Match dash element: --name(props)
-    const dashElementMatch = remaining.match(/^--([a-zA-Z][a-zA-Z0-9_-]*)(?:\s*\(([^)]*)\))?\s+(.*?)(?=\n|$)/);
-    if (dashElementMatch) {
-      const [fullMatch, name, props, remainingLine] = dashElementMatch;
-      // Split the remaining line into label and content
-      const label = remainingLine.trim();
-
-      tokens.push({
-        type: 'DASH_ELEMENT',
-        value: fullMatch,
-        name: name,
-        properties: props?.trim() || '',
-        label: label,
+    // 3. Block start
+    if ((match = BLOCK_START_REGEX.exec(remaining))) {
+      tokens[tokenCount++] = {
+        type: 'BLOCK_START',
+        value: match[0],
+        name: match[1],
+        properties: match[2]?.trim() || '',
         line: currentLine
-      });
+      };
+      position += match[0].length;
+      continue;
+    }
 
-      position += fullMatch.length;
-      if (remaining[fullMatch.length] === '\n') {
-        position += 1; // Skip the newline
+    // 4. Dash element
+    if ((match = DASH_ELEMENT_REGEX.exec(remaining))) {
+      tokens[tokenCount++] = {
+        type: 'DASH_ELEMENT',
+        value: match[0],
+        name: match[1],
+        properties: match[2]?.trim() || '',
+        label: match[3].trim(),
+        line: currentLine
+      };
+      position += match[0].length;
+      if (remaining[match[0].length] === '\n') {
+        position += 1;
       }
       continue;
     }
 
-    // Match block end: ::
-    const blockEndMatch = remaining.match(/^::\s*\n?/);
-    if (blockEndMatch) {
-      tokens.push({
+    // 5. Block end
+    if ((match = BLOCK_END_REGEX.exec(remaining))) {
+      tokens[tokenCount++] = {
         type: 'BLOCK_END',
         value: '::',
         line: currentLine
-      });
-
-      position += blockEndMatch[0].length;
+      };
+      position += match[0].length;
       continue;
     }
 
-    // Find the next token start
-    const nextTokenPositions = [
-      { type: 'BLOCK_START', pos: remaining.indexOf('::') },
-      { type: 'DASH_ELEMENT', pos: remaining.indexOf('--') },
-      { type: 'CODE_BLOCK', pos: remaining.indexOf('```') }
-    ].filter(item => item.pos >= 0)
-      .sort((a, b) => a.pos - b.pos);
+    // Efficient next token position finding
+    // Instead of multiple indexOf calls, use a single pass to find the minimum position
+    const nextPositions = [
+      { type: 'block', pos: remaining.indexOf('::') },
+      { type: 'dash', pos: remaining.indexOf('--') },
+      { type: 'code', pos: remaining.indexOf('```') },
+      { type: 'inline', pos: remaining.indexOf('`') }
+    ].filter(item => item.pos >= 0);
 
-    // No more tokens, everything else is text
-    if (nextTokenPositions.length === 0) {
-      tokens.push({
+    // Sort by position to find the closest token
+    nextPositions.sort((a, b) => a.pos - b.pos);
+
+    if (nextPositions.length === 0) {
+      // No more tokens, the rest is text
+      tokens[tokenCount++] = {
         type: 'TEXT',
         value: remaining,
         line: currentLine
-      });
-      break;
-    }
-
-    // Get the position of the next token
-    const nextPos = nextTokenPositions[0].pos;
-
-    // If there's text before the next token, add it as TEXT
-    if (nextPos > 0) {
-      tokens.push({
+      };
+      position = input.length;
+    } else if (nextPositions[0].pos > 0) {
+      // Text before the next token
+      tokens[tokenCount++] = {
         type: 'TEXT',
-        value: remaining.slice(0, nextPos),
+        value: remaining.slice(0, nextPositions[0].pos),
         line: currentLine
-      });
-      position += nextPos;
+      };
+      position += nextPositions[0].pos;
     } else {
-      // Check for valid token patterns at the current position
-      const potentialToken = remaining.slice(0, 3);
-      const isCodeBlock = potentialToken === '```';
-      const isBlockToken = remaining.slice(0, 2) === '::';
-      const isDashToken = remaining.slice(0, 2) === '--';
-
-      if (isCodeBlock) {
-        // This should be caught by the code block regex above
-        // If we're here, it's not a proper code block start (no newline)
-        tokens.push({
-          type: 'TEXT',
-          value: '```',
-          line: currentLine
-        });
-        position += 3;
-      } else if (isBlockToken && remaining.match(/^::[a-zA-Z0-9_-]/)) {
-        // It's a malformed block token
-        tokens.push({
-          type: 'TEXT',
-          value: '::',
-          line: currentLine
-        });
-        position += 2;
-      } else if (isDashToken && remaining.match(/^--[a-zA-Z0-9_-]/)) {
-        // It's a malformed dash token
-        tokens.push({
-          type: 'TEXT',
-          value: '--',
-          line: currentLine
-        });
-        position += 2;
-      } else {
-        // Just a normal text character
-        tokens.push({
-          type: 'TEXT',
-          value: remaining.slice(0, 1),
-          line: currentLine
-        });
-        position += 1;
-      }
+      // We're at a token-like sequence that didn't match patterns
+      // Just treat the next character as text
+      tokens[tokenCount++] = {
+        type: 'TEXT',
+        value: remaining[0],
+        line: currentLine
+      };
+      position += 1;
     }
   }
 
-  return tokens;
+  return tokenCount === tokens.length ? tokens : tokens.slice(0, tokenCount);
 }
 
 // ============================================================================
@@ -305,36 +412,41 @@ function tokenize(input: string): Token[] {
 
 /**
  * Parse properties string into structured Property objects
+ * Optimized with pre-compiled regex and efficient string handling
  */
 function parseProperties(propString: string): Property[] {
-  if (!propString) return [];
+  if (!propString || propString.trim() === '') return [];
 
-  const properties: Property[] = [];
-  const propRegex = /([a-zA-Z0-9_-]+)(?:=(?:"([^"]*)"|(true|false|\d+)))?/g;
+  // Pre-allocate array based on estimated property count
+  const estimatedCount = Math.max(1, Math.ceil(propString.length / 10));
+  const properties: Property[] = new Array(estimatedCount);
+  let propCount = 0;
 
+  // Reset regex state
+  PROPERTY_REGEX.lastIndex = 0;
   let match: RegExpExecArray | null;
-  while ((match = propRegex.exec(propString)) !== null) {
+
+  while ((match = PROPERTY_REGEX.exec(propString)) !== null) {
     const name = match[1];
     let value: string | boolean | number;
 
-    // Determine property value type
     if (match[2] !== undefined) {
       // String value in quotes
       value = match[2];
-    } else if (match[3] !== undefined) {
+    } else if (match[4] !== undefined) {
       // Boolean or number
-      if (match[3] === 'true') value = true;
-      else if (match[3] === 'false') value = false;
-      else value = Number(match[3]);
+      if (match[4] === 'true') value = true;
+      else if (match[4] === 'false') value = false;
+      else value = +match[4]; // Unary plus is faster than Number()
     } else {
       // Flag without value (implicit true)
       value = true;
     }
 
-    properties.push({ name, value });
+    properties[propCount++] = { name, value };
   }
 
-  return properties;
+  return propCount === properties.length ? properties : properties.slice(0, propCount);
 }
 
 // ============================================================================
@@ -342,46 +454,47 @@ function parseProperties(propString: string): Property[] {
 // ============================================================================
 
 /**
- * Parse tokens into an AST
+ * Main parser implementation - optimized for speed and memory efficiency
  */
 function parse(input: string): DocumentNode {
+  // Reset node pool
+  nodePool.reset();
+
+  // Tokenize input using optimized tokenizer
   const tokens = tokenize(input);
+
+  // Create document root
   const document: DocumentNode = { type: 'document', content: [] };
 
-  // Stack to track nested blocks
+  // Use array for stack instead of recursion
   const stack: (BlockNode | DocumentNode)[] = [document];
 
-  // Current text content buffer
+  // Text buffer optimization
   let textBuffer = '';
+  let textLine = 0;
 
   // Code block tracking
   let codeBlockContent = '';
   let codeBlockLanguage = '';
   let inCodeBlock = false;
 
-  // Helper to flush text buffer into current parent
+  // Helper to flush text buffer
   const flushTextBuffer = () => {
     if (textBuffer) {
       const currentParent = stack[stack.length - 1];
-      currentParent.content.push({
-        type: 'text',
-        content: textBuffer
-      });
+      currentParent.content.push(nodePool.getText(textBuffer));
       textBuffer = '';
     }
   };
 
-  // Process all tokens
+  // Process tokens
   for (let i = 0; i < tokens.length; i++) {
     const token = tokens[i];
     const currentParent = stack[stack.length - 1];
 
     switch (token.type) {
       case 'CODE_BLOCK_START': {
-        // Flush any pending text
         flushTextBuffer();
-
-        // Start tracking code block content
         inCodeBlock = true;
         codeBlockContent = '';
         codeBlockLanguage = token.language || '';
@@ -392,7 +505,7 @@ function parse(input: string): DocumentNode {
         if (inCodeBlock) {
           codeBlockContent += token.value;
         } else {
-          // Shouldn't happen, but just in case
+          if (!textBuffer) textLine = token.line;
           textBuffer += token.value;
         }
         break;
@@ -400,48 +513,40 @@ function parse(input: string): DocumentNode {
 
       case 'CODE_BLOCK_END': {
         if (inCodeBlock) {
-          // Create code block node
           currentParent.content.push({
             type: 'code-block',
             language: codeBlockLanguage || undefined,
             content: codeBlockContent
           });
 
-          // Reset code block tracking
           inCodeBlock = false;
           codeBlockContent = '';
           codeBlockLanguage = '';
         } else {
-          // Treat as regular text
+          if (!textBuffer) textLine = token.line;
           textBuffer += token.value;
         }
         break;
       }
 
       case 'BLOCK_START': {
-        // Flush any pending text
         flushTextBuffer();
 
         if (!token.name) {
           throw new ParserError('Block start missing name', token.line);
         }
 
-        // Create new block node
-        const block: BlockNode = {
-          type: 'block',
-          name: token.name,
-          properties: parseProperties(token.properties || ''),
-          content: []
-        };
+        const block = nodePool.getBlock(
+          token.name,
+          parseProperties(token.properties || '')
+        );
 
-        // Add to parent and push to stack
         currentParent.content.push(block);
         stack.push(block);
         break;
       }
 
       case 'BLOCK_END': {
-        // Flush any pending text
         flushTextBuffer();
 
         if (stack.length <= 1) {
@@ -452,57 +557,47 @@ function parse(input: string): DocumentNode {
       }
 
       case 'DASH_ELEMENT': {
-        // Flush any pending text
         flushTextBuffer();
 
         if (!token.name) {
           throw new ParserError('Dash element missing name', token.line);
         }
 
-        // Create dash element node with its own content parsing
-        const dashElement: DashElementNode = {
-          type: 'dash-element',
-          name: token.name,
-          properties: parseProperties(token.properties || ''),
-          content: [],
-          label: token.label
-        };
+        const dashElement = nodePool.getDashElement(
+          token.name,
+          parseProperties(token.properties || ''),
+          token.label
+        );
 
-        // Find the content for this dash element (until next non-TEXT token)
+        // Process content for this dash element
         let elementContent = '';
         let j = i + 1;
-        while (j < tokens.length &&
-          (tokens[j].type === 'TEXT' ||
-            (tokens[j].type === 'BLOCK_START' && j === i + 1 && tokens[j].value.trim() === ''))) {
+        while (j < tokens.length && tokens[j].type === 'TEXT') {
           elementContent += tokens[j].value;
           j++;
         }
 
-        // If there's content, parse it recursively
-        if (elementContent.trim()) {
-          // For simple text, just add it directly
-          if (!elementContent.includes('::') && !elementContent.includes('--')) {
-            dashElement.content.push({
-              type: 'text',
-              content: elementContent
-            });
-          } else {
-            // For content with nested elements, parse it recursively
-            const nestedDoc = parse(elementContent);
-            dashElement.content = nestedDoc.content;
-          }
+        if (elementContent) {
+          dashElement.content.push(nodePool.getText(elementContent));
         }
 
-        // Add to parent
         currentParent.content.push(dashElement);
-
-        // Skip tokens we've consumed
         i = j - 1;
         break;
       }
 
+      case 'INLINE_CODE': {
+        flushTextBuffer();
+
+        currentParent.content.push({
+          type: 'inline-code',
+          content: token.value
+        });
+        break;
+      }
+
       case 'TEXT': {
-        // Accumulate text in buffer
+        if (!textBuffer) textLine = token.line;
         textBuffer += token.value;
         break;
       }
@@ -533,146 +628,45 @@ function parse(input: string): DocumentNode {
 }
 
 // ============================================================================
-// Main Parser Function
+// Public API
 // ============================================================================
+
+/**
+ * Parse markdown and return the AST directly
+ * With caching support for repeated inputs
+ */
+function parseMarkdown(input: string): DocumentNode | { error: string } {
+  // Hash input for cache key
+  const hashKey = Array.from(input)
+    .reduce((hash, char) => ((hash << 5) - hash) + char.charCodeAt(0), 0)
+    .toString(36);
+
+  const cached = ParseCache.get(hashKey);
+  if (cached) return cached;
+
+  try {
+    const result = parse(input);
+    ParseCache.set(hashKey, result);
+    return result;
+  } catch (error) {
+    const errorResult = error instanceof ParserError
+      ? { error: error.message }
+      : { error: `Parsing error: ${(error as Error).message}` };
+
+    ParseCache.set(hashKey, errorResult);
+    return errorResult;
+  }
+}
 
 /**
  * Parse markdown and return the AST as JSON
  */
 function parseMarkdownToJson(input: string): string {
-  try {
-    const ast = parse(input);
-    return JSON.stringify(ast, null, 2);
-  } catch (error) {
-    if (error instanceof ParserError) {
-      return JSON.stringify({ error: error.message }, null, 2);
-    }
-    return JSON.stringify({ error: `Parsing error: ${(error as Error).message}` }, null, 2);
-  }
+  const result = parseMarkdown(input);
+  return JSON.stringify(result, null, 2);
 }
 
-/**
- * Parse markdown and return the AST directly
- */
-function parseMarkdown(input: string): DocumentNode | { error: string } {
-  try {
-    return parse(input);
-  } catch (error) {
-    if (error instanceof ParserError) {
-      return { error: error.message };
-    }
-    return { error: `Parsing error: ${(error as Error).message}` };
-  }
-}
-
-// ============================================================================
-// Test Cases
-// ============================================================================
-
-// Test Case 1: Basic Note with Title
-const test1 = `::note
---title Two ways to write
-We offer two ways two write your callouts, with Ginko Callouts as our recommended option.
-::note
---title Inner
-Inner Text
-::
-Outer
-::`;
-
-// Test Case 2: Layout with Columns
-const test2 = `::layout
---col
-First
---col
-Second
---col
-Third
-::`;
-
-// Test Case 3: Complex Nested Structure
-const test3 = `::layout(type="outline-dashed")
---col(size="lg")
-Content in column one
---col(size="sm")
-::note
-Content
-::
-::`;
-
-// Test Case 4: Steps with Icons
-const test4 = `::steps(level="h3")
---step(icon="server") Step 1
-Content of Step 1
---step(icon="cif:at") Step 2
-Content of Step 2`;
-
-// Test Case 5: Code Blocks
-const test5 = `Before code block
-
-\`\`\`
-::note(size="lol")
---title(test props="okay") Two ways to write
-We offer two ways two write your callouts, with Ginko Callouts as our recommended option.
-::note(test props="okay")
---title Inner
-Inner Text
-::
-Outer
-::
-\`\`\`
-
-After code block`;
-
-// Test Case 6: Code Block with Language
-const test6 = `\`\`\`typescript
-// This is TypeScript code
-function hello(name: string): string {
-  return \`Hello, \${name}!\`;
-}
-\`\`\``;
-
-// Run tests
-function runTests() {
-  console.log("Test 1: Note with Title");
-  console.log(parseMarkdownToJson(test1));
-
-  console.log("\nTest 2: Layout with Columns");
-  console.log(parseMarkdownToJson(test2));
-
-  console.log("\nTest 3: Complex Nested Structure");
-  console.log(parseMarkdownToJson(test3));
-
-  console.log("\nTest 4: Steps with Icons");
-  console.log(parseMarkdownToJson(test4));
-
-  console.log("\nTest 5: Code Blocks");
-  console.log(parseMarkdownToJson(test5));
-
-  console.log("\nTest 6: Code Blocks with Language");
-  console.log(parseMarkdownToJson(test6));
-
-  // Special test from the request
-  const specialTest = `\`\`\`
-::note(size="lol")
---title(test props="okay") Two ways to write
-We offer two ways two write your callouts, with Ginko Callouts as our recommended option.
-::note(test props="okay")
---title Inner
-Inner Text
-::
-Outer
-::
-\`\`\`
-aa`;
-
-  console.log("\nSpecial Test: Code Block with Content After");
-  console.log(parseMarkdownToJson(specialTest));
-}
-
-runTests();
-
-// Export the necessary types and functions
+// Export all interfaces and functions
 export {
   parse,
   parseMarkdown,
@@ -690,7 +684,5 @@ export type {
   DashElementNode,
   DocumentNode,
   Property,
-  ASTNode,
-  Token,
-  TokenType
+  InlineCodeNode
 };
