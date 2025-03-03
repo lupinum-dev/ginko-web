@@ -10,6 +10,7 @@ import { slugify } from '../utils/slugify'
 import { stringifyYAML } from 'confbox'
 import { parseMarkdown } from './markdownModifier/utils/ginkoParser'
 import { CalloutModifier } from './markdownModifier/CalloutModifier'
+import { LayoutModifier } from './markdownModifier/LayoutModifier'
 import { MarkdownModifier } from './markdownModifier/MarkdownModifier'
 import { astToMarkdown } from './markdownModifier/utils/astToMarkdown'
 
@@ -31,9 +32,10 @@ export class MarkdownHandler implements FileHandler {
     this.fileSystem = new FileSystemService()
     this.cacheService = new CacheService()
 
-    // Initialize modifiers with our CalloutModifier
+    // Initialize modifiers with both CalloutModifier and LayoutModifier
     const markdownModifier = new MarkdownModifier([
-      new CalloutModifier()
+      new CalloutModifier(),
+      new LayoutModifier()
     ])
     this.modifiers = [markdownModifier]
   }
@@ -111,6 +113,8 @@ export class MarkdownHandler implements FileHandler {
       for (const modifier of this.modifiers) {
         modifiedAst = modifier.modify(modifiedAst)
       }
+
+      console.log('modifiedAst', JSON.stringify(modifiedAst, null, 2))
 
       // Convert modified AST back to markdown
       let modifiedContent = astToMarkdown(modifiedAst)

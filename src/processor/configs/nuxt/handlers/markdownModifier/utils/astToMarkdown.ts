@@ -19,7 +19,29 @@ function propertiesToString(properties: Array<{ name: string; value: string | bo
   return props ? `{${props}}` : '';
 }
 
-function nodeToMarkdown(node: GinkoASTNode): string {
+// The nesting rules are:
+// 1. ginko-layout: Always has three colons on opening and closing (:::)
+// 2. ginko-column: Always has two colons (::)
+// 3. ginko-center: Always has two colons (::)
+// 4. ginko-callout: Has four colons on opening and closing (::::)
+
+function getColons(nodeName: string, nestingLevel: number, isClosing: boolean = false): string {
+  if (nodeName === 'ginko-column') {
+    return '::'; // Always 2 colons
+  } else if (nodeName === 'ginko-layout') {
+    return ':::'; // Always 3 colons
+  } else if (nodeName === 'ginko-center') {
+    return '::'; // Always 2 colons
+  } else if (nodeName === 'ginko-callout') {
+    return '::::'; // Always 4 colons
+  } else {
+    // Default based on nesting level
+    return ':'.repeat(Math.max(2, 2 + nestingLevel));
+  }
+}
+
+// Recursive helper function that keeps track of nesting level
+function nodeToMarkdown(node: GinkoASTNode, nestingLevel: number = 0): string {
   if (node.type === 'text') {
     return node.content as string;
   }
@@ -38,26 +60,30 @@ function nodeToMarkdown(node: GinkoASTNode): string {
   }
 
   if (node.type === 'block') {
-    const blockContent = Array.isArray(node.content)
-      ? node.content.map(child => nodeToMarkdown(child)).join('')
-      : node.content || '';
-
     const properties = propertiesToString(node.properties);
 
-    // Special handling for ginko-callout blocks
-    if (node.name === 'ginko-callout') {
-      return `::${node.name}${properties}\n${blockContent}::\n`;
-    }
+    // Get the appropriate opening and closing colons based on node name
+    const openingColons = getColons(node.name || '', nestingLevel);
+    const closingColons = getColons(node.name || '', nestingLevel);
 
-    // For other blocks, ensure proper formatting with newlines
-    return `::${node.name}${properties}\n${blockContent}::\n`;
+    // Process the content with increased nesting level for child blocks
+    const blockContent = Array.isArray(node.content)
+      ? node.content.map(child => nodeToMarkdown(child, nestingLevel + 1)).join('')
+      : node.content || '';
+
+    // Special case for a single text node content - keep it on the same line
+    if (Array.isArray(node.content) && node.content.length === 1 && node.content[0].type === 'text') {
+      return `${openingColons}${node.name}${properties}\n${blockContent}\n${closingColons}\n`;
+    } else {
+      return `${openingColons}${node.name}${properties}\n${blockContent}${closingColons}\n`;
+    }
   }
 
   if (node.type === 'dash-element') {
     const properties = propertiesToString(node.properties);
     const label = node.label ? ` ${node.label}` : '';
     const content = Array.isArray(node.content)
-      ? node.content.map(child => nodeToMarkdown(child)).join('')
+      ? node.content.map(child => nodeToMarkdown(child, nestingLevel)).join('')
       : node.content || '';
     return `--${node.name}${properties}${label}\n${content}`;
   }
@@ -66,5 +92,6 @@ function nodeToMarkdown(node: GinkoASTNode): string {
 }
 
 export function astToMarkdown(ast: GinkoAST): string {
-  return ast.content.map(node => nodeToMarkdown(node)).join('');
-} 
+  return ast.content.map(node => nodeToMarkdown(node, 0)).join('');
+}
+
