@@ -14,8 +14,6 @@ const INLINE_BLOCK_REGEX = /^:([a-zA-Z0-9_\[\]]+)(?:[\({]([^)}\n]*)[\)}]|\{([^}]
 // New regular expressions for images and links
 const IMAGE_REGEX = /^!\[(.*?)(?:\|([^[\]]+))?\]\((.*?)\)/;
 const LINK_REGEX = /^\[(.*?)(?:\|([^[\]]+))?\]\((.*?)\)/;
-const IMAGE_DIMENSION_REGEX = /^(\d+)x(\d+)$/;
-const IMAGE_PROPERTY_REGEX = /&([a-zA-Z0-9_-]+)(?:=(?:["']([^"']*)["']|(\d+)))?/g;
 
 // ============================================================================
 // Types
