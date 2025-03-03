@@ -1,10 +1,19 @@
 import type { GinkoAST, GinkoASTNode } from '../types';
 
-function propertiesToString(properties: Array<{ name: string; value: string }> = []): string {
+function propertiesToString(properties: Array<{ name: string; value: string | boolean }> = []): string {
   if (properties.length === 0) return '';
 
   const props = properties
-    .map(prop => `${prop.name}="${prop.value}"`)
+    .map(prop => {
+      // Handle boolean values
+      if (typeof prop.value === 'boolean') {
+        // For true values, just output the property name without a value
+        return prop.value === true ? `${prop.name}` : null;
+      }
+      // For string values, use the standard format
+      return `${prop.name}="${prop.value}"`;
+    })
+    .filter(Boolean) // Remove null values (false booleans)
     .join(' ');
 
   return `{${props}}`;
@@ -21,7 +30,8 @@ function nodeToMarkdown(node: GinkoASTNode): string {
       : node.content || '';
 
     const properties = propertiesToString(node.properties);
-    return `::${node.name}${properties}\n${blockContent}::\n`;
+    // Ensure proper formatting with newlines between content and closing tag
+    return `::${node.name}${properties}\n${blockContent}\n::\n`;
   }
 
   return '';

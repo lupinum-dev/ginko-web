@@ -12,7 +12,7 @@ export interface GinkoAST {
 }
 
 export interface ContentModifier {
-  modify(ast: GinkoAST | { error: string }): GinkoAST | { error: string };
+  modify(ast: GinkoAST | { error: string } | undefined): GinkoAST | { error: string };
 }
 
 export interface BlockModifier {

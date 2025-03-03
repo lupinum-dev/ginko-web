@@ -35,14 +35,22 @@ export class MarkdownModifier implements ContentModifier {
     return node;
   }
 
-  modify(ast: GinkoAST | { error: string }): GinkoAST | { error: string } {
+  modify(ast: GinkoAST | { error: string } | undefined): GinkoAST | { error: string } {
+    // Handle undefined input
+    if (!ast) {
+      return {
+        type: 'document',
+        content: []
+      };
+    }
+
     // Handle error case
     if ('error' in ast) {
       return ast;
     }
 
-    // Handle undefined or invalid ast
-    if (!ast || !ast.content || !Array.isArray(ast.content)) {
+    // Handle invalid ast
+    if (!ast.content || !Array.isArray(ast.content)) {
       return {
         type: 'document',
         content: []

@@ -1,273 +1,147 @@
 import { describe, it, expect } from 'vitest'
 import { CalloutModifier } from '../../../../../../src/processor/configs/nuxt/handlers/markdownModifier/CalloutModifier'
+import type { GinkoASTNode } from '../../../../../../src/processor/configs/nuxt/handlers/markdownModifier/types'
 
 describe('CalloutModifier', () => {
   const modifier = new CalloutModifier()
 
-  describe('Ginko Callouts', () => {
-    it('should handle basic Ginko callouts', () => {
-      const input = `::info
-Here's a callout block.
-It supports **Markdown**, ==highlighting==
-::
+  describe('canHandle', () => {
+    it('should return true for valid callout blocks', () => {
+      const validTypes = ['note', 'tip', 'info', 'warning', 'danger', 'quote']
 
-Some text after the callout.`
-
-      const expected = `::ginko-callout{type="info"}
-Here's a callout block.
-It supports **Markdown**, ==highlighting==
-::
-
-Some text after the callout.`
-
-      expect(modifier.modify(input)).toBe(expected)
-    })
-
-    it('should handle Ginko callouts with titles', () => {
-      const input = `::info
---title Custom Title for Your Callout
-Here's a callout block with a title.
-It supports **Markdown**, ==highlighting==
-::
-
-Some text after the callout.`
-
-      const expected = `::ginko-callout{type="info" title="Custom Title for Your Callout"}
-Here's a callout block with a title.
-It supports **Markdown**, ==highlighting==
-::
-
-Some text after the callout.`
-
-      expect(modifier.modify(input)).toBe(expected)
-    })
-
-    it('should handle collapsible Ginko callouts', () => {
-      const input = `::info-
-This callout can be collapsed.
-It supports **Markdown**, ==highlighting==
-::
-
-Some text after the callout.`
-
-      const expected = `::ginko-callout{type="info" collapsed}
-This callout can be collapsed.
-It supports **Markdown**, ==highlighting==
-::
-
-Some text after the callout.`
-
-      expect(modifier.modify(input)).toBe(expected)
-    })
-
-    it('should handle Ginko callouts with different types', () => {
-      const types = ['note', 'tip', 'warning', 'danger']
-
-      for (const type of types) {
-        const input = `::${type}
-This is a ${type} callout.
-::
-
-Some text after the callout.`
-
-        const expected = `::ginko-callout{type="${type}"}
-This is a ${type} callout.
-::
-
-Some text after the callout.`
-
-        expect(modifier.modify(input)).toBe(expected)
+      for (const type of validTypes) {
+        const node: GinkoASTNode = {
+          type: 'block',
+          name: type,
+          content: [],
+          properties: []
+        }
+        expect(modifier.canHandle(node)).toBe(true)
       }
     })
 
-    it('should handle Ginko callouts with title but no content', () => {
-      const input = `::info
---title Title Only Callout
-::
-
-Some text after the callout.`
-
-      const expected = `::ginko-callout{type="info" title="Title Only Callout" title-only}
-
-::
-
-Some text after the callout.`
-
-      expect(modifier.modify(input)).toBe(expected)
-    })
-  })
-
-  describe('Obsidian Callouts', () => {
-    it('should handle basic Obsidian callouts', () => {
-      const input = `> [!info]
-> Here's a callout block.
-> It supports **Markdown**, ==highlighting==
-
-Some text after the callout.`
-
-      const expected = `::ginko-callout{type="info"}
-Here's a callout block.
-It supports **Markdown**, ==highlighting==
-::
-
-Some text after the callout.`
-
-      expect(modifier.modify(input)).toBe(expected)
-    })
-
-    it('should handle Obsidian callouts with titles', () => {
-      const input = `> [!tip] Callouts can have custom titles
-> Like this one.
-
-Some text after the callout.`
-
-      const expected = `::ginko-callout{type="tip" title="Callouts can have custom titles"}
-Like this one.
-::
-
-Some text after the callout.`
-
-      expect(modifier.modify(input)).toBe(expected)
-    })
-
-    it('should handle collapsible Obsidian callouts', () => {
-      const input = `> [!faq]- Are callouts foldable?
-> Yes! In a foldable callout, the contents are hidden when the callout is collapsed.
-
-Some text after the callout.`
-
-      const expected = `::ginko-callout{type="faq" title="Are callouts foldable?" collapsed}
-Yes! In a foldable callout, the contents are hidden when the callout is collapsed.
-::
-
-Some text after the callout.`
-
-      expect(modifier.modify(input)).toBe(expected)
-    })
-
-    it('should handle Obsidian callouts with different types', () => {
-      const types = ['note', 'tip', 'warning', 'danger']
-
-      for (const type of types) {
-        const input = `> [!${type}]
-> This is a ${type} callout.
-
-Some text after the callout.`
-
-        const expected = `::ginko-callout{type="${type}"}
-This is a ${type} callout.
-::
-
-Some text after the callout.`
-
-        expect(modifier.modify(input)).toBe(expected)
+    it('should return true for collapsible callout blocks', () => {
+      const node: GinkoASTNode = {
+        type: 'block',
+        name: 'info-',
+        content: [],
+        properties: []
       }
+      expect(modifier.canHandle(node)).toBe(true)
     })
 
-    it('should handle Obsidian callouts with pipe-separated types', () => {
-      const input = `> [!note | info | tip]
-> This callout has multiple types, but only the first one is used.
-
-Some text after the callout.`
-
-      // Create a new instance to test this specific case
-      const result = modifier.modify(input)
-
-      // Check that the result contains the expected type
-      expect(result).toContain('::ginko-callout{type="note"}')
-      // Check that the content is preserved
-      expect(result).toContain('This callout has multiple types, but only the first one is used.')
-    })
-  })
-
-  describe('Code Blocks', () => {
-    it('should not process callouts inside code blocks', () => {
-      const input = "```markdown\n> [!info]\n> Here's a callout block inside a code block.\n> It should not be processed.\n```\n\nText outside the code block."
-
-      expect(modifier.modify(input)).toBe(input)
+    it('should return false for non-callout blocks', () => {
+      const node: GinkoASTNode = {
+        type: 'block',
+        name: 'invalid-type',
+        content: [],
+        properties: []
+      }
+      expect(modifier.canHandle(node)).toBe(false)
     })
 
-    it('should process callouts outside code blocks but not inside', () => {
-      const input = `> [!info]
-> This callout should be processed.
+    it('should return false for non-block nodes', () => {
+      const node: GinkoASTNode = {
+        type: 'text',
+        content: 'Some text'
+      }
+      expect(modifier.canHandle(node)).toBe(false)
+    })
 
-\`\`\`markdown
-> [!warning]
-> This callout inside a code block should not be processed.
-\`\`\`
-
-> [!tip] Another callout
-> This one should also be processed.`
-
-      const result = modifier.modify(input)
-
-      // Check that the first callout is processed
-      expect(result).toContain('::ginko-callout{type="info"}')
-      expect(result).toContain('This callout should be processed.')
-
-      // Check that the code block is preserved
-      expect(result).toContain('```markdown')
-      expect(result).toContain('> [!warning]')
-      expect(result).toContain('> This callout inside a code block should not be processed.')
-      expect(result).toContain('```')
-
-      // Check that the second callout is processed
-      expect(result).toContain('::ginko-callout{type="tip" title="Another callout"}')
-      expect(result).toContain('This one should also be processed.')
+    it('should return false for nodes without a name', () => {
+      const node: GinkoASTNode = {
+        type: 'block',
+        content: []
+      }
+      expect(modifier.canHandle(node)).toBe(false)
     })
   })
 
-  describe('Edge Cases', () => {
-    it('should handle callouts with empty content', () => {
-      const input = `> [!info]
->
+  describe('modifyBlock', () => {
+    it('should transform a basic callout block', () => {
+      const node: GinkoASTNode = {
+        type: 'block',
+        name: 'note',
+        content: [{ type: 'text', content: 'Content' }],
+        properties: []
+      }
 
-Some text after the callout.`
+      const result = modifier.modifyBlock(node)
 
-      const expected = `::ginko-callout{type="info"}
-
-::
-
-Some text after the callout.`
-
-      expect(modifier.modify(input)).toBe(expected)
+      expect(result.name).toBe('ginko-callout')
+      expect(result.properties).toEqual([
+        { name: 'type', value: 'note' }
+      ])
+      expect(result.content).toEqual([{ type: 'text', content: 'Content' }])
     })
 
-    it('should handle callouts with content that looks like a title', () => {
-      const input = `> [!info]
-> Here's a callout block.
+    it('should transform a collapsible callout block', () => {
+      const node: GinkoASTNode = {
+        type: 'block',
+        name: 'info-',
+        content: [{ type: 'text', content: 'Content' }],
+        properties: []
+      }
 
-Some text after the callout.`
+      const result = modifier.modifyBlock(node)
 
-      const expected = `::ginko-callout{type="info"}
-Here's a callout block.
-::
-
-Some text after the callout.`
-
-      expect(modifier.modify(input)).toBe(expected)
+      expect(result.name).toBe('ginko-callout')
+      expect(result.properties).toContainEqual({ name: 'type', value: 'info' })
+      expect(result.properties).toContainEqual({ name: 'collapsed', value: true })
+      expect(result.content).toEqual([{ type: 'text', content: 'Content' }])
     })
 
-    it('should handle multiple callouts in sequence', () => {
-      const input = `> [!info]
-> First callout.
+    it('should extract title from dash-element', () => {
+      const node: GinkoASTNode = {
+        type: 'block',
+        name: 'warning',
+        content: [
+          {
+            type: 'dash-element',
+            name: 'title',
+            label: 'Custom Title',
+            content: [],
+            properties: []
+          },
+          { type: 'text', content: 'Content' }
+        ],
+        properties: []
+      }
 
-> [!warning]
-> Second callout.
+      const result = modifier.modifyBlock(node)
 
-Some text after the callouts.`
+      expect(result.name).toBe('ginko-callout')
+      expect(result.properties).toContainEqual({ name: 'type', value: 'warning' })
+      expect(result.properties).toContainEqual({ name: 'title', value: 'Custom Title' })
+      expect(result.content).toEqual([{ type: 'text', content: 'Content' }])
+    })
 
-      const expected = `::ginko-callout{type="info"}
-First callout.
-::
+    it('should preserve existing properties', () => {
+      const node: GinkoASTNode = {
+        type: 'block',
+        name: 'tip',
+        content: [{ type: 'text', content: 'Content' }],
+        properties: [{ name: 'size', value: 'large' }]
+      }
 
-::ginko-callout{type="warning"}
-Second callout.
-::
+      const result = modifier.modifyBlock(node)
 
-Some text after the callouts.`
+      expect(result.name).toBe('ginko-callout')
+      expect(result.properties).toContainEqual({ name: 'type', value: 'tip' })
+      expect(result.properties).toContainEqual({ name: 'size', value: 'large' })
+    })
 
-      expect(modifier.modify(input)).toBe(expected)
+    it('should not modify non-callout blocks', () => {
+      const node: GinkoASTNode = {
+        type: 'block',
+        name: 'not-a-callout',
+        content: [{ type: 'text', content: 'Content' }],
+        properties: []
+      }
+
+      const result = modifier.modifyBlock(node)
+      expect(result).toEqual(node)
     })
   })
 })
+
