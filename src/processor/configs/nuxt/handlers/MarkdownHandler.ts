@@ -9,6 +9,9 @@ import { FileSystemService } from '../../../services/FileSystemService'
 import { slugify } from '../utils/slugify'
 import { stringifyYAML } from 'confbox'
 import { parseMarkdown } from './markdownModifier/utils/ginkoParser'
+import { CalloutModifier } from './markdownModifier/CalloutModifier'
+import { MarkdownModifier } from './markdownModifier/MarkdownModifier'
+import { astToMarkdown } from './markdownModifier/utils/astToMarkdown'
 
 interface FileInfo {
   isLocalized: boolean
@@ -27,6 +30,12 @@ export class MarkdownHandler implements FileHandler {
   constructor() {
     this.fileSystem = new FileSystemService()
     this.cacheService = new CacheService()
+
+    // Initialize modifiers with our CalloutModifier
+    const markdownModifier = new MarkdownModifier([
+      new CalloutModifier()
+    ])
+    this.modifiers = [markdownModifier]
   }
 
   private getSettings(): GinkoWebSettings {
@@ -92,17 +101,24 @@ export class MarkdownHandler implements FileHandler {
     try {
       const { data: frontmatter, content } = await this.fileSystem.getFrontmatterContent(sourcePath)
 
-      // Apply all modifiers to the content
-      let modifiedContent = content
+      // Parse the content into a Ginko AST
+      const ast = parseMarkdown(content)
 
-      // Parse the content into a Ginko AST and log it
-      const ast = parseMarkdown(modifiedContent)
-      console.log('Ginko AST:', JSON.stringify(ast, null, 2))
+      // Apply all modifiers to the AST
+      let modifiedAst = ast
+      for (const modifier of this.modifiers) {
+        modifiedAst = modifier.modify(modifiedAst)
+      }
+
+      // Convert modified AST back to markdown
+      let modifiedContent = astToMarkdown(modifiedAst)
 
       // Remove any empty frontmatter that might have been added by modifiers
       modifiedContent = modifiedContent.replace(/^---\s*\n\s*---\s*\n/, '')
+
       // Check if content already has valid frontmatter
       const hasFrontmatterMarkers = modifiedContent.trim().match(/^---\s*\n[\s\S]+?\n---\s*\n/)
+
       // Only add frontmatter if it doesn't already exist and we have data
       const hasKeys = Object.keys(frontmatter).length > 0
       if (hasFrontmatterMarkers) {
