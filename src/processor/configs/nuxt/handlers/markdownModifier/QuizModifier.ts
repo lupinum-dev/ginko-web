@@ -1,4 +1,4 @@
-import type { ContentModifier } from '../../markdownModifier'
+import type { BlockModifier, GinkoASTNode } from './types';
 
 interface QuizQuestion {
   type: string;
@@ -41,135 +41,224 @@ interface Quiz {
   questions: QuizQuestion[];
 }
 
-export class QuizModifier implements ContentModifier {
-  private readonly QUIZ_REGEX = /^(?:::quiz(?:\(id="([^"]+)"\))?)\n([\s\S]*?)^::/gm;
+export class QuizModifier implements BlockModifier {
+  // Regular expressions for parsing different question types
   private readonly CHECKBOX_REGEX = /^(?:\t)*- \[([ x])\] (.*)$/;
   private readonly IMAGE_REGEX = /!\[.*?\]\((.*?)\)(?:<br>)?([^|]*)?/;
   private readonly HIGHLIGHT_REGEX = /\+\+([^+]+)\+\+/g;
   private readonly NUMBERED_ITEM_REGEX = /^(?:\t)*(\d+)\.\s+(.*)$/;
   private readonly BULLET_ITEM_REGEX = /^(?:\t)*-\s+(.*)$/;
   private readonly TABLE_ROW_REGEX = /^\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|$/;
+  private readonly NESTED_ITEM_REGEX = /^(?:\t)*-\s+(.*)\n(?:\t)*\s{4}-\s+(.*)$/;
+  private readonly MATCH_PAIR_REGEX = /^(?:\t)*-\s+(.*)\n(?:\t)*\s{4}-\s+(.*)$/m;
 
-  modify(content: string): string {
-    console.log('🎯 QuizModifier processing content');
+  canHandle(node: GinkoASTNode): boolean {
+    if (node.type !== 'block') return false;
+    return node.name === 'quiz';
+  }
 
-    // First check if there are any quizzes in the content
-    if (!this.QUIZ_REGEX.test(content)) {
-      console.log('🎯 No quizzes found in content');
-      return content;
+  modifyBlock(node: GinkoASTNode): GinkoASTNode {
+    if (node.type !== 'block' || node.name !== 'quiz') return node;
+
+    // Get quiz elements from content
+    const content = Array.isArray(node.content) ? node.content : [];
+
+    // Parse quiz questions
+    const quiz: Quiz = { questions: [] };
+
+    // Process each dash-element as a question
+    // Keep track of table elements that might be spread across multiple nodes
+    let currentTableQuestion: GinkoASTNode | null = null;
+    let tableContent = '';
+    let feedbackLines: string[] = [];
+
+    // First pass: Collect all dash-elements and identify table questions
+    for (let i = 0; i < content.length; i++) {
+      const element = content[i];
+
+      if (element.type === 'dash-element') {
+        // Check if this is a match question with a table format
+        if (element.name === 'match' && element.label && element.label.startsWith('|')) {
+          currentTableQuestion = element;
+          tableContent = element.label + '\n';
+
+          // Add any content already in the element
+          if (Array.isArray(element.content)) {
+            element.content.forEach(item => {
+              if (item.type === 'text') {
+                tableContent += item.content;
+              }
+            });
+          }
+
+          // Continue to next element without processing this one yet
+          continue;
+        } else {
+          // If we were collecting a table but found a new dash-element, process the table
+          if (currentTableQuestion) {
+            // Create a modified version of the current table question with the collected content
+            const modifiedTableQuestion = {
+              ...currentTableQuestion,
+              content: [{
+                type: 'text',
+                content: tableContent + feedbackLines.join('\n')
+              }]
+            };
+
+            // Parse and add the table question
+            this.parseQuestion(modifiedTableQuestion, quiz);
+
+            // Reset table tracking
+            currentTableQuestion = null;
+            tableContent = '';
+            feedbackLines = [];
+          }
+
+          // Process the current dash-element
+          this.parseQuestion(element, quiz);
+        }
+      } else if (currentTableQuestion) {
+        // If we're collecting a table, add this content
+        if (element.type === 'text') {
+          // Check if this is feedback
+          const lines = element.content.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('=>') || line.startsWith('=<')) {
+              feedbackLines.push(line);
+            } else if (line.trim() !== '') {
+              tableContent += line + '\n';
+            }
+          }
+        } else if (element.type === 'divider') {
+          // Add divider character for tables
+          tableContent += '----\n';
+        }
+      }
     }
 
-    // Reset the regex lastIndex to ensure it starts from the beginning
-    this.QUIZ_REGEX.lastIndex = 0;
+    // Make sure to process any remaining table question
+    if (currentTableQuestion) {
+      const modifiedTableQuestion = {
+        ...currentTableQuestion,
+        content: [{
+          type: 'text',
+          content: tableContent + feedbackLines.join('\n')
+        }]
+      };
 
-    const modified = content.replace(this.QUIZ_REGEX, (match, id) => {
-      console.log('🎯 Found quiz match:', match.substring(0, 50) + '...');
+      this.parseQuestion(modifiedTableQuestion, quiz);
+    }
 
-      try {
-        // Use the full match which includes the quiz markers
-        const quiz = this.parseQuiz(match);
+    // Create a property with the stringified questions array
+    const questionsJson = JSON.stringify(quiz.questions);
 
-        // Create the ginko-quiz component with stringified questions
-        // Use HTML entities for quotes in the JSON string and properly escape LaTeX
-        const jsonString = JSON.stringify(quiz.questions)
-          .replace(/'/g, "&apos;")
-          .replace(/\\"/g, "&quot;")
-          .replace(/\\\\/g, "\\\\\\\\") // Escape backslashes in LaTeX
-          .replace(/\\{/g, "\\\\{") // Escape curly braces in LaTeX
-          .replace(/\\}/g, "\\\\}");
-
-        const idAttr = id ? `id="${id}"` : '';
-        const result = `:ginko-quiz{${idAttr} :questions='${jsonString}'}`;
-        console.log('🎯 Transformed quiz to component:', result.substring(0, 50) + '...');
-        return result;
-      } catch (error) {
-        console.error('🎯 Error processing quiz:', error);
-        return match; // Return original content on error
-      }
-    });
-
-    return modified;
+    // Return the ginko-quiz inline block with the questions as a property
+    return {
+      type: 'inline-block',
+      name: 'ginko-quiz',
+      properties: [
+        { name: 'questions', value: questionsJson }
+      ]
+    };
   }
 
-  private parseQuiz(content: string): Quiz {
-    const quiz: Quiz = { questions: [] };
-    console.log('🎯 Parsing quiz content:', content);
+  private parseQuestion(element: GinkoASTNode, quiz: Quiz): void {
+    if (element.type !== 'dash-element') return;
 
-    // Remove the quiz markers
-    let cleanContent = content;
+    const questionType = element.name;
+    const difficulty = this.getPropertyValue(element.properties || [], 'difficulty');
+    const questionText = element.label || '';
 
-    // Handle only ::quiz format
-    cleanContent = content.replace(/^::quiz(?:\(id="[^"]+"\))?\n/, '').replace(/\n::$/, '');
+    // Get the content as string
+    let contentText = '';
+    if (Array.isArray(element.content)) {
+      // First, check if there's a table in the content
+      const hasTable = element.content.some(item =>
+        item.type === 'table' ||
+        (item.type === 'text' && item.content && item.content.includes('|'))
+      );
 
-    console.log('🎯 Cleaned quiz content:', cleanContent);
-
-    // Split content into blocks by '--' prefix, keeping the '--' prefix
-    const blocks = cleanContent.split(/(?=^--)/m).filter(block => block.trim());
-    console.log('🎯 Found blocks:', blocks.length);
-
-    blocks.forEach((block, index) => {
-      console.log(`🎯 Processing block ${index + 1}:`, block.substring(0, 50) + '...');
-
-      try {
-        if (block.startsWith('--select')) {
-          console.log('🎯 Identified as select block');
-          this.parseSelectBlock(block, quiz);
-        } else if (block.startsWith('--blank')) {
-          console.log('🎯 Identified as blank block');
-          this.parseBlankBlock(block, quiz);
-        } else if (block.startsWith('--choose')) {
-          console.log('🎯 Identified as choose block');
-          this.parseChooseBlock(block, quiz);
-        } else if (block.startsWith('--sort')) {
-          console.log('🎯 Identified as sort block');
-          this.parseSortBlock(block, quiz);
-        } else if (block.startsWith('--match')) {
-          console.log('🎯 Identified as match block');
-          this.parseMatchBlock(block, quiz);
-        } else {
-          console.log('🎯 Unknown block type:', block.substring(0, 20));
+      element.content.forEach(item => {
+        if (item.type === 'text') {
+          contentText += item.content;
+        } else if (item.type === 'table') {
+          // Handle table content
+          const tableString = this.tableToString(item);
+          contentText += tableString;
         }
-      } catch (error) {
-        console.error('🎯 Error processing block:', error);
-      }
-    });
+      });
+    }
 
-    console.log('🎯 Final quiz object:', JSON.stringify(quiz, null, 2));
-    return quiz;
+    // Parse based on question type
+    switch (questionType) {
+      case 'select':
+        this.parseSelectQuestion(contentText, questionText, difficulty, quiz);
+        break;
+      case 'blank':
+        this.parseBlankQuestion(contentText, questionText, difficulty, quiz);
+        break;
+      case 'choose':
+        this.parseChooseQuestion(contentText, questionText, difficulty, element.properties || [], quiz);
+        break;
+      case 'find':
+        this.parseFindQuestion(contentText, questionText, difficulty, element.properties || [], quiz);
+        break;
+      case 'sort':
+        this.parseSortQuestion(contentText, questionText, difficulty, quiz);
+        break;
+      case 'match':
+        this.parseMatchQuestion(contentText, questionText, difficulty, quiz);
+        break;
+    }
   }
 
-  private parseSelectBlock(block: string, quiz: Quiz): void {
-    const difficultyMatch = block.match(/--select\(difficulty="([^"]+)"\)/);
-    const difficulty = difficultyMatch ? difficultyMatch[1] : 'medium';
+  private getPropertyValue(properties: Array<{ name: string; value: string | boolean }>, name: string): string | undefined {
+    const property = properties.find(p => p.name === name);
+    return property ? String(property.value) : undefined;
+  }
 
-    const lines = block.split('\n')
-      .filter(line => line.trim() && !line.trim().startsWith('--select'));
+  private extractHighlightedTerms(text: string): string[] {
+    const terms: string[] = [];
+    let match;
+    const regex = new RegExp(this.HIGHLIGHT_REGEX);
+    while ((match = regex.exec(text)) !== null) {
+      terms.push(match[1]);
+    }
+    return terms;
+  }
 
-    let questionText = '';
+  private parseSelectQuestion(content: string, questionText: string, difficulty: string | undefined, quiz: Quiz): void {
+    const lines = content.split('\n');
     const options: Array<{ text: string; correct: boolean }> = [];
     let correctFeedback = '';
     let hintFeedback = '';
 
-    for (const line of lines) {
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
 
-      if (this.CHECKBOX_REGEX.test(line)) {
-        const match = line.match(this.CHECKBOX_REGEX);
-        if (match) {
-          options.push({
-            text: match[2].trim(),
-            correct: match[1] === 'x'
-          });
-        }
-      } else if (line.trim().startsWith('=>')) {
-        correctFeedback = line.substring(2).trim();
-      } else if (line.trim().startsWith('=<')) {
-        hintFeedback = line.substring(2).trim();
-      } else if (line.trim()) {
-        questionText = line.trim();
+      // Parse checkbox options
+      const checkboxMatch = this.CHECKBOX_REGEX.exec(line);
+      if (checkboxMatch) {
+        options.push({
+          text: checkboxMatch[2],
+          correct: checkboxMatch[1] === 'x'
+        });
+        continue;
+      }
+
+      // Parse feedback
+      if (line.startsWith('=>')) {
+        correctFeedback = line.substring(3).trim();
+        continue;
+      }
+
+      if (line.startsWith('=<')) {
+        hintFeedback = line.substring(3).trim();
+        continue;
       }
     }
 
-    const question = {
+    const question: QuizQuestion = {
       type: 'select',
       difficulty,
       question: questionText,
@@ -183,188 +272,34 @@ export class QuizModifier implements ContentModifier {
     quiz.questions.push(question);
   }
 
-  private parseBlankBlock(block: string, quiz: Quiz): void {
-    const difficultyMatch = block.match(/--blank\(difficulty="([^"]+)"\)/);
-    const difficulty = difficultyMatch ? difficultyMatch[1] : 'medium';
-
-    const lines = block.split('\n')
-      .filter(line => line.trim() && !line.trim().startsWith('--blank'));
-
-    let questionText = '';
+  private parseBlankQuestion(content: string, questionText: string, difficulty: string | undefined, quiz: Quiz): void {
+    const lines = content.split('\n');
     let correctFeedback = '';
     let hintFeedback = '';
 
-    for (const line of lines) {
+    // Extract highlighted terms from the question text
+    const highlightedTerms = this.extractHighlightedTerms(questionText);
+    const answers = highlightedTerms.map(term => ({ text: term }));
 
-      if (line.trim().startsWith('=>')) {
-        correctFeedback = line.substring(2).trim();
-      } else if (line.trim().startsWith('=<')) {
-        hintFeedback = line.substring(2).trim();
-      } else if (line.trim()) {
-        questionText = line.trim();
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Parse feedback
+      if (line.startsWith('=>')) {
+        correctFeedback = line.substring(3).trim();
+        continue;
+      }
+
+      if (line.startsWith('=<')) {
+        hintFeedback = line.substring(3).trim();
+        continue;
       }
     }
 
-    const question = {
+    const question: QuizQuestion = {
       type: 'blank',
       difficulty,
       question: questionText,
-      feedback: {
-        correct: correctFeedback,
-        hint: hintFeedback
-      }
-    };
-
-    quiz.questions.push(question);
-  }
-
-  private parseChooseBlock(block: string, quiz: Quiz): void {
-
-    // Extract options from the block header
-    const optionsMatch = block.match(/--choose\(.*?options="([^"]+)".*?\)/);
-    if (!optionsMatch) {
-      console.error('🎯 No options found in choose block');
-      return;
-    }
-
-    let baseOptions = optionsMatch[1].split('|').map(opt => opt.trim());
-
-
-    // Extract difficulty if present
-    const difficultyMatch = block.match(/difficulty="([^"]+)"/);
-    const difficulty = difficultyMatch ? difficultyMatch[1] : 'medium';
-
-    // Remove the header line and any trailing ::
-    const lines = block
-      .replace(/^--choose\(.*?options="[^"]+"\)\n/, '') // Remove header
-      .replace(/\n::$/, '') // Remove trailing ::
-      .split('\n')
-      .filter(line => line.trim());
-
-    let questionText = '';
-    let correctFeedback = '';
-    let hintFeedback = '';
-    const highlightedTerms: string[] = [];
-
-    for (const line of lines) {
-
-      if (line.trim().startsWith('=>')) {
-        correctFeedback = line.substring(2).trim();
-      } else if (line.trim().startsWith('=<')) {
-        hintFeedback = line.substring(2).trim();
-      } else if (line.trim()) {
-        questionText = line.trim();
-
-        // Extract highlighted terms from the question
-        const matches = questionText.matchAll(this.HIGHLIGHT_REGEX);
-        for (const match of matches) {
-          highlightedTerms.push(match[1]);
-        }
-      }
-    }
-
-
-    // Add highlighted terms to options if they're not already included
-    const allOptions = [...new Set([...baseOptions, ...highlightedTerms])];
-
-    const question = {
-      type: 'choose',
-      difficulty,
-      question: questionText,
-      chooseOptions: allOptions.join(' | '),
-      feedback: {
-        correct: correctFeedback,
-        hint: hintFeedback
-      }
-    };
-
-    quiz.questions.push(question);
-  }
-
-  private parseSortBlock(block: string, quiz: Quiz): void {
-    console.log('🎯 Processing sort block:', block);
-
-    const difficultyMatch = block.match(/--sort\(difficulty="([^"]+)"\)/);
-    const difficulty = difficultyMatch ? difficultyMatch[1] : 'medium';
-    console.log('🎯 Difficulty:', difficulty);
-
-    // Remove the header line and any trailing ::
-    const lines = block
-      .replace(/^--sort\(difficulty="[^"]+"\)\n/, '') // Remove header
-      .replace(/\n::$/, '') // Remove trailing ::
-      .split('\n')
-      .filter(line => line.trim());
-
-    console.log('🎯 Processed lines:', lines);
-
-    let questionText = '';
-    let correctFeedback = '';
-    let hintFeedback = '';
-    const items: string[] = [];
-    const answers: Array<{ text: string; position: number }> = [];
-    let currentPosition = 1;
-
-    for (const line of lines) {
-      console.log('🎯 Processing line:', line);
-
-      if (line.trim().startsWith('=>')) {
-        correctFeedback = line.substring(2).trim();
-        console.log('🎯 Found correct feedback:', correctFeedback);
-      } else if (line.trim().startsWith('=<')) {
-        hintFeedback = line.substring(2).trim();
-        console.log('🎯 Found hint feedback:', hintFeedback);
-      } else {
-        const numberedMatch = line.match(this.NUMBERED_ITEM_REGEX);
-        const bulletMatch = line.match(this.BULLET_ITEM_REGEX);
-
-        if (numberedMatch || bulletMatch) {
-          const itemText = (numberedMatch) ? numberedMatch[2].trim() : bulletMatch![1].trim();
-          items.push(itemText);
-          console.log('🎯 Added item:', itemText);
-
-          // If it's a numbered item, extract the position from the number
-          if (numberedMatch) {
-            const position = parseInt(numberedMatch[1], 10);
-            console.log('🎯 Numbered item with position:', position);
-            answers.push({
-              text: itemText,
-              position: position
-            });
-          } else if (bulletMatch) {
-            // For bullet items, assign positions sequentially
-            console.log('🎯 Bullet item with assigned position:', currentPosition);
-            answers.push({
-              text: itemText,
-              position: currentPosition++
-            });
-          }
-        } else if (line.trim()) {
-          questionText = line.trim();
-          console.log('🎯 Found question text:', questionText);
-        }
-      }
-    }
-
-    // Make sure we have answers for all items
-    if (items.length > 0 && answers.length === 0) {
-      console.log('🎯 No positions found, assigning default sequential positions');
-      // If no positions were found, assign sequential positions
-      items.forEach((item, index) => {
-        answers.push({
-          text: item,
-          position: index + 1
-        });
-      });
-    }
-
-    console.log('🎯 Final items:', items);
-    console.log('🎯 Final answers with positions:', answers);
-
-    const question = {
-      type: 'sort',
-      difficulty,
-      question: questionText,
-      items,
       answers,
       feedback: {
         correct: correctFeedback,
@@ -372,112 +307,346 @@ export class QuizModifier implements ContentModifier {
       }
     };
 
-    console.log('🎯 Final sort question:', JSON.stringify(question, null, 2));
     quiz.questions.push(question);
   }
 
-  private parseMatchBlock(block: string, quiz: Quiz): void {
-    const difficultyMatch = block.match(/--match\(difficulty="([^"]+)"\)/);
-    const difficulty = difficultyMatch ? difficultyMatch[1] : 'medium';
-
-    // Remove the header line and any trailing ::
-    const lines = block
-      .replace(/^--match\(difficulty="[^"]+"\)\n/, '') // Remove header
-      .replace(/\n::$/, '') // Remove trailing ::
-      .split('\n')
-      .filter(line => line.trim());
-
-    let questionText = '';
+  private parseChooseQuestion(content: string, questionText: string, difficulty: string | undefined, properties: Array<{ name: string; value: string | boolean }>, quiz: Quiz): void {
+    const lines = content.split('\n');
     let correctFeedback = '';
     let hintFeedback = '';
+
+    // Extract highlighted terms from the question text
+    const highlightedTerms = this.extractHighlightedTerms(questionText);
+
+    // Get options from properties
+    const optionsString = this.getPropertyValue(properties, 'options') || '';
+    const options = optionsString.split('|').map(opt => opt.trim());
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Parse feedback
+      if (line.startsWith('=>')) {
+        correctFeedback = line.substring(3).trim();
+        continue;
+      }
+
+      if (line.startsWith('=<')) {
+        hintFeedback = line.substring(3).trim();
+        continue;
+      }
+    }
+
+    const question: QuizQuestion = {
+      type: 'choose',
+      difficulty,
+      question: questionText,
+      items: highlightedTerms,
+      additionalChoices: options.filter(opt => !highlightedTerms.includes(opt)),
+      chooseOptions: optionsString,
+      feedback: {
+        correct: correctFeedback,
+        hint: hintFeedback
+      }
+    };
+
+    quiz.questions.push(question);
+  }
+
+  private parseFindQuestion(content: string, questionText: string, difficulty: string | undefined, properties: Array<{ name: string; value: string | boolean }>, quiz: Quiz): void {
+    const lines = content.split('\n');
+    let correctFeedback = '';
+    let hintFeedback = '';
+
+    // Extract highlighted terms from the question text
+    const highlightedTerms = this.extractHighlightedTerms(questionText);
+
+    // Get options from properties
+    const optionsString = this.getPropertyValue(properties, 'options') || '';
+    const options = optionsString.split('|').map(opt => opt.trim());
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Parse feedback
+      if (line.startsWith('=>')) {
+        correctFeedback = line.substring(3).trim();
+        continue;
+      }
+
+      if (line.startsWith('=<')) {
+        hintFeedback = line.substring(3).trim();
+        continue;
+      }
+    }
+
+    // For find questions, we'll use the same structure as choose
+    const question: QuizQuestion = {
+      type: 'choose',
+      difficulty,
+      question: questionText,
+      items: highlightedTerms,
+      additionalChoices: options.filter(opt => !highlightedTerms.includes(opt)),
+      chooseOptions: optionsString,
+      feedback: {
+        correct: correctFeedback,
+        hint: hintFeedback
+      }
+    };
+
+    quiz.questions.push(question);
+  }
+
+  private parseSortQuestion(content: string, questionText: string, difficulty: string | undefined, quiz: Quiz): void {
+    const lines = content.split('\n');
+    const items: string[] = [];
+    let correctFeedback = '';
+    let hintFeedback = '';
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Parse bullet items
+      const bulletMatch = this.BULLET_ITEM_REGEX.exec(line);
+      if (bulletMatch) {
+        items.push(bulletMatch[1].trim());
+        continue;
+      }
+
+      // Parse feedback
+      if (line.startsWith('=>')) {
+        correctFeedback = line.substring(3).trim();
+        continue;
+      }
+
+      if (line.startsWith('=<')) {
+        hintFeedback = line.substring(3).trim();
+        continue;
+      }
+    }
+
+    const question: QuizQuestion = {
+      type: 'sort',
+      difficulty,
+      question: questionText,
+      items,
+      feedback: {
+        correct: correctFeedback,
+        hint: hintFeedback
+      }
+    };
+
+    quiz.questions.push(question);
+  }
+
+  private parseMatchQuestion(content: string, questionText: string, difficulty: string | undefined, quiz: Quiz): void {
+    const lines = content.split('\n');
     const pairs: Array<{
-      term: { src?: string; figure?: string };
-      definition: { src?: string; figure?: string };
+      term: { figure: string; src?: string };
+      definition: { figure: string; src?: string };
     }> = [];
-    let currentTerm: string | null = null;
+    let correctFeedback = '';
+    let hintFeedback = '';
+    let isTable = false;
+    let tableStarted = false;
+    let tableRows: string[] = [];
 
-    // Check if it's a table format by looking for | characters
-    const isTableFormat = lines.some(line => line.trim().startsWith('|'));
+    // Used to track unique pairs to prevent duplicates
+    const processedPairs = new Set<string>();
 
+    // Check if the question is in table format
+    const isTableFormat = questionText.trim().startsWith('|');
+
+    // If it's a table format, extract the question text from the first row
+    let finalQuestionText = questionText;
     if (isTableFormat) {
-      // Process table format
-      let hasImages = false;
-      let isFirstContentRow = true;  // Flag to track if we're on the first content row
-
-      for (const line of lines) {
-        if (line.trim().startsWith('=>')) {
-          correctFeedback = line.substring(2).trim();
-        } else if (line.trim().startsWith('=<')) {
-          hintFeedback = line.substring(2).trim();
-        } else if (line.match(this.TABLE_ROW_REGEX)) {
-          const match = line.match(this.TABLE_ROW_REGEX);
-          if (match) {
-            const [, term, definition] = match;
-            // Skip header separator row (contains dashes)
-            if (!line.includes('---')) {
-              if (isFirstContentRow) {
-                // First content row contains the question
-                questionText = term.trim();
-                isFirstContentRow = false;
-              } else {
-                // All subsequent rows are term-definition pairs
-                const termImageMatch = term.match(this.IMAGE_REGEX);
-                const defImageMatch = definition.match(this.IMAGE_REGEX);
-
-                if (termImageMatch || defImageMatch) {
-                  hasImages = true;
-                  pairs.push({
-                    term: {
-                      src: termImageMatch ? termImageMatch[1] : undefined,
-                      figure: termImageMatch ? (termImageMatch[2] || '').trim() : term.trim()
-                    },
-                    definition: {
-                      src: defImageMatch ? defImageMatch[1] : undefined,
-                      figure: defImageMatch ? (defImageMatch[2] || '').trim() : definition.trim()
-                    }
-                  });
-                } else {
-                  pairs.push({
-                    term: { figure: term.trim() },
-                    definition: { figure: definition.trim() }
-                  });
-                }
-              }
-            }
-          }
-        }
+      const tableMatch = this.TABLE_ROW_REGEX.exec(questionText);
+      if (tableMatch) {
+        finalQuestionText = tableMatch[1].trim();
       }
 
-      // If we have images and no explicit question text, use a default
-      if (hasImages && !questionText) {
-        questionText = "Match these images with their *correct counterpart*:";
-      }
-    } else {
-      // Process list format
-      for (const line of lines) {
-        if (line.trim().startsWith('=>')) {
-          correctFeedback = line.substring(2).trim();
-        } else if (line.trim().startsWith('=<')) {
-          hintFeedback = line.substring(2).trim();
-        } else if (!line.startsWith('-') && !line.startsWith(' ')) {
-          questionText = line.trim();
-        } else if (line.startsWith('- ')) {
-          currentTerm = line.substring(2).trim();
-        } else if (line.startsWith('    - ') && currentTerm) {
-          const definition = line.substring(6).trim();
-          pairs.push({
-            term: { figure: currentTerm },
-            definition: { figure: definition }
-          });
-          currentTerm = null;
+      // Collect all table rows from content
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('|') && line.endsWith('|')) {
+          tableRows.push(line);
         }
       }
     }
 
-    const question = {
+    // Process the content line by line
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+
+      // Parse feedback
+      if (line.startsWith('=>')) {
+        correctFeedback = line.substring(3).trim();
+        continue;
+      }
+
+      if (line.startsWith('=<')) {
+        hintFeedback = line.substring(3).trim();
+        continue;
+      }
+
+      // Check if this is a markdown table row
+      if (line.startsWith('|') && line.endsWith('|')) {
+        // If this is the first table row, it might be the header
+        if (!tableStarted) {
+          tableStarted = true;
+
+          // Skip the header row and the separator row
+          if (i + 1 < lines.length && lines[i + 1].trim().startsWith('|') && lines[i + 1].trim().includes('-')) {
+            isTable = true;
+            i += 1; // Skip the separator row
+            continue;
+          }
+        }
+
+        // If we're in a table, parse the row as a term-definition pair
+        if (isTable || isTableFormat) {
+          const tableMatch = this.TABLE_ROW_REGEX.exec(line);
+
+          if (tableMatch) {
+            const term = tableMatch[1].trim();
+            const definition = tableMatch[2].trim();
+
+            // Skip header or separator rows
+            if (term.includes('---') || definition.includes('---')) {
+              continue;
+            }
+
+            // Create a unique key for this pair to prevent duplicates
+            const pairKey = `${term}:${definition}`;
+            if (processedPairs.has(pairKey)) {
+              continue; // Skip duplicate pairs
+            }
+            processedPairs.add(pairKey);
+
+            // Check if term contains an image
+            const termImageMatch = this.IMAGE_REGEX.exec(term);
+            // Check if definition contains an image
+            const defImageMatch = this.IMAGE_REGEX.exec(definition);
+
+            const pair: any = {
+              term: {},
+              definition: {}
+            };
+
+            // Handle term (could be text or image)
+            if (termImageMatch) {
+              pair.term = {
+                figure: term.replace(this.IMAGE_REGEX, '').trim() || termImageMatch[2] || '',
+                src: termImageMatch[1]
+              };
+            } else {
+              pair.term = {
+                figure: term
+              };
+            }
+
+            // Handle definition (could be text or image)
+            if (defImageMatch) {
+              pair.definition = {
+                figure: definition.replace(this.IMAGE_REGEX, '').trim() || defImageMatch[2] || '',
+                src: defImageMatch[1]
+              };
+            } else {
+              pair.definition = {
+                figure: definition
+              };
+            }
+
+            pairs.push(pair);
+          }
+          continue;
+        }
+      } else if (line === '' || !line.startsWith('-')) {
+        // Reset table state if we're no longer in a table
+        tableStarted = false;
+        isTable = false;
+      }
+
+      // If we're in table format but finished with regular table parsing, process any collected rows
+      if (isTableFormat && tableRows.length > 0 && pairs.length === 0) {
+        for (let j = 0; j < tableRows.length; j++) {
+          const row = tableRows[j];
+          const tableMatch = this.TABLE_ROW_REGEX.exec(row);
+
+          if (tableMatch) {
+            const term = tableMatch[1].trim();
+            const definition = tableMatch[2].trim();
+
+            // Skip header or separator rows
+            if (term.includes('---') || definition.includes('---') ||
+              term === finalQuestionText && definition === '') {
+              continue;
+            }
+
+            // Create a unique key for this pair to prevent duplicates
+            const pairKey = `${term}:${definition}`;
+            if (processedPairs.has(pairKey)) {
+              continue; // Skip duplicate pairs
+            }
+            processedPairs.add(pairKey);
+
+            pairs.push({
+              term: { figure: term },
+              definition: { figure: definition }
+            });
+          }
+        }
+      }
+
+      // Check if this is a term line (starts with a dash)
+      if (line.startsWith('-') && !line.startsWith('- -')) {
+        const term = line.substring(1).trim();
+
+        // Check if the next line is a definition (indented dash)
+        if (i + 1 < lines.length && lines[i + 1].trim().startsWith('-') && lines[i + 1].indexOf('-') > 2) {
+          const definition = lines[i + 1].trim().substring(1).trim();
+
+          // Check if term contains an image
+          const termImageMatch = this.IMAGE_REGEX.exec(term);
+          // Check if definition contains an image
+          const defImageMatch = this.IMAGE_REGEX.exec(definition);
+
+          const pair: any = {};
+
+          // Handle term (could be text or image)
+          if (termImageMatch) {
+            pair.term = {
+              figure: term.replace(this.IMAGE_REGEX, '').trim() || termImageMatch[2] || '',
+              src: termImageMatch[1]
+            };
+          } else {
+            pair.term = {
+              figure: term
+            };
+          }
+
+          // Handle definition (could be text or image)
+          if (defImageMatch) {
+            pair.definition = {
+              figure: definition.replace(this.IMAGE_REGEX, '').trim() || defImageMatch[2] || '',
+              src: defImageMatch[1]
+            };
+          } else {
+            pair.definition = {
+              figure: definition
+            };
+          }
+
+          pairs.push(pair);
+          i++; // Skip the definition line in the next iteration
+        }
+      }
+    }
+
+    const question: QuizQuestion = {
       type: 'match',
       difficulty,
-      question: questionText,
+      question: finalQuestionText,
       pairs,
       feedback: {
         correct: correctFeedback,
@@ -485,8 +654,41 @@ export class QuizModifier implements ContentModifier {
       }
     };
 
-    console.log('🎯 Pushing match question:', JSON.stringify(question, null, 2));
     quiz.questions.push(question);
   }
-}
 
+  private tableToString(tableNode: GinkoASTNode): string {
+    if (tableNode.type !== 'table' || !Array.isArray(tableNode.content)) {
+      return '';
+    }
+
+    let tableString = '';
+
+    // Process each row
+    tableNode.content.forEach(row => {
+      if (row.type === 'table-row' && Array.isArray(row.content)) {
+        tableString += '|';
+
+        // Process each cell
+        row.content.forEach(cell => {
+          if (cell.type === 'table-cell' && Array.isArray(cell.content)) {
+            let cellContent = '';
+
+            // Get cell content
+            cell.content.forEach(item => {
+              if (item.type === 'text') {
+                cellContent += item.content;
+              }
+            });
+
+            tableString += ` ${cellContent} |`;
+          }
+        });
+
+        tableString += '\n';
+      }
+    });
+
+    return tableString;
+  }
+}

@@ -2,6 +2,7 @@ import type { GinkoWebSettings } from '../../../../composables/useGinkoSettings'
 import type { BatchedTask } from '../../../../types/framework'
 import type { ContentModifier } from '../markdownModifier'
 import type { FileHandler } from '../NuxtTaskProcessor'
+import type { GinkoAST } from './markdownModifier/types'
 import * as path from 'node:path'
 import { useGinkoSettings } from '../../../../composables/useGinkoSettings'
 import { CacheService } from '../../../services/CacheService'
@@ -14,6 +15,7 @@ import { LayoutModifier } from './markdownModifier/LayoutModifier'
 import { TabsModifier } from './markdownModifier/TabsModifier'
 import { StepsModifier } from './markdownModifier/StepsModifier'
 import { SnippetModifier } from './markdownModifier/SnippetModifier'
+import { QuizModifier } from './markdownModifier/QuizModifier'
 import { MarkdownModifier } from './markdownModifier/MarkdownModifier'
 import { astToMarkdown } from './markdownModifier/utils/astToMarkdown'
 
@@ -26,6 +28,28 @@ interface FileInfo {
   colocationBaseName: string
 }
 
+// Create an adapter class that implements ContentModifier interface
+class MarkdownModifierAdapter implements ContentModifier {
+  private markdownModifier: MarkdownModifier;
+
+  constructor(blockModifiers: any[]) {
+    this.markdownModifier = new MarkdownModifier(blockModifiers);
+  }
+
+  modify(content: string, frontmatter: Record<string, any>): string {
+    // Parse the content into a Ginko AST
+    const ast = parseMarkdown(content);
+    // JSON stringify the ast
+    console.log('ast', JSON.stringify(ast, null, 2))
+
+    // Apply the markdown modifier
+    const modifiedAst = this.markdownModifier.modify(ast);
+    console.log('modifiedAst', JSON.stringify(modifiedAst, null, 2))
+    // Convert modified AST back to markdown
+    return astToMarkdown(modifiedAst as GinkoAST);
+  }
+}
+
 export class MarkdownHandler implements FileHandler {
   private fileSystem: FileSystemService
   private cacheService: CacheService
@@ -35,15 +59,16 @@ export class MarkdownHandler implements FileHandler {
     this.fileSystem = new FileSystemService()
     this.cacheService = new CacheService()
 
-    // Initialize modifiers with CalloutModifier, LayoutModifier, TabsModifier, StepsModifier, and SnippetModifier
-    const markdownModifier = new MarkdownModifier([
+    // Initialize modifiers with CalloutModifier, LayoutModifier, TabsModifier, StepsModifier, SnippetModifier, and QuizModifier
+    const markdownModifierAdapter = new MarkdownModifierAdapter([
       new CalloutModifier(),
       new LayoutModifier(),
       new TabsModifier(),
       new StepsModifier(),
-      new SnippetModifier()
+      new SnippetModifier(),
+      new QuizModifier()
     ])
-    this.modifiers = [markdownModifier]
+    this.modifiers = [markdownModifierAdapter]
   }
 
   private getSettings(): GinkoWebSettings {
@@ -109,19 +134,11 @@ export class MarkdownHandler implements FileHandler {
     try {
       const { data: frontmatter, content } = await this.fileSystem.getFrontmatterContent(sourcePath)
 
-      // Parse the content into a Ginko AST
-      const ast = parseMarkdown(content)
-      console.log('ast', JSON.stringify(ast, null, 2))
-
-      // Apply all modifiers to the AST
-      let modifiedAst = ast
+      // Apply all modifiers to the content
+      let modifiedContent = content
       for (const modifier of this.modifiers) {
-        modifiedAst = modifier.modify(modifiedAst)
+        modifiedContent = modifier.modify(modifiedContent, frontmatter)
       }
-      console.log('modifiedAst', JSON.stringify(modifiedAst, null, 2))
-
-      // Convert modified AST back to markdown
-      let modifiedContent = astToMarkdown(modifiedAst)
 
       // Remove any empty frontmatter that might have been added by modifiers
       modifiedContent = modifiedContent.replace(/^---\s*\n\s*---\s*\n/, '')

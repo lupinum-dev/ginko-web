@@ -10,6 +10,12 @@ function propertiesToString(properties: Array<{ name: string; value: string | bo
         // For true values, just output the property name without a value
         return prop.value === true ? `${prop.name}` : null;
       }
+
+      // Special handling for questions property - use single quotes
+      if (prop.name === 'questions') {
+        return `:${prop.name}='${prop.value}'`;
+      }
+
       // For string values, use the standard format
       return `${prop.name}="${prop.value}"`;
     })
@@ -44,6 +50,12 @@ function nodeToMarkdown(node: GinkoASTNode, nestingLevel: number = 0): string {
 
   if (node.type === 'divider') {
     return '---\n';
+  }
+
+  if (node.type === 'inline-block') {
+    const properties = propertiesToString(node.properties);
+    // For inline blocks, use a single colon
+    return `:${node.name}${properties}`;
   }
 
   if (node.type === 'block') {
