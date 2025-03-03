@@ -11,7 +11,8 @@ import {
   TextNode,
   CodeBlockNode,
   DashElementNode,
-  DocumentNode
+  DocumentNode,
+  InlineCodeNode
 } from '../ginkoParser'
 
 // Utility function for performance testing
