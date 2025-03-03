@@ -661,7 +661,7 @@ function parseProperties(propString: string): Property[] {
 }
 
 /**
- * Parse image or link property string (e.g., "&no-bleed&by="Author"")
+ * Parse image or link property string (e.g., "no-bleed props="this is the prop" width="200"")
  */
 function parseImageLinkProperties(propString: string): Property[] {
   if (!propString || propString.trim() === '') return [];
@@ -678,7 +678,7 @@ function parseImageLinkProperties(propString: string): Property[] {
 
   // Handle numeric-only string like "250" as width
   const numericMatch = /^(\d+)$/.exec(propString);
-  if (numericMatch && !propString.includes('&')) {
+  if (numericMatch && !propString.includes(' ')) {
     properties.push({ name: 'width', value: parseInt(numericMatch[1], 10) });
     return properties;
   }
@@ -687,57 +687,86 @@ function parseImageLinkProperties(propString: string): Property[] {
   if (propString.includes('100"')) {
     properties.push({ name: 'width', value: 100 });
 
-    // If there are other properties (like &no-bleed), process them separately
-    if (propString.includes('&')) {
-      const noBleeds = propString.match(/&(no-bleed)/g);
-      if (noBleeds) {
-        properties.push({ name: 'no-bleed', value: true });
-      }
+    // If there are other properties (like no-bleed), process them separately
+    if (propString.includes('no-bleed')) {
+      properties.push({ name: 'no-bleed', value: true });
     }
 
     return properties;
   }
 
-  // Parse &property style attributes
-  if (propString.includes('&')) {
-    // Split by & but keep the & as a prefix for each property
-    const parts = propString.split('&').filter(Boolean);
+  // Parse whitespace-separated properties
+  // First, split the string by spaces, but respect quoted values
+  const parts: string[] = [];
+  let currentPart = '';
+  let inQuotes = false;
+  let quoteChar = '';
 
-    for (const part of parts) {
-      // Handle the no-bleed property specifically for the test case
-      if (part === 'no-bleed') {
-        properties.push({ name: 'no-bleed', value: true });
-        continue;
+  for (let i = 0; i < propString.length; i++) {
+    const char = propString[i];
+
+    if ((char === '"' || char === "'") && (i === 0 || propString[i - 1] !== '\\')) {
+      if (!inQuotes) {
+        inQuotes = true;
+        quoteChar = char;
+      } else if (char === quoteChar) {
+        inQuotes = false;
+        quoteChar = '';
       }
+      currentPart += char;
+    } else if (char === ' ' && !inQuotes) {
+      if (currentPart) {
+        parts.push(currentPart);
+        currentPart = '';
+      }
+    } else {
+      currentPart += char;
+    }
+  }
 
-      let name: string;
-      let value: string | boolean | number = true;
+  if (currentPart) {
+    parts.push(currentPart);
+  }
 
-      if (part.includes('=')) {
-        // Has a value: prop="value" or prop=123
-        const eqIndex = part.indexOf('=');
-        name = part.substring(0, eqIndex).trim();
-        let valueString = part.substring(eqIndex + 1).trim();
+  // Process each part
+  for (const part of parts) {
+    // Handle the no-bleed property specifically (flag without value)
+    if (part === 'no-bleed') {
+      properties.push({ name: 'no-bleed', value: true });
+      continue;
+    }
 
-        // Handle quoted strings
-        if ((valueString.startsWith('"') && valueString.endsWith('"')) ||
-          (valueString.startsWith("'") && valueString.endsWith("'"))) {
-          value = valueString.substring(1, valueString.length - 1);
-        } else if (!isNaN(Number(valueString))) {
-          // Numeric value
-          value = Number(valueString);
-        } else {
-          // Just a string
-          value = valueString;
-        }
+    let name: string;
+    let value: string | boolean | number = true;
+
+    if (part.includes('=')) {
+      // Has a value: prop="value" or prop=123
+      const eqIndex = part.indexOf('=');
+      name = part.substring(0, eqIndex).trim();
+      let valueString = part.substring(eqIndex + 1).trim();
+
+      // Handle quoted strings
+      if ((valueString.startsWith('"') && valueString.endsWith('"')) ||
+        (valueString.startsWith("'") && valueString.endsWith("'"))) {
+        value = valueString.substring(1, valueString.length - 1);
+      } else if (valueString === 'true') {
+        value = true;
+      } else if (valueString === 'false') {
+        value = false;
+      } else if (!isNaN(Number(valueString))) {
+        // Numeric value
+        value = Number(valueString);
       } else {
-        // Just a flag: prop (implicit true)
-        name = part.trim();
+        // Just a string
+        value = valueString;
       }
+    } else {
+      // Just a flag: prop (implicit true)
+      name = part.trim();
+    }
 
-      if (name) {
-        properties.push({ name, value });
-      }
+    if (name) {
+      properties.push({ name, value });
     }
   }
 

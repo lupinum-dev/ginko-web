@@ -1232,7 +1232,7 @@ describe('Markdown Image and Link Parser', () => {
    */
   describe('Advanced Image Properties', () => {
     it('should parse images with custom properties', () => {
-      const input = '![Alt text here|&no-bleed&by="Chrisitan Netzberger"](./Engelbart.jpg)'
+      const input = '![Alt text here|no-bleed by="Chrisitan Netzberger"](./Engelbart.jpg)'
       const result = parseMarkdown(input) as DocumentNode
 
       const imageNode = result.content[0] as ImageNode
@@ -1248,7 +1248,7 @@ describe('Markdown Image and Link Parser', () => {
     })
 
     it('should parse images with mixed dimensions and properties', () => {
-      const input = '![Alt text here|&no-bleed|100"](./Engelbart.jpg)'
+      const input = '![Alt text here|no-bleed|100"](./Engelbart.jpg)'
       const result = parseMarkdown(input) as DocumentNode
 
       const imageNode = result.content[0] as ImageNode
@@ -1272,7 +1272,7 @@ describe('Markdown Image and Link Parser', () => {
 ![Image 1](path/to/image1.jpg)
 Some text between images
 ![Image 2|100x200](path/to/image2.jpg)
-![Image 3|&custom="value"](path/to/image3.jpg)
+![Image 3|custom="value"](path/to/image3.jpg)
       `
       const result = parseMarkdown(input) as DocumentNode
 
@@ -1323,7 +1323,7 @@ Some text between images
     })
 
     it('should parse links with custom properties', () => {
-      const input = '[Link Text|&bool&propx="Here is String"](lectures/entwicklung.md)'
+      const input = '[Link Text|bool propx="Here is String"](lectures/entwicklung.md)'
       const result = parseMarkdown(input) as DocumentNode
 
       const linkNode = result.content[0] as LinkNode
@@ -1341,7 +1341,7 @@ Some text between images
     it('should parse multiple links with different properties', () => {
       const input = `
 [Simple Link](path/to/page.md)
-[Link with props|&prop1&prop2="value"](path/to/page2.md)
+[Link with props|prop1 prop2="value"](path/to/page2.md)
 [Another link](path/to/page3.md)
       `
       const result = parseMarkdown(input) as DocumentNode
@@ -1371,7 +1371,7 @@ Some text between images
       const input = `
 # Heading
 
-This is paragraph text with a [link|&custom](page.md) inside it.
+This is paragraph text with a [link|custom](page.md) inside it.
 
 ![Image|100x100](image.jpg)
 
@@ -1399,7 +1399,7 @@ Code block
 
     it('should handle complex cases with nested elements and properties', () => {
       // Test that parsing doesn't break with mixed content
-      const input = `Some text with ![image with props|&custom="value"](image.png) and [link with props|&bool](page.md).`
+      const input = `Some text with ![image with props|custom="value"](image.png) and [link with props|bool](page.md).`
       const result = parseMarkdown(input) as DocumentNode
 
       expect(result.type).toBe('document')
