@@ -1,68 +1,73 @@
 import type { BlockModifier, GinkoASTNode } from './types';
 
-const VALID_CALLOUT_TYPES = ['note', 'tip', 'info', 'warning', 'danger', 'quote'] as const;
-type CalloutType = typeof VALID_CALLOUT_TYPES[number];
+const VALID_TYPES = ['note', 'info', 'danger', 'warning', 'quote', 'question', 'tip'] as const;
+type CalloutType = typeof VALID_TYPES[number];
 
 export class CalloutModifier implements BlockModifier {
   canHandle(node: GinkoASTNode): boolean {
-    // Check if it's a block and has a name
-    if (node.type !== 'block' || !node.name) return false;
+    if (node.type !== 'block') return false;
+    if (!node.name) return false;
 
-    // Check if the base name (without -) matches valid types
+    // Handle both normal and collapsed variants (e.g., 'note' and 'note-')
     const baseType = node.name.replace(/-$/, '');
-    return VALID_CALLOUT_TYPES.includes(baseType as CalloutType);
+    return VALID_TYPES.includes(baseType as CalloutType);
   }
 
   modifyBlock(node: GinkoASTNode): GinkoASTNode {
-    if (!this.canHandle(node) || !node.name) {
-      return node;
-    }
+    if (node.type !== 'block' || !node.name) return node;
 
-    const baseType = node.name.replace(/-$/, '');
-    const isCollapsible = node.name.endsWith('-');
+    const isCollapsed = node.name.endsWith('-');
+    const type = node.name.replace(/-$/, '') as CalloutType;
 
-    // Initialize properties array with type-safe values
+    // Start with the base properties
     const properties: Array<{ name: string; value: string | boolean }> = [
-      { name: 'type', value: baseType as CalloutType }
+      { name: 'type', value: type }
     ];
 
-    // Add collapsible property if needed
-    if (isCollapsible) {
+    // Add collapsed property if needed
+    if (isCollapsed) {
       properties.push({ name: 'collapsed', value: true });
     }
 
-    // Process content to find title
-    const modifiedContent: GinkoASTNode[] = [];
-    let title: string | undefined;
+    // Handle title from properties or --title element
+    if (node.content && Array.isArray(node.content)) {
+      const titleElement = node.content.find(
+        child => child.type === 'dash-element' && child.name === 'title'
+      );
 
-    if (Array.isArray(node.content)) {
-      for (const child of node.content) {
-        if (child.type === 'dash-element' && child.name === 'title' && child.label) {
-          title = child.label;
-        } else {
-          modifiedContent.push(child);
+      if (titleElement && titleElement.label) {
+        properties.push({ name: 'title', value: titleElement.label });
+
+        // Get the content from the title element if it exists
+        const titleContent = titleElement.content && Array.isArray(titleElement.content)
+          ? titleElement.content
+          : [];
+
+        // Remove the title element from content and add its content
+        node.content = [
+          ...titleContent,
+          ...node.content.filter(child => child !== titleElement)
+        ];
+      }
+    }
+
+    // Add any existing properties from the original block
+    if (node.properties) {
+      for (const prop of node.properties) {
+        // Don't duplicate title if it was already set
+        if (prop.name === 'title' && !properties.some(p => p.name === 'title')) {
+          properties.push(prop);
+        } else if (prop.name !== 'title') {
+          properties.push(prop);
         }
       }
     }
 
-    // Add title to properties if found
-    if (title) {
-      properties.push({ name: 'title', value: title });
-    }
-
-    // Add any existing properties that don't conflict
-    const existingProps = node.properties || [];
-    for (const prop of existingProps) {
-      if (!properties.some(p => p.name === prop.name)) {
-        properties.push({ name: prop.name, value: prop.value });
-      }
-    }
-
     return {
-      ...node,
+      type: 'block',
       name: 'ginko-callout',
       properties,
-      content: modifiedContent.length > 0 ? modifiedContent : node.content
+      content: node.content
     };
   }
 }

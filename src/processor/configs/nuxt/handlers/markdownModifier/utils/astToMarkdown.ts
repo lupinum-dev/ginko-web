@@ -16,12 +16,25 @@ function propertiesToString(properties: Array<{ name: string; value: string | bo
     .filter(Boolean) // Remove null values (false booleans)
     .join(' ');
 
-  return `{${props}}`;
+  return props ? `{${props}}` : '';
 }
 
 function nodeToMarkdown(node: GinkoASTNode): string {
   if (node.type === 'text') {
     return node.content as string;
+  }
+
+  if (node.type === 'code-block') {
+    const language = node.language ? node.language : '';
+    return `\`\`\`${language}\n${node.content}\`\`\`\n`;
+  }
+
+  if (node.type === 'inline-code') {
+    return `\`${node.content}\``;
+  }
+
+  if (node.type === 'divider') {
+    return '---\n';
   }
 
   if (node.type === 'block') {
@@ -30,8 +43,23 @@ function nodeToMarkdown(node: GinkoASTNode): string {
       : node.content || '';
 
     const properties = propertiesToString(node.properties);
-    // Ensure proper formatting with newlines between content and closing tag
-    return `::${node.name}${properties}\n${blockContent}\n::\n`;
+
+    // Special handling for ginko-callout blocks
+    if (node.name === 'ginko-callout') {
+      return `::${node.name}${properties}\n${blockContent}::\n`;
+    }
+
+    // For other blocks, ensure proper formatting with newlines
+    return `::${node.name}${properties}\n${blockContent}::\n`;
+  }
+
+  if (node.type === 'dash-element') {
+    const properties = propertiesToString(node.properties);
+    const label = node.label ? ` ${node.label}` : '';
+    const content = Array.isArray(node.content)
+      ? node.content.map(child => nodeToMarkdown(child)).join('')
+      : node.content || '';
+    return `--${node.name}${properties}${label}\n${content}`;
   }
 
   return '';
