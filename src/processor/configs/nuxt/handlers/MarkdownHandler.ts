@@ -6,17 +6,10 @@ import * as path from 'node:path'
 import { useGinkoSettings } from '../../../../composables/useGinkoSettings'
 import { CacheService } from '../../../services/CacheService'
 import { FileSystemService } from '../../../services/FileSystemService'
-import { AssetLinkModifier, GalleryModifier, HighlightModifier, LinkModifier } from '../markdownModifier'
-import { CalloutModifier } from './markdownModifier/CalloutModifier'
-import { FaqModifier } from './markdownModifier/FAQ'
-import { FileTreeModifier } from './markdownModifier/FileTreeModifier'
-import { LayoutModifier } from './markdownModifier/LayoutModifier'
-import { StepsModifier } from './markdownModifier/StepsModifier'
-import { TabsModifier } from './markdownModifier/TabsModifier'
-import { QuizModifier } from './markdownModifier/QuizModifier'
 import { slugify } from '../utils/slugify'
 import { stringifyYAML } from 'confbox'
-import { SnippetModifier } from './markdownModifier/SnippetModifier'
+import { parseMarkdown } from './markdownModifier/utils/ginkoParser'
+
 interface FileInfo {
   isLocalized: boolean
   locale: string | null
@@ -34,20 +27,6 @@ export class MarkdownHandler implements FileHandler {
   constructor() {
     this.fileSystem = new FileSystemService()
     this.cacheService = new CacheService()
-    this.modifiers = [
-      new LinkModifier(),
-      new AssetLinkModifier(),
-      new GalleryModifier(),
-      new TabsModifier(),
-      new FileTreeModifier(),
-      new FaqModifier(),
-      new StepsModifier(),
-      new LayoutModifier(),
-      new QuizModifier(),
-      new HighlightModifier(),
-      new CalloutModifier(),
-      new SnippetModifier(),
-    ]
   }
 
   private getSettings(): GinkoWebSettings {
@@ -111,17 +90,14 @@ export class MarkdownHandler implements FileHandler {
 
   private async processMarkdownContent(sourcePath: string): Promise<string> {
     try {
-
       const { data: frontmatter, content } = await this.fileSystem.getFrontmatterContent(sourcePath)
-
 
       // Apply all modifiers to the content
       let modifiedContent = content
-      for (const modifier of this.modifiers) {
-        const before = modifiedContent
-        modifiedContent = modifier.modify(modifiedContent, frontmatter)
 
-      }
+      // Parse the content into a Ginko AST and log it
+      const ast = parseMarkdown(modifiedContent)
+      console.log('Ginko AST:', JSON.stringify(ast, null, 2))
 
       // Remove any empty frontmatter that might have been added by modifiers
       modifiedContent = modifiedContent.replace(/^---\s*\n\s*---\s*\n/, '')
