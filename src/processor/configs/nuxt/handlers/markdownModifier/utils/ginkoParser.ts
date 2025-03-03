@@ -9,7 +9,7 @@ const CODE_BLOCK_START_REGEX = /^```([^\n]*)\n/;
 const INLINE_CODE_REGEX = /^`([^`]+)`/;
 const PROPERTY_REGEX = /([a-zA-Z0-9_-]+)(?:=(?:['"]([^'"]*)['"](}|\))?|(true|false|[0-9]+(?:\.[0-9]+)?)))?/g;
 const DIVIDER_REGEX = /^-{3,}\s*\n?/;
-const INLINE_BLOCK_REGEX = /:([a-zA-Z0-9_\[\]]+)(?:[\({]([^)}\n]*)[\)}]|\{([^}]*)\})/;
+const INLINE_BLOCK_REGEX = /^:([a-zA-Z0-9_\[\]]+)(?:[\({]([^)}\n]*)[\)}]|\{([^}]*)\})/;
 
 // ============================================================================
 // Types

@@ -12,7 +12,8 @@ import {
   CodeBlockNode,
   DashElementNode,
   DocumentNode,
-  InlineCodeNode
+  InlineCodeNode,
+  InlineBlockNode
 } from '../ginkoParser'
 
 // Utility function for performance testing
@@ -371,6 +372,39 @@ Inside
       expect(lastToken.type).toBe('BLOCK_END')
       expect(lastToken.line).toBe(6)
     })
+
+    it('tokenizes inline blocks correctly', () => {
+      const inputs = [
+        ':snippet(id="b6a5a8b0")',
+        ':snippet{id="x6532c60"}',
+        ':snippet{id=\'x6532c60\'}',
+        ':snippet(id=b6a5a8b0)'
+      ]
+
+      for (const input of inputs) {
+        const tokens = tokenize(input)
+        expect(tokens).toHaveLength(1)
+        expect(tokens[0].type).toBe('INLINE_BLOCK')
+        expect(tokens[0].name).toBe('snippet')
+        expect(tokens[0].properties).toBeTruthy()
+      }
+    })
+
+    it('tokenizes inline blocks within text correctly', () => {
+      const input = 'Text before :snippet(id="b6a5a8b0") text after'
+      const tokens = tokenize(input)
+
+      expect(tokens).toHaveLength(3)
+      expect(tokens[0].type).toBe('TEXT')
+      expect(tokens[0].value).toBe('Text before ')
+
+      expect(tokens[1].type).toBe('INLINE_BLOCK')
+      expect(tokens[1].name).toBe('snippet')
+      expect(tokens[1].properties).toBe('id="b6a5a8b0"')
+
+      expect(tokens[2].type).toBe('TEXT')
+      expect(tokens[2].value).toBe(' text after')
+    })
   })
 
   describe('Property Parser', () => {
@@ -627,6 +661,83 @@ Content with emojis 😀🚀 and unicode characters: ﷽ñáéíóú
       expect(items[0].name).toBe('item1');
       expect(items[1].name).toBe('item2');
       expect(items[2].name).toBe('item3');
+    });
+
+    it('correctly parses inline blocks', () => {
+      const input = 'Vor den Quizzes, :snippet(id="b6a5a8b0") entspanne dich mit einem **TIC-TAC-TOE** Turnier gegen den Computer. Das Turnier gilt als gewonnen, wenn einer der beiden Spieler 10 Siege  :snippet{id="x6532c60"}';
+
+      const result = parseMarkdown(input) as DocumentNode;
+
+      // Should have 3 nodes: text, inline-block, text, inline-block, text
+      expect(result.content.length).toBeGreaterThan(2);
+
+      // Find all inline blocks
+      const inlineBlocks = result.content.filter(node => node.type === 'inline-block');
+      expect(inlineBlocks).toHaveLength(2);
+
+      // Check first inline block
+      const firstInlineBlock = inlineBlocks[0] as InlineBlockNode;
+      expect(firstInlineBlock.name).toBe('snippet');
+      expect(firstInlineBlock.properties).toHaveLength(1);
+      expect(firstInlineBlock.properties[0].name).toBe('id');
+      expect(firstInlineBlock.properties[0].value).toBe('b6a5a8b0');
+
+      // Check second inline block
+      const secondInlineBlock = inlineBlocks[1] as InlineBlockNode;
+      expect(secondInlineBlock.name).toBe('snippet');
+      expect(secondInlineBlock.properties).toHaveLength(1);
+      expect(secondInlineBlock.properties[0].name).toBe('id');
+      expect(secondInlineBlock.properties[0].value).toBe('x6532c60');
+    });
+
+    it('handles multiple inline blocks in sequence', () => {
+      const input = ':snippet(id="first") :snippet(id="second") :snippet(id="third")';
+
+      const result = parseMarkdown(input) as DocumentNode;
+
+      // Find all inline blocks
+      const inlineBlocks = result.content.filter(node => node.type === 'inline-block');
+      expect(inlineBlocks).toHaveLength(3);
+
+      // Check properties of each inline block
+      expect(inlineBlocks[0].name).toBe('snippet');
+      expect((inlineBlocks[0] as InlineBlockNode).properties[0].value).toBe('first');
+
+      expect(inlineBlocks[1].name).toBe('snippet');
+      expect((inlineBlocks[1] as InlineBlockNode).properties[0].value).toBe('second');
+
+      expect(inlineBlocks[2].name).toBe('snippet');
+      expect((inlineBlocks[2] as InlineBlockNode).properties[0].value).toBe('third');
+    });
+
+    it('correctly handles the specific example from the user query', () => {
+      const input = 'Vor den Quizzes, :snippet(id="b6a5a8b0") entspanne dich mit einem **TIC-TAC-TOE** Turnier gegen den Computer. Das Turnier gilt als gewonnen, wenn einer der beiden Spieler 10 Siege  :snippet{id="x6532c60"}';
+
+      const result = parseMarkdown(input) as DocumentNode;
+
+      // Log the result for debugging
+      console.log('AST:', JSON.stringify(result, null, 2));
+
+      // Find all inline blocks
+      const inlineBlocks = result.content.filter(node => node.type === 'inline-block');
+      expect(inlineBlocks).toHaveLength(2);
+
+      // Check first inline block
+      const firstInlineBlock = inlineBlocks[0] as InlineBlockNode;
+      expect(firstInlineBlock.name).toBe('snippet');
+      expect(firstInlineBlock.properties).toHaveLength(1);
+      expect(firstInlineBlock.properties[0].name).toBe('id');
+      expect(firstInlineBlock.properties[0].value).toBe('b6a5a8b0');
+
+      // Check second inline block
+      const secondInlineBlock = inlineBlocks[1] as InlineBlockNode;
+      expect(secondInlineBlock.name).toBe('snippet');
+      expect(secondInlineBlock.properties).toHaveLength(1);
+      expect(secondInlineBlock.properties[0].name).toBe('id');
+      expect(secondInlineBlock.properties[0].value).toBe('x6532c60');
+
+      // Ensure there are no duplicate inline blocks
+      expect(result.content.filter(node => node.type === 'inline-block').length).toBe(2);
     });
   });
 
