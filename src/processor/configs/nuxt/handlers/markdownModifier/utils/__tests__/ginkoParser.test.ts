@@ -231,6 +231,42 @@ Content
       const result = parseMarkdown(input)
       expect(result).toEqual(expected)
     });
+
+    it('handles both curly braces and parentheses property syntax', () => {
+      const inputs = [
+        `::note{title="Title"}
+Inside
+::`,
+        `::note(title="Title")
+Inside
+::`
+      ];
+
+      const expected = {
+        type: "document",
+        content: [
+          {
+            type: "block",
+            name: "note",
+            properties: [
+              { name: "title", value: "Title" }
+            ],
+            content: [
+              {
+                type: "text",
+                content: "Inside\n"
+              }
+            ]
+          }
+        ]
+      };
+
+      // Test both inputs should produce identical output
+      inputs.forEach(input => {
+        const result = parseMarkdown(input);
+        expect(result).toEqual(expected);
+      });
+    });
   });
   // Individual component tests
   describe('Tokenizer', () => {
@@ -247,6 +283,31 @@ Content
       expect(tokens[1].value).toBe('Content\n')
 
       expect(tokens[2].type).toBe('BLOCK_END')
+    })
+
+    it('tokenizes dividers correctly', () => {
+      const inputs = [
+        '---\n',
+        '----\n',
+        '------',
+        '---  \n',
+        '---\nNext line'
+      ]
+
+      for (const input of inputs) {
+        const tokens = tokenize(input)
+        expect(tokens[0].type).toBe('DIVIDER')
+        if (input.includes('\n')) {
+          expect(tokens[0].value).toMatch(/^-{3,}\s*\n/)
+        } else {
+          expect(tokens[0].value).toBe(input)
+        }
+      }
+
+      // Should not match less than 3 dashes
+      const notDivider = '--\n'
+      const tokens = tokenize(notDivider)
+      expect(tokens[0].type).toBe('TEXT')
     })
 
     it('tokenizes dash elements correctly', () => {
@@ -547,6 +608,61 @@ empty lines`;
       const dashContent = dashNode.content[0] as TextNode;
       expect(dashContent.content).toBe('    More indentation\n');
     });
+
+    it('parses dividers correctly', () => {
+      const input = `Text before
+---
+Text between
+------  
+Text after`
+
+      const result = parseMarkdown(input) as DocumentNode
+      expect(result.type).toBe('document')
+      expect(result.content).toHaveLength(5)
+
+      expect(result.content[0].type).toBe('text')
+      expect((result.content[0] as TextNode).content).toBe('Text before\n')
+
+      expect(result.content[1].type).toBe('divider')
+
+      expect(result.content[2].type).toBe('text')
+      expect((result.content[2] as TextNode).content).toBe('Text between\n')
+
+      expect(result.content[3].type).toBe('divider')
+
+      expect(result.content[4].type).toBe('text')
+      expect((result.content[4] as TextNode).content).toBe('Text after')
+    })
+
+    it('handles dividers in complex documents', () => {
+      const input = `::note
+Text inside block
+---
+More text
+::
+---
+Outside text`
+
+      const result = parseMarkdown(input) as DocumentNode
+      expect(result.type).toBe('document')
+      expect(result.content).toHaveLength(3)
+
+      // Check block structure
+      const block = result.content[0] as BlockNode
+      expect(block.type).toBe('block')
+      expect(block.name).toBe('note')
+      expect(block.content).toHaveLength(3)
+      expect(block.content[0].type).toBe('text')
+      expect(block.content[1].type).toBe('divider')
+      expect(block.content[2].type).toBe('text')
+
+      // Check divider after block
+      expect(result.content[1].type).toBe('divider')
+
+      // Check final text
+      expect(result.content[2].type).toBe('text')
+      expect((result.content[2] as TextNode).content).toBe('Outside text')
+    })
   });
 
   // Error handling tests

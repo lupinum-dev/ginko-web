@@ -2,12 +2,13 @@
 // Pre-compiled Regular Expressions
 // ============================================================================
 
-const BLOCK_START_REGEX = /^::([a-zA-Z0-9_-]+)(?:\s*\(([^)]*)\))?\s*\n/;
+const BLOCK_START_REGEX = /^::([a-zA-Z0-9_-]+)(?:\s*[\({]([^)}\n]*)[\)}])?\s*\n/;
 const BLOCK_END_REGEX = /^::\s*\n?/;
 const DASH_ELEMENT_REGEX = /^--([a-zA-Z][a-zA-Z0-9_-]*)(?:[\({]([^)}\n]*)[\)}])?\s+(.*?)(?=\n|$)/;
 const CODE_BLOCK_START_REGEX = /^```([^\n]*)\n/;
 const INLINE_CODE_REGEX = /^`([^`]+)`/;
 const PROPERTY_REGEX = /([a-zA-Z0-9_-]+)(?:=(?:['"]([^'"]*)['"](}|\))?|(true|false|[0-9]+(?:\.[0-9]+)?)))?/g;
+const DIVIDER_REGEX = /^-{3,}\s*\n?/;
 
 // ============================================================================
 // Types
@@ -68,6 +69,11 @@ interface InlineCodeNode extends Node {
   content: string;
 }
 
+/** Divider node */
+interface DividerNode extends Node {
+  type: 'divider';
+}
+
 /** All possible token types */
 type TokenType =
   | 'BLOCK_START'    // ::name(props)
@@ -77,6 +83,7 @@ type TokenType =
   | 'CODE_BLOCK_END'   // ```
   | 'CODE_BLOCK_CONTENT' // Content inside code block
   | 'INLINE_CODE'    // `code`
+  | 'DIVIDER'        // ---
   | 'TEXT';          // Any other content
 
 /** Token representing a parsed piece of input */
@@ -316,6 +323,17 @@ function tokenize(input: string): Token[] {
       tokens[tokenCount++] = {
         type: 'INLINE_CODE',
         value: match[1],
+        line: currentLine
+      };
+      position += match[0].length;
+      continue;
+    }
+
+    // 2.5 Divider
+    if ((match = DIVIDER_REGEX.exec(remaining))) {
+      tokens[tokenCount++] = {
+        type: 'DIVIDER',
+        value: match[0],
         line: currentLine
       };
       position += match[0].length;
@@ -596,6 +614,15 @@ function parse(input: string): DocumentNode {
         break;
       }
 
+      case 'DIVIDER': {
+        flushTextBuffer();
+
+        currentParent.content.push({
+          type: 'divider'
+        });
+        break;
+      }
+
       case 'TEXT': {
         if (!textBuffer) textLine = token.line;
         textBuffer += token.value;
@@ -684,5 +711,6 @@ export type {
   DashElementNode,
   DocumentNode,
   Property,
-  InlineCodeNode
+  InlineCodeNode,
+  DividerNode
 };
