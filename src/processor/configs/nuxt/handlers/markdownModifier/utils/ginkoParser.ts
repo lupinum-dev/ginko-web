@@ -9,6 +9,7 @@ const CODE_BLOCK_START_REGEX = /^```([^\n]*)\n/;
 const INLINE_CODE_REGEX = /^`([^`]+)`/;
 const PROPERTY_REGEX = /([a-zA-Z0-9_-]+)(?:=(?:['"]([^'"]*)['"](}|\))?|(true|false|[0-9]+(?:\.[0-9]+)?)))?/g;
 const DIVIDER_REGEX = /^-{3,}\s*\n?/;
+const INLINE_BLOCK_REGEX = /:([a-zA-Z0-9_\[\]]+)(?:[\({]([^)}\n]*)[\)}]|\{([^}]*)\})/;
 
 // ============================================================================
 // Types
@@ -74,6 +75,13 @@ interface DividerNode extends Node {
   type: 'divider';
 }
 
+/** Inline block node - New node type for inline blocks */
+interface InlineBlockNode extends Node {
+  type: 'inline-block';
+  name: string;
+  properties: Property[];
+}
+
 /** All possible token types */
 type TokenType =
   | 'BLOCK_START'    // ::name(props)
@@ -83,6 +91,7 @@ type TokenType =
   | 'CODE_BLOCK_END'   // ```
   | 'CODE_BLOCK_CONTENT' // Content inside code block
   | 'INLINE_CODE'    // `code`
+  | 'INLINE_BLOCK'   // :name(props)
   | 'DIVIDER'        // ---
   | 'TEXT';          // Any other content
 
@@ -125,10 +134,15 @@ class NodePool {
   private dashElementNodes: DashElementNode[] = [];
   private dashElementIndex = 0;
 
+  // New pool for inline block nodes
+  private inlineBlockNodes: InlineBlockNode[] = [];
+  private inlineBlockIndex = 0;
+
   reset(): void {
     this.textNodeIndex = 0;
     this.blockNodeIndex = 0;
     this.dashElementIndex = 0;
+    this.inlineBlockIndex = 0;
   }
 
   getText(content: string): TextNode {
@@ -185,6 +199,25 @@ class NodePool {
     this.dashElementIndex++;
     return node;
   }
+
+  // New method for inline block nodes
+  getInlineBlock(name: string, properties: Property[]): InlineBlockNode {
+    if (this.inlineBlockIndex < this.inlineBlockNodes.length) {
+      const node = this.inlineBlockNodes[this.inlineBlockIndex++];
+      node.name = name;
+      node.properties = properties;
+      return node;
+    }
+
+    const node: InlineBlockNode = {
+      type: 'inline-block',
+      name,
+      properties
+    };
+    this.inlineBlockNodes.push(node);
+    this.inlineBlockIndex++;
+    return node;
+  }
 }
 
 // Create a global node pool
@@ -231,6 +264,7 @@ class ParseCache {
 
 /**
  * Tokenize the input string into semantic tokens - O(n) implementation
+ * Updated to handle inline blocks
  */
 function tokenize(input: string): Token[] {
   // Pre-calculate line indices for O(log n) line number lookups
@@ -353,6 +387,26 @@ function tokenize(input: string): Token[] {
       continue;
     }
 
+    // 3.5 Inline Block - New token type
+    if ((match = INLINE_BLOCK_REGEX.exec(remaining))) {
+      // Extract full matched text
+      const fullMatch = match[0];
+      // Extract block name
+      const blockName = match[1];
+      // Extract properties (from either parentheses or curly braces)
+      const properties = match[2] || match[3] || '';
+
+      tokens[tokenCount++] = {
+        type: 'INLINE_BLOCK',
+        value: fullMatch,
+        name: blockName,
+        properties: properties,
+        line: currentLine
+      };
+      position += fullMatch.length;
+      continue;
+    }
+
     // 4. Dash element
     if ((match = DASH_ELEMENT_REGEX.exec(remaining))) {
       tokens[tokenCount++] = {
@@ -387,7 +441,8 @@ function tokenize(input: string): Token[] {
       { type: 'block', pos: remaining.indexOf('::') },
       { type: 'dash', pos: remaining.indexOf('--') },
       { type: 'code', pos: remaining.indexOf('```') },
-      { type: 'inline', pos: remaining.indexOf('`') }
+      { type: 'inline', pos: remaining.indexOf('`') },
+      { type: 'inlineBlock', pos: remaining.indexOf(':') } // Add check for inline blocks
     ].filter(item => item.pos >= 0);
 
     // Sort by position to find the closest token
@@ -473,6 +528,7 @@ function parseProperties(propString: string): Property[] {
 
 /**
  * Main parser implementation - optimized for speed and memory efficiency
+ * Updated to handle inline blocks
  */
 function parse(input: string): DocumentNode {
   // Reset node pool
@@ -614,6 +670,24 @@ function parse(input: string): DocumentNode {
         break;
       }
 
+      case 'INLINE_BLOCK': {
+        flushTextBuffer();
+
+        if (!token.name) {
+          throw new ParserError('Inline block missing name', token.line);
+        }
+
+        // Create a new inline block node
+        const inlineBlock = nodePool.getInlineBlock(
+          token.name,
+          parseProperties(token.properties || '')
+        );
+
+        // Add inline block to content
+        currentParent.content.push(inlineBlock);
+        break;
+      }
+
       case 'DIVIDER': {
         flushTextBuffer();
 
@@ -712,5 +786,6 @@ export type {
   DocumentNode,
   Property,
   InlineCodeNode,
-  DividerNode
-};
+  DividerNode,
+  InlineBlockNode // Export the new node type
+}
