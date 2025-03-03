@@ -19,25 +19,10 @@ function propertiesToString(properties: Array<{ name: string; value: string | bo
   return props ? `{${props}}` : '';
 }
 
-// The nesting rules are:
-// 1. ginko-layout: Always has three colons on opening and closing (:::)
-// 2. ginko-column: Always has two colons (::)
-// 3. ginko-center: Always has two colons (::)
-// 4. ginko-callout: Has four colons on opening and closing (::::)
-
-function getColons(nodeName: string, nestingLevel: number, isClosing: boolean = false): string {
-  if (nodeName === 'ginko-column') {
-    return '::'; // Always 2 colons
-  } else if (nodeName === 'ginko-layout') {
-    return ':::'; // Always 3 colons
-  } else if (nodeName === 'ginko-center') {
-    return '::'; // Always 2 colons
-  } else if (nodeName === 'ginko-callout') {
-    return '::::'; // Always 4 colons
-  } else {
-    // Default based on nesting level
-    return ':'.repeat(Math.max(2, 2 + nestingLevel));
-  }
+// Changed colon calculation to be 2 + nestingLevel
+function getColons(nestingLevel: number): string {
+  // Base colon count is 2, increasing by 1 per nesting level
+  return ':'.repeat(2 + nestingLevel);
 }
 
 // Recursive helper function that keeps track of nesting level
@@ -47,7 +32,9 @@ function nodeToMarkdown(node: GinkoASTNode, nestingLevel: number = 0): string {
   }
 
   if (node.type === 'code-block') {
-    const language = node.language ? node.language : '';
+    // Use type assertion to access the language property
+    const codeNode = node as GinkoASTNode & { language?: string };
+    const language = codeNode.language || '';
     return `\`\`\`${language}\n${node.content}\`\`\`\n`;
   }
 
@@ -61,10 +48,11 @@ function nodeToMarkdown(node: GinkoASTNode, nestingLevel: number = 0): string {
 
   if (node.type === 'block') {
     const properties = propertiesToString(node.properties);
+    const prefix = 'ginko-';
+    const decoratedName = node.name && node.name.startsWith(prefix) ? node.name : `${prefix}${node.name || ''}`;
 
-    // Get the appropriate opening and closing colons based on node name
-    const openingColons = getColons(node.name || '', nestingLevel);
-    const closingColons = getColons(node.name || '', nestingLevel);
+    // Get the appropriate colons based on nesting level
+    const colons = getColons(nestingLevel);
 
     // Process the content with increased nesting level for child blocks
     const blockContent = Array.isArray(node.content)
@@ -73,19 +61,32 @@ function nodeToMarkdown(node: GinkoASTNode, nestingLevel: number = 0): string {
 
     // Special case for a single text node content - keep it on the same line
     if (Array.isArray(node.content) && node.content.length === 1 && node.content[0].type === 'text') {
-      return `${openingColons}${node.name}${properties}\n${blockContent}\n${closingColons}\n`;
+      return `${colons}${decoratedName}${properties}\n${blockContent}\n${colons}\n`;
     } else {
-      return `${openingColons}${node.name}${properties}\n${blockContent}${closingColons}\n`;
+      return `${colons}${decoratedName}${properties}\n${blockContent}${colons}\n`;
     }
   }
 
   if (node.type === 'dash-element') {
     const properties = propertiesToString(node.properties);
-    const label = node.label ? ` ${node.label}` : '';
+    const prefix = 'ginko-';
+    const decoratedName = node.name && node.name.startsWith(prefix) ? node.name : `${prefix}${node.name || ''}`;
+
+    // For dash elements, we'll use a block-like format with label in properties
+    const labelProp = node.label ? ` label="${node.label}"` : '';
+    const colons = getColons(nestingLevel);
+
+    // Process content with increased nesting level
     const content = Array.isArray(node.content)
-      ? node.content.map(child => nodeToMarkdown(child, nestingLevel)).join('')
+      ? node.content.map(child => nodeToMarkdown(child, nestingLevel + 1)).join('')
       : node.content || '';
-    return `--${node.name}${properties}${label}\n${content}`;
+
+    if (content) {
+      return `${colons}${decoratedName}${properties}${labelProp}\n${content}${colons}\n`;
+    } else {
+      // If no content, we might want a simplified format
+      return `${colons}${decoratedName}${properties}${labelProp}\n${colons}\n`;
+    }
   }
 
   return '';
@@ -94,4 +95,3 @@ function nodeToMarkdown(node: GinkoASTNode, nestingLevel: number = 0): string {
 export function astToMarkdown(ast: GinkoAST): string {
   return ast.content.map(node => nodeToMarkdown(node, 0)).join('');
 }
-

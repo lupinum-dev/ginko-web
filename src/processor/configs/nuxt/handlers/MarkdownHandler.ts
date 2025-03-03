@@ -11,6 +11,7 @@ import { stringifyYAML } from 'confbox'
 import { parseMarkdown } from './markdownModifier/utils/ginkoParser'
 import { CalloutModifier } from './markdownModifier/CalloutModifier'
 import { LayoutModifier } from './markdownModifier/LayoutModifier'
+import { TabsModifier } from './markdownModifier/TabsModifier'
 import { MarkdownModifier } from './markdownModifier/MarkdownModifier'
 import { astToMarkdown } from './markdownModifier/utils/astToMarkdown'
 
@@ -32,10 +33,11 @@ export class MarkdownHandler implements FileHandler {
     this.fileSystem = new FileSystemService()
     this.cacheService = new CacheService()
 
-    // Initialize modifiers with both CalloutModifier and LayoutModifier
+    // Initialize modifiers with CalloutModifier, LayoutModifier, and TabsModifier
     const markdownModifier = new MarkdownModifier([
       new CalloutModifier(),
-      new LayoutModifier()
+      new LayoutModifier(),
+      new TabsModifier()
     ])
     this.modifiers = [markdownModifier]
   }
@@ -105,7 +107,6 @@ export class MarkdownHandler implements FileHandler {
 
       // Parse the content into a Ginko AST
       const ast = parseMarkdown(content)
-      // to JSON
       console.log('ast', JSON.stringify(ast, null, 2))
 
       // Apply all modifiers to the AST
@@ -113,7 +114,6 @@ export class MarkdownHandler implements FileHandler {
       for (const modifier of this.modifiers) {
         modifiedAst = modifier.modify(modifiedAst)
       }
-
       console.log('modifiedAst', JSON.stringify(modifiedAst, null, 2))
 
       // Convert modified AST back to markdown

@@ -1,49 +1,45 @@
-import type { ContentModifier } from '../../markdownModifier'
-import type { ComponentInfo } from './types/ComponentInfo'
-import { getComponentInfo } from './utils/componentParser'
+import type { BlockModifier, GinkoASTNode } from './types';
 
-export class TabsModifier implements ContentModifier {
-  // Match tabs block with new syntax, allowing for optional whitespace
-  private readonly TABS_REGEX = /^::tabs\s*(?:\(.*?\))?\n([\s\S]*?)^::/gm
+export class TabsModifier implements BlockModifier {
+  canHandle(node: GinkoASTNode): boolean {
+    if (node.type !== 'block') return false;
+    return node.name === 'tabs';
+  }
 
-  modify(content: string): string {
-    return content.replace(this.TABS_REGEX, (match) => {
-      const componentInfo = this.getComponentInfo(match)
-      console.log('Component info:', componentInfo)
-      if (!componentInfo) {
-        console.error('Failed to parse component info')
-        return match
+  modifyBlock(node: GinkoASTNode): GinkoASTNode {
+    if (node.type !== 'block' || node.name !== 'tabs') return node;
+
+    // Get tab elements from content
+    const tabElements = (node.content || []).filter(
+      child => child.type === 'dash-element' && child.name === 'tab'
+    );
+
+    // Transform each tab dash-element into a ginko-tab block
+    const tabBlocks = tabElements.map(tab => {
+      if (tab.type !== 'dash-element') return tab;
+
+      // Create properties array starting with the label if it exists
+      const properties = [...(tab.properties || [])];
+
+      // Add label property if it exists
+      if (tab.label) {
+        properties.push({ name: 'label', value: tab.label });
       }
 
-      return this.formatTabs(componentInfo)
-    })
-  }
+      return {
+        type: 'block',
+        name: 'ginko-tab',
+        properties: properties,
+        content: tab.content || []
+      };
+    });
 
-  getComponentInfo(content: string): ComponentInfo | null {
-    return getComponentInfo(content)
-  }
-
-  private formatTabs(componentInfo: ComponentInfo): string {
-    if (!componentInfo.children?.length) {
-      return ''
-    }
-
-    const tabsContent = componentInfo.children.map((child) => {
-      // Props are already processed in the parser, including the title
-      const propsStr = Object.entries(child.props)
-        .map(([key, value]) => `${key}="${this.escapeQuotes(value)}"`)
-        .join(' ')
-
-      // Use content if available, otherwise use main
-      const content = child.content || child.main || ''
-
-      return `::ginko-tab{${propsStr}}\n${content}\n::`
-    }).join('\n')
-
-    return `::ginko-tabs\n${tabsContent}\n::`
-  }
-
-  private escapeQuotes(str: string): string {
-    return str.replace(/"/g, '\\"')
+    // Return the ginko-tabs block with transformed tab blocks
+    return {
+      type: 'block',
+      name: 'ginko-tabs',
+      properties: node.properties || [],
+      content: tabBlocks
+    };
   }
 }
