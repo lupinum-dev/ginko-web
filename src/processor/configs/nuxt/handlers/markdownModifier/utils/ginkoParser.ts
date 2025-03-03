@@ -737,6 +737,9 @@ function parse(input: string): DocumentNode {
  * With caching support for repeated inputs
  */
 function parseMarkdown(input: string): DocumentNode | { error: string } {
+  // Clear the cache to ensure fresh results for each parse
+  ParseCache.clear();
+
   // Hash input for cache key
   const hashKey = Array.from(input)
     .reduce((hash, char) => ((hash << 5) - hash) + char.charCodeAt(0), 0)

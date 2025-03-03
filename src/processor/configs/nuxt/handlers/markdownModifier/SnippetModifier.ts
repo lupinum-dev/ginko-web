@@ -1,20 +1,52 @@
-import type { ContentModifier } from '../../markdownModifier'
+import type { BlockModifier, GinkoASTNode } from './types';
 
-export class SnippetModifier implements ContentModifier {
-  // Match block snippets - non-greedy match between markers
-  private readonly BLOCK_SNIPPET_REGEX = /^::snippet\(id="([^"]+)"\)\s*([\s\S]*?)^\s*::\s*$/gm
-  // Match inline snippets
-  private readonly INLINE_SNIPPET_REGEX = /:snippet\(id="([^"]+)"\)/g
+/**
+ * SnippetModifier transforms snippet blocks and inline snippets
+ * 
+ * Input:
+ * - Block: ::snippet(id="xyz") ... ::
+ * - Inline: :snippet(id="xyz")
+ * 
+ * Output:
+ * - Block: ::ginko-snippet-source{id="xyz"} ... ::
+ * - Inline: :ginko-snippet{id="xyz"}
+ */
+export class SnippetModifier implements BlockModifier {
+  /**
+   * Determines if this modifier can handle the given node
+   */
+  canHandle(node: GinkoASTNode): boolean {
+    // Handle both block and inline-block types with name 'snippet'
+    return (
+      (node.type === 'block' && node.name === 'snippet') ||
+      (node.type === 'inline-block' && node.name === 'snippet')
+    );
+  }
 
-  modify(content: string): string {
-    // First, transform block snippets
-    content = content.replace(this.BLOCK_SNIPPET_REGEX, (match, id, snippetContent) => {
-      return `::ginko-snippet-source{id="${id}"}\n${snippetContent.trim()}\n::`
-    })
+  /**
+   * Modifies the node according to the transformation rules
+   */
+  modifyBlock(node: GinkoASTNode): GinkoASTNode {
+    // Handle block snippets (::snippet)
+    if (node.type === 'block' && node.name === 'snippet') {
+      return {
+        type: 'block',
+        name: 'ginko-snippet-source',
+        properties: node.properties || [],
+        content: node.content || []
+      };
+    }
 
-    // Then transform inline snippets
-    return content.replace(this.INLINE_SNIPPET_REGEX, (match, id) => {
-      return `:ginko-snippet{id="${id}"}`
-    })
+    // Handle inline snippets (:snippet)
+    if (node.type === 'inline-block' && node.name === 'snippet') {
+      return {
+        type: 'inline-block',
+        name: 'ginko-snippet',
+        properties: node.properties || []
+      };
+    }
+
+    // Return the node unchanged if it doesn't match our criteria
+    return node;
   }
 }

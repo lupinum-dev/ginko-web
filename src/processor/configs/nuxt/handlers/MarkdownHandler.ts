@@ -13,6 +13,7 @@ import { CalloutModifier } from './markdownModifier/CalloutModifier'
 import { LayoutModifier } from './markdownModifier/LayoutModifier'
 import { TabsModifier } from './markdownModifier/TabsModifier'
 import { StepsModifier } from './markdownModifier/StepsModifier'
+import { SnippetModifier } from './markdownModifier/SnippetModifier'
 import { MarkdownModifier } from './markdownModifier/MarkdownModifier'
 import { astToMarkdown } from './markdownModifier/utils/astToMarkdown'
 
@@ -34,12 +35,13 @@ export class MarkdownHandler implements FileHandler {
     this.fileSystem = new FileSystemService()
     this.cacheService = new CacheService()
 
-    // Initialize modifiers with CalloutModifier, LayoutModifier, TabsModifier, and StepsModifier
+    // Initialize modifiers with CalloutModifier, LayoutModifier, TabsModifier, StepsModifier, and SnippetModifier
     const markdownModifier = new MarkdownModifier([
       new CalloutModifier(),
       new LayoutModifier(),
       new TabsModifier(),
-      new StepsModifier()
+      new StepsModifier(),
+      new SnippetModifier()
     ])
     this.modifiers = [markdownModifier]
   }
