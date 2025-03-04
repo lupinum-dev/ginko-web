@@ -16,6 +16,7 @@ import { CURRENT_WELCOME_VERSION, WELCOME_VIEW_TYPE, WelcomeView } from './welco
 export default class GinkoWebPlugin extends Plugin {
   settings: GinkoWebSettings
   private statusBarItem: HTMLElement | null = null
+  private fileMenuRegistered: boolean = false
 
   async onload() {
     // Settings
@@ -55,6 +56,8 @@ export default class GinkoWebPlugin extends Plugin {
   onunload() {
     // Unregister the welcome view type
     this.app.workspace.detachLeavesOfType(WELCOME_VIEW_TYPE)
+    // Reset the file menu registration flag
+    this.fileMenuRegistered = false
   }
 
   async loadSettings() {
@@ -213,12 +216,14 @@ export default class GinkoWebPlugin extends Plugin {
   }
 
   private registerFileMenu() {
-    // Only register if the colocation folder utility is enabled
-    if (this.settings.utilities.colocationFolder) {
+    // Only register if the colocation folder utility is enabled and not already registered
+    if (this.settings.utilities.colocationFolder && !this.fileMenuRegistered) {
+      this.fileMenuRegistered = true
       this.registerEvent(
         this.app.workspace.on('file-menu', (menu: Menu, file: TAbstractFile) => {
           if (file instanceof TFolder) {
             menu.addItem((item) => {
+              console.log('add colocation folder')
               item
                 .setTitle('Add Colocation Folder')
                 .setIcon('folder-plus')
