@@ -27,6 +27,7 @@ export interface GinkoWebSettings {
   utilities: {
     debug: boolean
     colocationFolder: boolean
+    createId: boolean
     linter: boolean
     frontmatter: boolean
     lastUsedTemplate: boolean
@@ -127,6 +128,7 @@ export function ensureSettingsInitialized(settings: Partial<GinkoWebSettings>): 
     utilities: {
       debug: settings.utilities?.debug ?? false,
       colocationFolder: settings.utilities?.colocationFolder ?? false,
+      createId: settings.utilities?.createId ?? false,
       linter: settings.utilities?.linter ?? false,
       frontmatter: settings.utilities?.frontmatter ?? false,
       lastUsedTemplate: settings.utilities?.lastUsedTemplate ?? false,

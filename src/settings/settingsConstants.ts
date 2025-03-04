@@ -65,6 +65,17 @@ export const UTILITIES: Utility[] = [
     ],
   },
   {
+    id: 'createId',
+    name: 'Create ID',
+    description: 'Utility which helps you to create a unique ID.',
+    warning: '',
+    links: [
+      { text: 'Read our documentation', url: 'https://ginko.build/docs/utilities/syntax-highlight' },
+    ],
+  },
+
+
+  {
     id: 'linter',
     name: 'Linter',
     description: 'Utility which helps you to checks your files for errors.',

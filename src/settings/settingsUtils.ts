@@ -1,6 +1,5 @@
 import type { DataAdapter } from 'obsidian'
 import { promises as fs } from 'node:fs'
-import * as path from 'path'
 
 export interface RuntimeCheckResult {
   valid: boolean
