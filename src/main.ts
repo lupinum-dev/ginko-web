@@ -17,6 +17,7 @@ export default class GinkoWebPlugin extends Plugin {
   settings: GinkoWebSettings
   private statusBarItem: HTMLElement | null = null
   private fileMenuRegistered: boolean = false
+  private ribbonIcons: HTMLElement[] = []
 
   async onload() {
     // Settings
@@ -65,6 +66,7 @@ export default class GinkoWebPlugin extends Plugin {
   }
 
   async saveSettings() {
+    console.log('saveSettings')
     // Ensure settings are properly initialized before saving
     this.settings = ensureSettingsInitialized(this.settings)
 
@@ -76,6 +78,7 @@ export default class GinkoWebPlugin extends Plugin {
 
     // Re-register file menu to update based on utility settings
     this.registerFileMenu()
+    this.registerCommands()
 
     // Update status bar
     await this.updateStatusBar()
@@ -112,6 +115,14 @@ export default class GinkoWebPlugin extends Plugin {
   }
 
   private registerCommands() {
+    console.log('registerCommands')
+
+    // Remove existing ribbon icons
+    this.ribbonIcons.forEach(icon => {
+      icon.remove();
+    });
+    this.ribbonIcons = [];
+
     // Create a function for the common processor initialization logic
     const initializeProcessor = async () => {
       try {
@@ -126,17 +137,107 @@ export default class GinkoWebPlugin extends Plugin {
       }
     }
 
+    // Add commands for Ginko Web functionality
+    // Process command - always available
+    this.addCommand({
+      id: 'ginko-process',
+      name: 'Process website content',
+      callback: () => {
+        initializeProcessor()
+      },
+    });
+
+    // Open Welcome View command
+    this.addCommand({
+      id: 'ginko-open-welcome',
+      name: 'Open Ginko welcome view',
+      callback: () => {
+        this.activateWelcomeView(true)
+      },
+    });
+
+    // Open Settings command
+    this.addCommand({
+      id: 'ginko-open-settings',
+      name: 'Open Ginko settings',
+      callback: () => {
+        this.app.setting.open()
+        this.app.setting.openTabById('ginko-web')
+      },
+    });
+
+    // Export Cache command
+    this.addCommand({
+      id: 'ginko-export-cache',
+      name: 'Export Ginko cache',
+      callback: async () => {
+        try {
+          const cacheService = new CacheService()
+          await cacheService.exportCacheToFile(this.app.vault)
+          new Notice('✅ Cache exported successfully!')
+        }
+        catch (error) {
+          console.error('Failed to export cache:', error)
+          new Notice('❌ Failed to export cache')
+        }
+      },
+    });
+
+    // Create ID command - only available when enabled in settings
+    if (this.settings.utilities.createId) {
+      this.addCommand({
+        id: 'ginko-create-id',
+        name: 'Create and copy ID to clipboard',
+        callback: async () => {
+          try {
+            const { copyIdToClipboard } = await import('./tools/createId')
+            copyIdToClipboard()
+          } catch (error) {
+            console.error('Failed to create ID:', error)
+            new Notice('❌ Failed to create ID')
+          }
+        },
+      });
+    }
+
+    // Create colocation folder command - only available when enabled in settings
+    if (this.settings.utilities.colocationFolder) {
+      this.addCommand({
+        id: 'ginko-create-colocation-folder',
+        name: 'Create colocation folder',
+        editorCheckCallback: (checking: boolean, editor, view) => {
+          const file = view.file;
+
+          // Only enable for markdown files
+          if (!file || file.extension !== 'md') {
+            return false;
+          }
+
+          if (!checking) {
+            new ColocationModal(this.app, file, () => {
+              createColocationFolder(this.app, file);
+            }).open();
+          }
+
+          return true;
+        },
+      });
+    }
+
     // Add this type definition at the top of the file, after the imports
     interface RibbonIcon {
       id: string
       name: string
       handler?: () => Promise<void>
     }
+    this.settings.utilities.createId
 
     // Define ribbon icons with their specific configurations
     const ribbonIcons: RibbonIcon[] = [
       { id: 'upload', name: 'Ginko Process' },
-      {
+
+      // Only include the Create ID icon when enabled in settings
+      ...(this.settings.utilities.createId ? [{
         id: 'key', name: 'Create ID', handler: async () => {
           try {
             const { copyIdToClipboard } = await import('./tools/createId')
@@ -146,7 +247,7 @@ export default class GinkoWebPlugin extends Plugin {
             new Notice('❌ Failed to create ID')
           }
         }
-      },
+      }] : []),
       {
         id: 'database',
         name: 'Export GinkoCache',
@@ -176,6 +277,7 @@ export default class GinkoWebPlugin extends Plugin {
       })
 
       element.addClass('my-plugin-ribbon-class')
+      this.ribbonIcons.push(element)
     })
   }
 
