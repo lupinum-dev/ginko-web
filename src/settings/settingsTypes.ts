@@ -1,8 +1,14 @@
+/**
+ * Represents a link in a utility description
+ */
 export interface UtilityLink {
   text: string
   url: string
 }
 
+/**
+ * Represents a utility that can be enabled in settings
+ */
 export interface Utility {
   id: keyof GinkoWebSettings['utilities']
   name: string
@@ -11,6 +17,9 @@ export interface Utility {
   links: UtilityLink[]
 }
 
+/**
+ * Represents a website template that can be selected
+ */
 export interface WebsiteTemplate {
   id: string
   name: string
@@ -18,12 +27,18 @@ export interface WebsiteTemplate {
   description: string
 }
 
+/**
+ * Main settings interface for the Ginko Web plugin
+ */
 export interface GinkoWebSettings {
+  // Usage and licensing settings
   usage: {
     type: 'personal' | 'commercial' | null
     licenseKey?: string
     isConfigured: boolean
   }
+
+  // Utility feature toggles
   utilities: {
     debug: boolean
     colocationFolder: boolean
@@ -33,6 +48,8 @@ export interface GinkoWebSettings {
     lastUsedTemplate: boolean
     [key: string]: boolean
   }
+
+  // Path configuration
   paths: {
     type: 'none' | 'standard' | 'custom'
     websitePath?: string
@@ -43,24 +60,37 @@ export interface GinkoWebSettings {
     outputDirectoryPath?: string
     publicPath: string
   }
+
+  // Language configuration
   languages: {
     type: 'none' | 'single' | 'multi'
     mainLanguage: string
     secondaryLanguages: string[]
   }
+
+  // Content exclusion settings
   exclusions: {
     ignoredFolders: string
     ignoredFiles: string
   }
 }
 
+/**
+ * Status of path configuration validation
+ */
 export interface PathValidationStatus {
   isValid: boolean
   hasPackageManager: boolean
   message: string
 }
 
-export function validatePathConfiguration(settings: GinkoWebSettings, hasPackageManager: boolean): PathValidationStatus {
+/**
+ * Validates the path configuration in settings
+ */
+export function validatePathConfiguration(
+  settings: GinkoWebSettings,
+  hasPackageManager: boolean
+): PathValidationStatus {
   const status = {
     isValid: false,
     hasPackageManager,
@@ -76,34 +106,12 @@ export function validatePathConfiguration(settings: GinkoWebSettings, hasPackage
 
   // For standard path, check if package manager is detected
   if (settings.paths.type === 'standard') {
-    status.isValid = hasPackageManager
-    status.message = hasPackageManager
-      ? '✓ Configuration valid - Ready to use Ginko'
-      : '⚠ Website folder found but no package manager detected'
-
-    // Update the pathConfigured flag
-    settings.paths.pathConfigured = status.isValid
-    return status
+    return validateStandardPath(settings, hasPackageManager, status)
   }
 
   // For custom path, check if path is set and package manager is detected
   if (settings.paths.type === 'custom') {
-    // Check if we have the required websitePath
-    if (!settings.paths.websitePath) {
-      settings.paths.pathConfigured = false
-      status.message = 'Please complete the custom path configuration'
-      return status
-    }
-
-    // Update status based on package manager
-    status.isValid = hasPackageManager
-    status.message = hasPackageManager
-      ? '✓ Configuration valid - Ready to use Ginko'
-      : '⚠ Website folder found but no package manager detected'
-
-    // Update the pathConfigured flag
-    settings.paths.pathConfigured = status.isValid
-    return status
+    return validateCustomPath(settings, hasPackageManager, status)
   }
 
   // If we get here, something is wrong with the configuration
@@ -111,12 +119,62 @@ export function validatePathConfiguration(settings: GinkoWebSettings, hasPackage
   return status
 }
 
-export function isPathConfigurationValid(settings: GinkoWebSettings, hasPackageManager = false): boolean {
+/**
+ * Validates a standard path configuration
+ */
+function validateStandardPath(
+  settings: GinkoWebSettings,
+  hasPackageManager: boolean,
+  status: PathValidationStatus
+): PathValidationStatus {
+  status.isValid = hasPackageManager
+  status.message = hasPackageManager
+    ? '✓ Configuration valid - Ready to use Ginko'
+    : '⚠ Website folder found but no package manager detected'
+
+  // Update the pathConfigured flag
+  settings.paths.pathConfigured = status.isValid
+  return status
+}
+
+/**
+ * Validates a custom path configuration
+ */
+function validateCustomPath(
+  settings: GinkoWebSettings,
+  hasPackageManager: boolean,
+  status: PathValidationStatus
+): PathValidationStatus {
+  // Check if we have the required websitePath
+  if (!settings.paths.websitePath) {
+    settings.paths.pathConfigured = false
+    status.message = 'Please complete the custom path configuration'
+    return status
+  }
+
+  // Update status based on package manager
+  status.isValid = hasPackageManager
+  status.message = hasPackageManager
+    ? '✓ Configuration valid - Ready to use Ginko'
+    : '⚠ Website folder found but no package manager detected'
+
+  // Update the pathConfigured flag
+  settings.paths.pathConfigured = status.isValid
+  return status
+}
+
+/**
+ * Helper function to check if path configuration is valid
+ */
+export function isPathConfigurationValid(
+  settings: GinkoWebSettings,
+  hasPackageManager = false
+): boolean {
   return validatePathConfiguration(settings, hasPackageManager).isValid
 }
 
 /**
- * Ensures all required settings fields are initialized
+ * Ensures all required settings fields are initialized with defaults
  */
 export function ensureSettingsInitialized(settings: Partial<GinkoWebSettings>): GinkoWebSettings {
   return {
@@ -155,27 +213,18 @@ export function ensureSettingsInitialized(settings: Partial<GinkoWebSettings>): 
   }
 }
 
+// Default settings with all values initialized
 export const DEFAULT_SETTINGS: GinkoWebSettings = ensureSettingsInitialized({})
 
+/**
+ * Checks if the Ginko Web setup is complete based on settings
+ */
 export function isSetupComplete(settings: GinkoWebSettings, hasPackageManager = false): boolean {
   // Ensure we have valid settings object
   const validatedSettings = ensureSettingsInitialized(settings)
 
-  // Basic configuration checks
-  const basicConfigValid = (
-    // Step 1: Usage is configured
-    validatedSettings.usage.isConfigured
-    // Step 2: Framework is selected
-    && !!validatedSettings.paths.template
-    // Step 3: Language is configured
-    && validatedSettings.languages.type !== 'none'
-    && (validatedSettings.languages.type === 'single' || !!validatedSettings.languages.mainLanguage)
-    // Step 4: Path is configured
-    && validatedSettings.paths.pathConfigured
-  )
-
-  // If basic config is not valid, return false
-  if (!basicConfigValid) {
+  // Check each required configuration step
+  if (!isBasicConfigValid(validatedSettings)) {
     return false
   }
 
@@ -186,4 +235,21 @@ export function isSetupComplete(settings: GinkoWebSettings, hasPackageManager = 
 
   // Package manager check is optional
   return true
+}
+
+/**
+ * Helper to validate that basic configuration is complete
+ */
+function isBasicConfigValid(settings: GinkoWebSettings): boolean {
+  return (
+    // Step 1: Usage is configured
+    settings.usage.isConfigured &&
+    // Step 2: Framework is selected
+    !!settings.paths.template &&
+    // Step 3: Language is configured
+    settings.languages.type !== 'none' &&
+    (settings.languages.type === 'single' || !!settings.languages.mainLanguage) &&
+    // Step 4: Path is configured
+    settings.paths.pathConfigured
+  )
 }

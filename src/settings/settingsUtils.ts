@@ -1,11 +1,17 @@
 import type { DataAdapter } from 'obsidian'
 import { promises as fs } from 'node:fs'
 
+/**
+ * Result of runtime/package manager detection
+ */
 export interface RuntimeCheckResult {
   valid: boolean
   runtime?: 'npm' | 'pnpm' | 'deno' | 'bun'
 }
 
+/**
+ * Information about a website path
+ */
 export interface WebsitePathInfo {
   path: string
   status?: 'error' | 'warning' | 'valid'
@@ -15,9 +21,18 @@ export interface WebsitePathInfo {
 /**
  * Normalizes a path to use forward slashes and removes trailing slashes
  */
-function normalizePath(inputPath: string): string {
-  // Convert backslashes to forward slashes and remove trailing slashes
+export function normalizePath(inputPath: string): string {
   return inputPath.replace(/\\/g, '/').replace(/\/+$/, '')
+}
+
+/**
+ * File paths for various runtime configurations
+ */
+const RUNTIME_CONFIG_FILES = {
+  npm: ['package.json', 'package-lock.json'],
+  pnpm: ['package.json', 'pnpm-lock.yaml'],
+  deno: ['deno.json', 'deno.jsonc'],
+  bun: ['package.json', 'bun.lockb'],
 }
 
 /**
@@ -25,43 +40,29 @@ function normalizePath(inputPath: string): string {
  */
 export async function checkWebsiteFolder(folderPath: string): Promise<RuntimeCheckResult> {
   try {
-    // Remove any trailing slashes from the path and normalize
     const cleanPath = normalizePath(folderPath)
 
-    // Check for package managers
-    const packageJsonPath = `${cleanPath}/package.json`
-    const pnpmLockPath = `${cleanPath}/pnpm-lock.yaml`
-    const npmLockPath = `${cleanPath}/package-lock.json`
-
-    // First check if package.json exists
-    if (await fs.stat(packageJsonPath).catch(() => false)) {
+    // Check for npm/pnpm (needs package.json first)
+    if (await fileExists(`${cleanPath}/package.json`)) {
       // Then determine which package manager
-      if (await fs.stat(pnpmLockPath).catch(() => false)) {
+      if (await fileExists(`${cleanPath}/pnpm-lock.yaml`)) {
         return { valid: true, runtime: 'pnpm' }
       }
-      if (await fs.stat(npmLockPath).catch(() => false)) {
+      if (await fileExists(`${cleanPath}/package-lock.json`)) {
         return { valid: true, runtime: 'npm' }
       }
+      if (await fileExists(`${cleanPath}/bun.lockb`)) {
+        return { valid: true, runtime: 'bun' }
+      }
+
       // If no lock file found, default to npm
       return { valid: true, runtime: 'npm' }
     }
 
     // Check for Deno's configuration files
-    const denoJsonPath = `${cleanPath}/deno.json`
-    const denoJsoncPath = `${cleanPath}/deno.jsonc`
-
-    if (
-      await fs.stat(denoJsonPath).catch(() => false)
-      || await fs.stat(denoJsoncPath).catch(() => false)
-    ) {
+    if (await fileExists(`${cleanPath}/deno.json`) ||
+      await fileExists(`${cleanPath}/deno.jsonc`)) {
       return { valid: true, runtime: 'deno' }
-    }
-
-    // Check for Bun's lock file
-    const bunLockPath = `${cleanPath}/bun.lockb`
-
-    if (await fs.stat(bunLockPath).catch(() => false)) {
-      return { valid: true, runtime: 'bun' }
     }
 
     return { valid: false }
@@ -73,12 +74,23 @@ export async function checkWebsiteFolder(folderPath: string): Promise<RuntimeChe
 }
 
 /**
+ * Helper function to check if a file exists
+ */
+async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.stat(filePath)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
  * Checks if a given path contains an Obsidian vault
  */
 export async function checkVaultFolder(folderPath: string): Promise<boolean> {
   try {
-    await fs.stat(`${folderPath}/.obsidian`)
-    return true
+    return await fileExists(`${folderPath}/.obsidian`)
   }
   catch (error) {
     console.error('Error checking vault folder:', error)
@@ -94,23 +106,11 @@ export async function getWebsitePath(
   websitePathType: 'none' | 'standard' | 'custom',
   customPath?: string,
 ): Promise<WebsitePathInfo> {
-  if (!websitePathType || websitePathType === 'none')
+  if (!websitePathType || websitePathType === 'none') {
     return { path: '<Not configured>', status: 'error' }
-
-  let websitePath: string
-  const vaultPath = normalizePath((adapter as any).basePath || '')
-
-  if (websitePathType === 'standard') {
-    // For standard path, go up two levels from vault path
-    const pathParts = vaultPath.split(/[/\\]/)
-    websitePath = pathParts.slice(0, -2).join('/')
   }
-  else {
-    if (!customPath)
-      return { path: '<Not set>', status: 'error' }
 
-    websitePath = normalizePath(customPath)
-  }
+  const websitePath = getPathFromSettings(adapter, websitePathType, customPath)
 
   // Check if the folder exists and contains required files
   const checkResult = await checkWebsiteFolder(websitePath)
@@ -120,4 +120,28 @@ export async function getWebsitePath(
     status: checkResult.valid ? 'valid' : 'warning',
     runtime: checkResult.runtime,
   }
+}
+
+/**
+ * Determines the website path based on the path type and custom path
+ */
+function getPathFromSettings(
+  adapter: DataAdapter,
+  pathType: 'standard' | 'custom',
+  customPath?: string,
+): string {
+  const vaultPath = normalizePath((adapter as any).basePath || '')
+
+  if (pathType === 'standard') {
+    // For standard path, go up two levels from vault path
+    const pathParts = vaultPath.split(/[/\\]/)
+    return pathParts.slice(0, -2).join('/')
+  }
+
+  // For custom path
+  if (!customPath) {
+    return '<Not set>'
+  }
+
+  return normalizePath(customPath)
 }
