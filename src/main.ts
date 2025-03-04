@@ -12,6 +12,7 @@ import { getWebsitePath } from './settings/settingsUtils'
 import { createColocationFolder } from './tools/createColocationFolder'
 import { ColocationModal } from './ui/modals/ColocationModal'
 import { CURRENT_WELCOME_VERSION, WELCOME_VIEW_TYPE, WelcomeView } from './welcome/welcomeView'
+import { db } from './db' // Import the database
 
 // Define a type for Ribbon Icon configuration
 interface RibbonIcon {
@@ -30,6 +31,16 @@ export default class GinkoWebPlugin extends Plugin {
     await this.loadSettings();
     this.addSettingTab(new GinkoWebSettingTab(this.app, this));
 
+    // Initialize database
+    try {
+      console.log('Initializing Dexie database');
+      await db.init();
+      console.log('Database initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize database:', error);
+      new Notice('Failed to initialize database. Some features may not work properly.');
+    }
+
     // Setup core components and UI
     this.initializeCore();
     await this.setupUI();
@@ -43,6 +54,10 @@ export default class GinkoWebPlugin extends Plugin {
   onunload() {
     this.app.workspace.detachLeavesOfType(WELCOME_VIEW_TYPE);
     this.fileMenuRegistered = false;
+
+    // Close database connection when plugin is unloaded
+    console.log('Closing database connection');
+    db.close();
   }
 
   private initializeCore() {
@@ -180,6 +195,51 @@ export default class GinkoWebPlugin extends Plugin {
       id: 'ginko-export-cache',
       name: 'Export Ginko cache',
       callback: () => this.exportCache(),
+    });
+
+    // Add a test command for the database
+    this.addCommand({
+      id: 'test-database',
+      name: 'Test Database',
+      callback: async () => {
+        try {
+          console.log('Testing database functionality');
+
+          // Generate a test note
+          const testNote = {
+            id: `test-${Date.now()}`,
+            path: 'test/path.md',
+            title: 'Test Note',
+            content: 'This is a test note created to verify database functionality',
+            lastModified: Date.now(),
+            published: false
+          };
+
+          // Save the note to the database
+          await db.saveNote(testNote);
+          console.log('Test note saved:', testNote.id);
+
+          // Retrieve the note
+          const retrievedNote = await db.getNote(testNote.id);
+          console.log('Retrieved note:', retrievedNote);
+
+          // Get all notes
+          const allNotes = await db.getAllNotes();
+          console.log('All notes:', allNotes);
+
+          // Save a setting
+          await db.saveSetting('testSetting', 'testValue');
+
+          // Get the setting
+          const settingValue = await db.getSetting('testSetting');
+          console.log('Test setting value:', settingValue);
+
+          new Notice('Database test completed. Check console for results.');
+        } catch (error) {
+          console.error('Database test failed:', error);
+          new Notice('Database test failed: ' + error.message);
+        }
+      }
     });
   }
 
