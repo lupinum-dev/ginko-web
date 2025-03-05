@@ -10,7 +10,7 @@ import { GinkoWebSettingTab } from './settings/settings'
 import { DEFAULT_SETTINGS, ensureSettingsInitialized, isSetupComplete } from './settings/settingsTypes'
 import { getWebsitePath } from './settings/settingsUtils'
 import { createColocationFolder } from './tools/createColocationFolder'
-import { ColocationModal } from './ui/modals/ColocationModal'
+import { ColocationModal } from './tools/ColocationModal'
 import { CURRENT_WELCOME_VERSION, WELCOME_VIEW_TYPE, WelcomeView } from './welcome/welcomeView'
 
 // Define a type for Ribbon Icon configuration
