@@ -1,17 +1,132 @@
 import type { Menu, TAbstractFile } from 'obsidian'
 import type { GinkoWebSettings } from './settings/settingsTypes'
-import { Notice, Plugin, setIcon, TFile, TFolder } from 'obsidian'
+import { Notice, Plugin, setIcon, TFile, TFolder, App, Modal, ToggleComponent } from 'obsidian'
 import { initializeFileTypeDetector } from './composables/useFileType'
 import { initializeGinkoProcessor, useGinkoProcessor } from './composables/useGinkoProcessor'
 import { initializeGinkoSettings, updateGinkoSettings } from './composables/useGinkoSettings'
 import { CacheService } from './processor/services/CacheService'
-import { setupFileWatcher } from './processor/services/fileWatcher'
-import { GinkoWebSettingTab } from './settings/settings'
+
 import { DEFAULT_SETTINGS, ensureSettingsInitialized, isSetupComplete } from './settings/settingsTypes'
 import { getWebsitePath } from './settings/settingsUtils'
 import { createColocationFolder } from './tools/createColocationFolder'
 import { ColocationModal } from './ui/modals/ColocationModal'
 import { CURRENT_WELCOME_VERSION, WELCOME_VIEW_TYPE, WelcomeView } from './welcome/welcomeView'
+import { db } from './db' // Import the database
+import { DatabaseReplicationService } from './services/DatabaseReplicationService'
+import { PerformanceTestService } from './services/PerformanceTestService'
+import { setupFileWatcher, FileWatcher } from './sync/FileWatcher';
+import { fileDB } from './sync/FileDatabase';
+
+
+/**
+ * Exports database contents to a JSON file
+ */
+async function exportDatabaseToJson(app: App): Promise<void> {
+  try {
+    // Collect data from GinkoDB
+    const ginkoData = {
+      notes: await db.getNotesTable().toArray(),
+      assets: await db.getAssetsTable().toArray(),
+      settings: await db.getSettingsTable().toArray()
+    };
+
+    // Collect data from MetaFileDB
+    const metaFileData = {
+      files: await fileDB.files.toArray(),
+      syncState: await fileDB.syncState.toArray()
+    };
+
+    // Combine all data
+    const databaseExport = {
+      timestamp: new Date().toISOString(),
+      metaFileDB: metaFileData
+    };
+
+    // Create JSON content
+    const jsonContent = JSON.stringify(databaseExport, null, 2);
+
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\..+/, '');
+    const filename = `ginko-database-export-${timestamp}.json`;
+
+    // Save to file in vault
+    const adapter = app.vault.adapter;
+    const exportFolder = '.ginko-exports';
+
+    // Ensure export folder exists
+    if (!(await adapter.exists(exportFolder))) {
+      await adapter.mkdir(exportFolder);
+    }
+
+    const filePath = `${exportFolder}/${filename}`;
+    await adapter.write(filePath, jsonContent);
+
+    new Notice(`✅ Database exported to ${filePath}`);
+    return filePath;
+  } catch (error) {
+    console.error('Failed to export database:', error);
+    new Notice(`❌ Failed to export database: ${error.message}`);
+    throw error;
+  }
+}
+
+// Simple confirmation modal implementation
+class ConfirmationModal extends Modal {
+  private onConfirm: () => void;
+  private title: string;
+  private message: string;
+  private confirmText: string;
+  private cancelText: string;
+
+  constructor(
+    app: App,
+    {
+      title,
+      message,
+      onConfirm,
+      confirmText = 'Confirm',
+      cancelText = 'Cancel'
+    }: {
+      title: string;
+      message: string;
+      onConfirm: () => void;
+      confirmText?: string;
+      cancelText?: string;
+    }
+  ) {
+    super(app);
+    this.title = title;
+    this.message = message;
+    this.onConfirm = onConfirm;
+    this.confirmText = confirmText;
+    this.cancelText = cancelText;
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+
+    contentEl.createEl('h2', { text: this.title });
+    contentEl.createEl('p', { text: this.message });
+
+    const buttonContainer = contentEl.createDiv({ cls: 'modal-button-container' });
+
+    const confirmButton = buttonContainer.createEl('button', { text: this.confirmText, cls: 'mod-cta' });
+    confirmButton.addEventListener('click', () => {
+      this.close();
+      this.onConfirm();
+    });
+
+    const cancelButton = buttonContainer.createEl('button', { text: this.cancelText });
+    cancelButton.addEventListener('click', () => {
+      this.close();
+    });
+  }
+
+  onClose() {
+    const { contentEl } = this;
+    contentEl.empty();
+  }
+}
 
 // Define a type for Ribbon Icon configuration
 interface RibbonIcon {
@@ -25,24 +140,47 @@ export default class GinkoWebPlugin extends Plugin {
   private statusBarItem: HTMLElement | null = null;
   private fileMenuRegistered: boolean = false;
   private ribbonIcons: HTMLElement[] = [];
-
+  private performanceTestService: PerformanceTestService;
+  private fileWatcher: FileWatcher | null = null;
   async onload() {
+    // Load settings
     await this.loadSettings();
-    this.addSettingTab(new GinkoWebSettingTab(this.app, this));
+
+
+    // Initialize database
+    try {
+      await db.init();
+      console.log('Database initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize database:', error);
+      new Notice('Failed to initialize database. Some features may not work properly.');
+    }
 
     // Setup core components and UI
     this.initializeCore();
     await this.setupUI();
 
+    try {
+      await fileDB.init();
+    } catch (error) {
+      console.error('Failed to initialize database:', error);
+    }
+
+    this.fileWatcher = setupFileWatcher(this, this.app);
+
     // Register plugin functionality
     this.registerCommands();
     this.registerFileMenu();
-    setupFileWatcher(this, this.app);
+
   }
 
   onunload() {
     this.app.workspace.detachLeavesOfType(WELCOME_VIEW_TYPE);
     this.fileMenuRegistered = false;
+
+    // Close database connection when plugin is unloaded
+    console.log('Closing database connection');
+    db.close();
   }
 
   private initializeCore() {
@@ -66,8 +204,7 @@ export default class GinkoWebPlugin extends Plugin {
   }
 
   async loadSettings() {
-    const loadedSettings = await this.loadData();
-    this.settings = ensureSettingsInitialized(loadedSettings || {});
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
   }
 
   async saveSettings() {
@@ -132,6 +269,19 @@ export default class GinkoWebPlugin extends Plugin {
     }
   }
 
+  private async syncDatabase(): Promise<void> {
+    try {
+      const dbReplicationService = new DatabaseReplicationService(this.app);
+      await dbReplicationService.syncAllFiles();
+    } catch (error) {
+      console.error('Failed to sync database:', error);
+      new Notice('❌ Failed to sync database');
+    }
+  }
+
+
+
+
   private async createId(): Promise<void> {
     try {
       const { copyIdToClipboard } = await import('./tools/createId');
@@ -181,6 +331,8 @@ export default class GinkoWebPlugin extends Plugin {
       name: 'Export Ginko cache',
       callback: () => this.exportCache(),
     });
+
+
   }
 
   private registerUtilityCommands() {
@@ -191,6 +343,15 @@ export default class GinkoWebPlugin extends Plugin {
         callback: () => this.createId(),
       });
     }
+
+    // Add database viewer command
+    this.addCommand({
+      id: 'ginko-export-database',
+      name: 'Export database contents to JSON file',
+      callback: () => {
+        exportDatabaseToJson(this.app);
+      },
+    });
 
     if (this.settings.utilities.colocationFolder) {
       this.addCommand({
@@ -235,6 +396,110 @@ export default class GinkoWebPlugin extends Plugin {
         },
       });
     }
+
+    // Add command to run processor
+    this.addCommand({
+      id: 'run-processor',
+      name: 'Run processor',
+      callback: async () => {
+        await this.runProcessor();
+      },
+    });
+
+    // Add command to export cache
+    this.addCommand({
+      id: 'export-cache',
+      name: 'Export cache',
+      callback: async () => {
+        await this.exportCache();
+      },
+    });
+
+
+
+    // Add command to create ID
+    this.addCommand({
+      id: 'create-id',
+      name: 'Create ID',
+      callback: async () => {
+        await this.createId();
+      },
+    });
+
+    this.addCommand({
+      id: 'test-playground',
+      name: 'Test Playground',
+      callback: async () => {
+        await this.testPlayground();
+      }
+    });
+
+    // Add command to force resync
+    this.addCommand({
+      id: 'force-file-resync',
+      name: 'Force Resync of All Files',
+      callback: async () => {
+        if (this.fileWatcher) {
+          await this.fileWatcher.forceResync();
+        }
+      }
+    });
+
+    // Add command to force reset (clear database and resync) all file types
+    this.addCommand({
+      id: 'force-reset-sync',
+      name: 'Reset Sync Database and Resync All Files',
+      callback: async () => {
+        if (this.fileWatcher) {
+          await this.fileWatcher.forceReset();
+        }
+      }
+    });
+
+    // Add commands for specific file type resets
+    this.addCommand({
+      id: 'reset-meta-files',
+      name: 'Reset and Resync Meta Files Only',
+      callback: async () => {
+        if (this.fileWatcher) {
+          await this.fileWatcher.resetFileTypes(['meta']);
+        }
+      }
+    });
+
+    this.addCommand({
+      id: 'reset-markdown-files',
+      name: 'Reset and Resync Markdown Files Only',
+      callback: async () => {
+        if (this.fileWatcher) {
+          await this.fileWatcher.resetFileTypes(['markdown']);
+        }
+      }
+    });
+
+    this.addCommand({
+      id: 'reset-asset-files',
+      name: 'Reset and Resync Asset Files Only',
+      callback: async () => {
+        if (this.fileWatcher) {
+          await this.fileWatcher.resetFileTypes(['asset']);
+        }
+      }
+    });
+
+    // Add command to view sync performance
+    this.addCommand({
+      id: 'view-sync-performance',
+      name: 'View Sync Performance Metrics',
+      callback: () => {
+        if (this.fileWatcher) {
+          const report = this.fileWatcher.getPerformanceReport();
+          console.log('Sync Performance Report:', report);
+        }
+      }
+    });
+
+
   }
 
   private setupRibbonIcons() {
@@ -341,6 +606,42 @@ export default class GinkoWebPlugin extends Plugin {
     });
   }
 
+  private async testPlayground() {
+    new Notice('Testing playground...');
+    // get all files in the vault
+    const files = this.app.vault.getFiles();
+    console.log(files[0]);
+
+    // get file to check for assets
+    const file = files[0] as TFile; // Using the first file as an example
+
+    // get all embedded assets for this file using Obsidian's metadata cache
+    const embeddedAssets = this.getEmbeddedAssetsForFile(file);
+
+    console.log('Embedded assets:', embeddedAssets);
+  }
+
+  private getEmbeddedAssetsForFile(file: TFile) {
+    const embeddedAssets = [];
+
+    // Get the cache for this file
+    const cache = this.app.metadataCache.getCache(file.path);
+
+    if (cache && cache.embeds) {
+      // For each embed, find the corresponding file
+      for (const embed of cache.embeds) {
+        const link = embed.link;
+        // Find the actual file in the vault
+        const assets = this.app.metadataCache.getFirstLinkpathDest(link, file.path);
+        if (assets) {
+          embeddedAssets.push(assets);
+        }
+      }
+    }
+
+    return embeddedAssets;
+  }
+
   private openColocationModal(folderPath: string, filePath?: string) {
     const modal = new ColocationModal(
       this.app,
@@ -370,5 +671,107 @@ export default class GinkoWebPlugin extends Plugin {
     );
 
     modal.open();
+  }
+
+  /**
+   * Run a performance test
+   */
+  private async runPerformanceTest(): Promise<void> {
+    try {
+      new Notice('Starting database performance test...');
+
+      // Show options modal
+      const modal = new PerformanceTestModal(this.app, async (options) => {
+        await this.performanceTestService.runDatabaseReplicationTest(options);
+      });
+
+      modal.open();
+    } catch (error) {
+      console.error('Failed to run performance test:', error);
+      new Notice('Failed to run performance test');
+    }
+  }
+}
+
+/**
+ * Modal for performance test options
+ */
+class PerformanceTestModal extends Modal {
+  private callback: (options: any) => Promise<void>;
+  private testRuns = 3;
+  private clearDatabase = false;
+  private compareWithPrevious = false;
+
+  constructor(app: App, callback: (options: any) => Promise<void>) {
+    super(app);
+    this.callback = callback;
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+
+    contentEl.createEl('h2', { text: 'Database Performance Test Options' });
+
+    // Test runs
+    const testRunsContainer = contentEl.createDiv({ cls: 'setting-item' });
+    testRunsContainer.createDiv({ cls: 'setting-item-name', text: 'Test Runs' });
+    const testRunsDesc = testRunsContainer.createDiv({ cls: 'setting-item-description' });
+    testRunsDesc.setText('Number of test runs to perform for averaging results');
+    const testRunsControl = testRunsContainer.createDiv({ cls: 'setting-item-control' });
+    const testRunsInput = testRunsControl.createEl('input', {
+      type: 'number',
+      value: String(this.testRuns),
+      attr: { min: '1', max: '10' }
+    });
+    testRunsInput.addEventListener('change', () => {
+      this.testRuns = parseInt(testRunsInput.value);
+    });
+
+    // Clear database
+    const clearDbContainer = contentEl.createDiv({ cls: 'setting-item' });
+    clearDbContainer.createDiv({ cls: 'setting-item-name', text: 'Clear Database' });
+    const clearDbDesc = clearDbContainer.createDiv({ cls: 'setting-item-description' });
+    clearDbDesc.setText('Clear the database before running the test');
+    const clearDbControl = clearDbContainer.createDiv({ cls: 'setting-item-control' });
+    const clearDbToggle = new ToggleComponent(clearDbControl);
+    clearDbToggle.setValue(this.clearDatabase);
+    clearDbToggle.onChange(value => {
+      this.clearDatabase = value;
+    });
+
+    // Compare with previous
+    const compareContainer = contentEl.createDiv({ cls: 'setting-item' });
+    compareContainer.createDiv({ cls: 'setting-item-name', text: 'Compare with Previous' });
+    const compareDesc = compareContainer.createDiv({ cls: 'setting-item-description' });
+    compareDesc.setText('Compare results with the previous test run');
+    const compareControl = compareContainer.createDiv({ cls: 'setting-item-control' });
+    const compareToggle = new ToggleComponent(compareControl);
+    compareToggle.setValue(this.compareWithPrevious);
+    compareToggle.onChange(value => {
+      this.compareWithPrevious = value;
+    });
+
+    // Buttons
+    const buttonContainer = contentEl.createDiv({ cls: 'modal-button-container' });
+
+    const runButton = buttonContainer.createEl('button', { text: 'Run Test' });
+    runButton.addEventListener('click', async () => {
+      this.close();
+      await this.callback({
+        testRuns: this.testRuns,
+        clearDatabase: this.clearDatabase,
+        compareWithPrevious: this.compareWithPrevious
+      });
+    });
+
+    const cancelButton = buttonContainer.createEl('button', { text: 'Cancel' });
+    cancelButton.addEventListener('click', () => {
+      this.close();
+    });
+  }
+
+  onClose() {
+    const { contentEl } = this;
+    contentEl.empty();
   }
 }

@@ -5,7 +5,8 @@
       "DOM",
       "ES5",
       "ES6",
-      "ES7"
+      "ES7",
+      "WebWorker"
     ],
     "baseUrl": ".",
     "module": "ESNext",
