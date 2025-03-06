@@ -432,15 +432,16 @@ function getNodeColor(node) {
     if (!node) return 'var(--text-muted)';
     
     // Color based on file type
-    switch (node.type) {
-      case 'NoteFile':
-        return '#42b883'; // Vue green for markdown
-      case 'MetaFile':
-        return '#4dabf7'; // Blue for meta files
-      case 'AssetFile':
-        return '#ff6b6b'; // Red for assets
-      default:
-        return '#adb5bd'; // Gray for other files
+    const type = node.type || '';
+    
+    if (type.includes('Note') || type === 'fileNote') {
+      return '#42b883'; // Vue green for markdown notes
+    } else if (type.includes('Meta') || type === 'fileMeta') {
+      return '#4dabf7'; // Blue for meta files
+    } else if (type.includes('Asset') || type === 'fileAsset') {
+      return '#ff6b6b'; // Red for assets
+    } else {
+      return '#adb5bd'; // Gray for other files
     }
   } catch (error) {
     console.error('Error in getNodeColor:', error);
@@ -698,15 +699,15 @@ function renderStaticNodes() {
   user-select: none;
 }
 
-:deep(.node.NoteFile circle) {
+:deep(.node.fileNote circle), :deep(.node[class*="Note"] circle) {
   stroke: #42b883;
 }
 
-:deep(.node.MetaFile circle) {
+:deep(.node.fileMeta circle), :deep(.node[class*="Meta"] circle) {
   stroke: #4dabf7;
 }
 
-:deep(.node.AssetFile circle) {
+:deep(.node.fileAsset circle), :deep(.node[class*="Asset"] circle) {
   stroke: #ff6b6b;
 }
 </style>
