@@ -7,6 +7,7 @@ import * as path from 'path';
  */
 export class fileNote extends fileBase {
   private content: string;
+  private copyDependencies: string[] = [];
 
   /**
    * Creates a new fileNote instance
@@ -94,6 +95,31 @@ export class fileNote extends fileBase {
   }
 
   /**
+   * Set a copy dependency - this note is copied to the target file
+   * @param targetPath Relative path of the target file
+   */
+  addCopyDependency(targetPath: string): void {
+    if (!this.copyDependencies.includes(targetPath)) {
+      this.copyDependencies.push(targetPath);
+    }
+  }
+
+  /**
+   * Clear all copy dependencies
+   */
+  clearCopyDependencies(): void {
+    this.copyDependencies = [];
+  }
+
+  /**
+   * Get copy dependencies
+   * @returns Array of target file paths this note is copied to
+   */
+  getCopyDependencies(): string[] {
+    return [...this.copyDependencies];
+  }
+
+  /**
    * Get all dependencies for this note 
    * @returns Array of dependency paths
    */
@@ -117,7 +143,8 @@ export class fileNote extends fileBase {
   toJSON(): Record<string, any> {
     return {
       ...super.toJSON(),
-      content: this.content
+      content: this.content,
+      copyDependencies: this.copyDependencies
     };
   }
 }

@@ -1,33 +1,94 @@
 <template>
   <div class="file-graph-container">
-    <div class="graph-controls">
-      <div class="search-container">
-        <input 
-          type="text" 
-          v-model="searchTerm" 
-          placeholder="Search files..." 
-          class="search-input"
-          @input="filterGraph"
-        />
+    <div class="controls-panel">
+      <div class="control-row">
+        <div class="control-group search-group">
+          <h3 class="group-title">Search</h3>
+          <div class="search-container">
+            <input 
+              type="text" 
+              v-model="searchTerm" 
+              placeholder="Search files..." 
+              class="search-input"
+              @input="filterGraph"
+            />
+          </div>
+        </div>
+
+        <div class="control-group view-group">
+          <h3 class="group-title">Graph Controls</h3>
+          <div class="button-group">
+            <button @click="zoomToFit" class="control-button">
+              <span class="button-icon">⊕</span> Fit View
+            </button>
+            <button @click="resetSimulation" class="control-button">
+              <span class="button-icon">↻</span> Reset
+            </button>
+            <button @click="refreshGraph" class="control-button">
+              <span class="button-icon">⟳</span> Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="control-group target-group">
+          <h3 class="group-title">Target Directory</h3>
+          <div class="target-container">
+            <input 
+              type="text" 
+              v-model="targetDirectory" 
+              placeholder="Target directory..." 
+              class="target-input"
+            />
+            <button @click="setTargetDirectory" class="control-button set-button">
+              <span class="button-icon">✓</span> Set
+            </button>
+          </div>
+        </div>
+
+        <div class="control-group actions-group">
+          <h3 class="group-title">File Actions</h3>
+          <div class="button-group">
+            <button @click="copySelectedFile" class="action-button copy-button" :disabled="!selectedNode">
+              <span class="button-icon">⎘</span> Copy Selected
+            </button>
+            <button @click="copyAllFiles" class="action-button copy-all-button">
+              <span class="button-icon">⎗</span> Copy All
+            </button>
+            <button @click="resetCopiedFiles" class="action-button reset-button">
+              <span class="button-icon">⟲</span> Reset Copied
+            </button>
+          </div>
+        </div>
       </div>
-      <div class="view-controls">
-        <button @click="zoomToFit" class="control-button">
-          Fit View
-        </button>
-        <button @click="resetSimulation" class="control-button">
-          Reset
-        </button>
+
+      <div class="file-info" v-if="selectedNode">
+        <div class="file-info-header">
+          <h3 class="group-title">Selected File</h3>
+        </div>
+        <div class="selected-file">
+          <div class="file-meta">
+            <div class="file-title">{{ selectedNode.name }}</div>
+            <div class="file-path">{{ selectedNode.path }}</div>
+          </div>
+          <div class="file-type">Type: {{ selectedNode.type }}</div>
+          <div class="file-status" v-if="selectedNode.copied">Status: Copied</div>
+        </div>
       </div>
     </div>
-    <div ref="graphContainer" class="graph"></div>
+
+    <div class="graph-container">
+      <div ref="graphContainer" class="graph"></div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, nextTick, defineEmits } from 'vue';
 import * as d3 from 'd3';
+import { FileService } from '../services/fileService';
+import { DependencyManager } from '../services/dependencyManager';
 
-// Define props for graph data
+// Define props for graph data and manager
 interface Props {
   graphData?: {
     options: {
@@ -41,6 +102,7 @@ interface Props {
       attributes: {
         type: string;
         label: string;
+        copied?: boolean;
       };
     }>;
     edges: Array<{
@@ -52,12 +114,19 @@ interface Props {
       };
     }>;
   };
+  dependencyManager?: DependencyManager;
 }
 
 const props = defineProps<Props>();
+const emits = defineEmits<{
+  (e: 'refresh'): void;
+  (e: 'file-copied', path: string): void;
+  (e: 'copy-completed'): void;
+}>();
 
 // Reactive state
 const searchTerm = ref('');
+const targetDirectory = ref('/Users/matthias/Git/2025/ginko-web/target');
 const graphContainer = ref<HTMLElement | null>(null);
 const width = ref(800);
 const height = ref(600);
@@ -68,6 +137,10 @@ const svg = ref<any>(null);
 const zoom = ref<any>(null);
 const nodeElements = ref<any>(null);
 const linkElements = ref<any>(null);
+const selectedNode = ref<any>(null);
+
+// Services
+const fileService = new FileService(targetDirectory.value);
 
 // Watch for changes in graph data
 watch(() => props.graphData, (newGraphData) => {
@@ -183,6 +256,7 @@ function buildGraphData(graphData) {
       name: node.attributes.label,
       type: node.attributes.type,
       path: node.key, // Use key as path
+      copied: node.attributes.copied || false,
       x: Math.random() * width.value,
       y: Math.random() * height.value
     }));
@@ -256,7 +330,8 @@ function updateGraph() {
             .attr('r', d => getNodeRadius(d))
             .attr('fill', d => getNodeColor(d))
             .attr('stroke', 'var(--background-primary)')
-            .attr('stroke-width', 1.5);
+            .attr('stroke-width', 1.5)
+            .classed('copied', d => d.copied === true);
           
           // Add text label
           nodeGroup.append('text')
@@ -360,6 +435,9 @@ function handleNodeClick(event, d) {
   try {
     if (!nodeElements.value || !linkElements.value) return;
     
+    // Update selected node
+    selectedNode.value = d;
+    
     // Highlight connected nodes
     nodeElements.value.classed('highlighted', false);
     linkElements.value.classed('highlighted', false);
@@ -380,6 +458,8 @@ function handleNodeClick(event, d) {
     });
     
     nodeElements.value.classed('highlighted', node => connectedNodes.has(node.id));
+    nodeElements.value.classed('selected', node => node.id === d.id);
+    
     linkElements.value.classed('highlighted', link => {
       const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
       const targetId = typeof link.target === 'object' ? link.target.id : link.target;
@@ -552,6 +632,109 @@ function handleResize() {
   }
 }
 
+// File copying methods
+async function copySelectedFile() {
+  try {
+    if (!selectedNode.value || !props.dependencyManager) return;
+    
+    const filePath = selectedNode.value.path;
+    const file = props.dependencyManager.getFileByPath(filePath);
+    
+    if (!file) {
+      console.error('Selected file not found in dependency manager');
+      return;
+    }
+    
+    // Copy the file
+    await fileService.copyFile(file);
+    
+    // Mark the file as copied in the dependency manager
+    props.dependencyManager.markFileAsCopied(filePath);
+    
+    // Update the graph to reflect the copied status
+    if (props.dependencyManager?.getGraph().hasNode(filePath)) {
+      props.dependencyManager.getGraph().setNodeAttribute(filePath, 'copied', true);
+    }
+    
+    // Update the node appearance
+    if (nodeElements.value) {
+      nodeElements.value.filter(node => node.id === filePath)
+        .select('circle')
+        .classed('copied', true);
+    }
+    
+    // Emit event
+    emits('file-copied', filePath);
+    
+    // Refresh the graph
+    refreshGraph();
+  } catch (error) {
+    console.error('Error copying file:', error);
+  }
+}
+
+async function copyAllFiles() {
+  try {
+    if (!props.dependencyManager) return;
+    
+    // Get all files
+    const files = props.dependencyManager.getFiles();
+    
+    // Copy all files
+    await fileService.copyFiles(files);
+    
+    // Mark all files as copied
+    files.forEach(file => {
+      props.dependencyManager?.markFileAsCopied(file.getRelativePath());
+    });
+    
+    // Emit event
+    emits('copy-completed');
+    
+    // Refresh the graph
+    refreshGraph();
+  } catch (error) {
+    console.error('Error copying all files:', error);
+  }
+}
+
+function resetCopiedFiles() {
+  try {
+    if (!props.dependencyManager) return;
+    
+    // Clear copied files in the dependency manager
+    props.dependencyManager.clearCopiedFiles();
+    
+    // Clear the target directory
+    fileService.clearTargetDirectory();
+    
+    // Update the node appearance
+    if (nodeElements.value) {
+      nodeElements.value.select('circle').classed('copied', false);
+    }
+    
+    // Refresh the graph
+    refreshGraph();
+  } catch (error) {
+    console.error('Error resetting copied files:', error);
+  }
+}
+
+function setTargetDirectory() {
+  try {
+    // Update the file service with the new target directory
+    fileService.setTargetDirectory(targetDirectory.value);
+    console.log('Target directory set to:', targetDirectory.value);
+  } catch (error) {
+    console.error('Error setting target directory:', error);
+  }
+}
+
+function refreshGraph() {
+  // Emit refresh event so parent component can rebuild the graph
+  emits('refresh');
+}
+
 // Add a simple method to render static nodes if simulation fails
 function renderStaticNodes() {
   try {
@@ -603,53 +786,261 @@ function renderStaticNodes() {
 }
 </script>
 
-<style scoped>
+<style>
 .file-graph-container {
   height: 100%;
   display: flex;
   flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text-normal);
+  background-color: var(--background-primary);
   overflow: hidden;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
-.graph-controls {
-  padding: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.controls-panel {
+  background-color: var(--background-secondary);
   border-bottom: 1px solid var(--background-modifier-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 12px;
+  z-index: 10;
+}
+
+.control-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.control-group {
+  flex: 1;
+  min-width: 200px;
+  background-color: var(--background-primary);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.group-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--text-normal);
+}
+
+/* Search group */
+.search-group {
+  flex: 2;
+  min-width: 250px;
 }
 
 .search-container {
-  flex: 1;
-  margin-right: 16px;
+  width: 100%;
 }
 
 .search-input {
   width: 100%;
   padding: 8px 12px;
-  border-radius: 4px;
+  border-radius: 6px;
   border: 1px solid var(--background-modifier-border);
   background-color: var(--background-primary);
   color: var(--text-normal);
+  font-size: 14px;
+  transition: all 0.2s ease;
 }
 
-.view-controls {
+.search-input:focus {
+  outline: none;
+  border-color: #4dabf7;
+  box-shadow: 0 0 0 2px rgba(77, 171, 247, 0.2);
+}
+
+/* View controls */
+.view-group {
+  flex: 2;
+  min-width: 220px;
+}
+
+.button-group {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
-.control-button {
-  padding: 6px 12px;
-  border-radius: 4px;
+.control-button, .action-button {
+  padding: 8px 12px;
+  border-radius: 6px;
   border: 1px solid var(--background-modifier-border);
-  background-color: var(--background-primary);
-  color: var(--text-normal);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  flex: 1;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.button-icon {
+  margin-right: 6px;
+  font-size: 16px;
+}
+
+.control-button {
+  background-color: var(--background-secondary-alt);
+  color: var(--text-normal);
 }
 
 .control-button:hover {
-  background-color: var(--background-secondary);
+  background-color: var(--background-modifier-hover);
+}
+
+/* Target directory */
+.target-group {
+  flex: 3;
+  min-width: 300px;
+}
+
+.target-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.target-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  background-color: var(--background-secondary-alt);
+  color: var(--text-normal);
+  font-size: 14px;
+}
+
+.target-input:focus {
+  outline: none;
+  border-color: #4dabf7;
+  box-shadow: 0 0 0 2px rgba(77, 171, 247, 0.2);
+}
+
+.set-button {
+  background-color: #4dabf7;
+  color: white;
+  border: none;
+  min-width: 80px;
+}
+
+.set-button:hover {
+  background-color: #228be6;
+}
+
+/* Actions group */
+.actions-group {
+  flex: 2;
+  min-width: 270px;
+}
+
+.copy-button {
+  background-color: #42b883;
+  color: white;
+  border: none;
+}
+
+.copy-button:hover:not(:disabled) {
+  background-color: #36a372;
+}
+
+.copy-button:disabled {
+  background-color: #d1d5db;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.copy-all-button {
+  background-color: #4dabf7;
+  color: white;
+  border: none;
+}
+
+.copy-all-button:hover {
+  background-color: #228be6;
+}
+
+.reset-button {
+  background-color: #ff6b6b;
+  color: white;
+  border: none;
+}
+
+.reset-button:hover {
+  background-color: #e03e3e;
+}
+
+/* File info */
+.file-info {
+  display: flex;
+  margin-top: 4px;
+  background-color: var(--background-primary);
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.file-info-header {
+  width: 120px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.selected-file {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.file-meta {
+  flex: 1;
+}
+
+.file-title {
+  font-size: 15px;
+  font-weight: bold;
+}
+
+.file-path {
+  font-size: 12px;
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.file-type, .file-status {
+  font-size: 13px;
+  background-color: var(--background-secondary-alt);
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.file-status {
+  color: white;
+  background-color: #00c853;
+  font-weight: 500;
+}
+
+/* Graph container */
+.graph-container {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
 }
 
 .graph {
@@ -679,6 +1070,16 @@ function renderStaticNodes() {
   stroke-width: 2px;
 }
 
+:deep(.node.selected circle) {
+  stroke: #ffc107;
+  stroke-width: 3px;
+}
+
+:deep(.node circle.copied) {
+  stroke: #00c853;
+  stroke-width: 3px;
+}
+
 :deep(.link) {
   stroke-opacity: 0.6;
   stroke-width: 1.5px;
@@ -689,9 +1090,19 @@ function renderStaticNodes() {
   stroke-width: 2px;
 }
 
-:deep(.link.depends_on) {
+:deep(.link.depends_on_asset) {
   stroke: #ff6b6b;
   stroke-dasharray: 5, 5;
+}
+
+:deep(.link.depends_on_meta) {
+  stroke: #4dabf7;
+  stroke-dasharray: 3, 3;
+}
+
+:deep(.link.copied_to) {
+  stroke: #00c853;
+  stroke-width: 2px;
 }
 
 :deep(.node text) {
@@ -709,5 +1120,26 @@ function renderStaticNodes() {
 
 :deep(.node.fileAsset circle), :deep(.node[class*="Asset"] circle) {
   stroke: #ff6b6b;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .control-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .control-group {
+    width: 100%;
+  }
+  
+  .file-info {
+    flex-direction: column;
+  }
+  
+  .file-info-header {
+    width: 100%;
+    margin-bottom: 8px;
+  }
 }
 </style>

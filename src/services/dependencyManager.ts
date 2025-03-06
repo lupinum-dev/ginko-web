@@ -5,6 +5,7 @@ import { fileBase, fileNote, fileAsset, fileMeta } from '../models';
 interface NodeAttributes {
   type: string;
   label: string;
+  copied?: boolean;
 }
 
 // Define the interface for edge attributes
@@ -20,6 +21,7 @@ export class DependencyManager {
   private graph: Graph;
   private files: fileBase[] = [];
   private edgeIdCounter: number = 0;
+  private copiedFiles: Set<string> = new Set();
 
   /**
    * Creates a new DependencyManager
@@ -69,10 +71,13 @@ export class DependencyManager {
         return;
       }
       
+      const relativePath = file.getRelativePath();
+      
       // Add each file as a node in the graph
-      this.graph.addNode(file.getRelativePath(), {
+      this.graph.addNode(relativePath, {
         type: file.getType(),
-        label: file.getName()
+        label: file.getName(),
+        copied: this.copiedFiles.has(relativePath)
       } as NodeAttributes);
     });
   }
@@ -92,6 +97,12 @@ export class DependencyManager {
         // Process meta file dependencies (_meta.md files)
         const metaDependencies = file.getMetaDependencies();
         this.addEdgesToGraph(file.getRelativePath(), metaDependencies, 'depends_on_meta');
+        
+        // Process copy dependencies (if any)
+        const copyDependencies = file.getCopyDependencies();
+        if (copyDependencies.length > 0) {
+          this.addEdgesToGraph(file.getRelativePath(), copyDependencies, 'copied_to');
+        }
       }
     });
   }
@@ -120,6 +131,51 @@ export class DependencyManager {
   }
 
   /**
+   * Mark a file as copied to the target directory
+   * @param filePath Relative path of the file
+   */
+  markFileAsCopied(filePath: string): void {
+    this.copiedFiles.add(filePath);
+    
+    // Update node attributes if the node exists
+    if (this.graph.hasNode(filePath)) {
+      this.graph.setNodeAttribute(filePath, 'copied', true);
+    }
+  }
+  
+  /**
+   * Clear all copied file markers
+   */
+  clearCopiedFiles(): void {
+    // Clear the set of copied files
+    this.copiedFiles.clear();
+    
+    // Update node attributes
+    this.graph.forEachNode((node) => {
+      if (this.graph.hasNodeAttribute(node, 'copied')) {
+        this.graph.setNodeAttribute(node, 'copied', false);
+      }
+    });
+  }
+  
+  /**
+   * Get all copied files
+   * @returns Set of copied file paths
+   */
+  getCopiedFiles(): Set<string> {
+    return new Set(this.copiedFiles);
+  }
+  
+  /**
+   * Check if a file has been copied
+   * @param filePath Relative path of the file
+   * @returns True if the file has been copied
+   */
+  isFileCopied(filePath: string): boolean {
+    return this.copiedFiles.has(filePath);
+  }
+
+  /**
    * Get the graph
    * @returns The graph
    */
@@ -141,5 +197,14 @@ export class DependencyManager {
    */
   getFiles(): fileBase[] {
     return this.files;
+  }
+  
+  /**
+   * Get a file by its relative path
+   * @param relativePath The relative path of the file
+   * @returns The file object or null if not found
+   */
+  getFileByPath(relativePath: string): fileBase | null {
+    return this.files.find(file => file.getRelativePath() === relativePath) || null;
   }
 }

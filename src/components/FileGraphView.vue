@@ -1,8 +1,17 @@
 <template>
   <div class="file-graph-view">
-    <FileGraph :graph-data="graphData" />
-    <div v-if="loading" class="loading-message">
-      Loading files...
+    <FileGraph 
+      :graph-data="graphData" 
+      :dependency-manager="dependencyManager"
+      @refresh="loadFiles" 
+      @file-copied="handleFileCopied" 
+      @copy-completed="handleCopyCompleted"
+    />
+    <div v-if="loading" class="loading-overlay">
+      <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <div class="loading-message">Loading files...</div>
+      </div>
     </div>
   </div>
 </template>
@@ -173,9 +182,22 @@ function safeGetProperty(obj: any, path: string, defaultValue: any = undefined) 
   return current === undefined ? defaultValue : current;
 }
 
+// Event handlers
+function handleFileCopied(filePath: string) {
+  console.log('File copied:', filePath);
+  // Refresh the graph after a file is copied
+  loadFiles();
+}
+
+function handleCopyCompleted() {
+  console.log('All files copied');
+  // Refresh the graph after all files are copied
+  loadFiles();
+}
+
 </script>
 
-<style scoped>
+<style>
 .file-graph-view {
   height: 100%;
   min-height: 500px;
@@ -186,12 +208,47 @@ function safeGetProperty(obj: any, path: string, defaultValue: any = undefined) 
   background-color: var(--background-primary);
 }
 
-.loading-message {
+.loading-overlay {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.loading-content {
+  background-color: var(--background-primary);
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  border-top-color: #4dabf7;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 16px;
+}
+
+.loading-message {
   font-size: 16px;
-  color: var(--text-muted);
+  color: var(--text-normal);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>

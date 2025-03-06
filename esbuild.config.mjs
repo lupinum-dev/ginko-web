@@ -3,43 +3,66 @@ import builtins from 'builtin-modules'
 import * as dotenv from 'dotenv'
 import esbuild from 'esbuild'
 import Vue from 'esbuild-plugin-vue3'
+import fs from 'fs'
 
-const banner
-  = `/*
+// Load environment variables
+dotenv.config()
+
+// Check if we're in production mode
+const prod = (process.argv[2] === 'production')
+
+
+
+// Banner for the JS file
+const jsBanner = `/*
 THIS IS A PLUGIN BUILT BY LUPINUM 
-if you want to view the source, please visit the github repository of this plugin
-https://github.com/lupinum-dev/ginko-web
+If you want to view the source, please visit the github repository of this plugin
+https://github.com/lupinum-dev/ginko
 */
 `
 
-const prod = (process.argv[2] === 'production')
-dotenv.config()
+// Banner for the CSS file
+const cssBanner = `/*
+THIS IS A PLUGIN BUILT BY LUPINUM 
+CSS styles for the plugin. Auto-generated from the source files.
+https://github.com/lupinum-dev/ginko
+*/
+`
 
-const jsContext = await esbuild.context({
-  banner: {
-    js: banner,
-  },
-  entryPoints: [
-    './src/main.ts',
-  ],
-  plugins: [
-    Vue({
-      isProd: prod,
-      template: {
-        compilerOptions: {
-          isCustomElement: tag => tag.includes('-'),
-        },
-      },
-      cssInline: true,
-      scopeId: 'hash',
-      postcss: {
-        options: {},
-        plugins: [],
-      },
-    }),
-  ],
+// Credits: qingyuanTech
+// https://github.com/qingyuanTech/Obsidian-Vue-Sample-Plugin/blob/main/esbuild.config.mjs
+// For providing a working example how to bundle Vue 3 with esbuild
+
+// Output paths
+const jsOutfile = prod ? 'main.js' : `${process.env.OUTPATH}/main.js`
+const cssOutfile = prod ? 'styles.css' : `${process.env.OUTPATH}/styles.css`
+const tempCssOutfile = prod ? 'main.css' : `${process.env.OUTPATH}/main.css`
+
+// Single esbuild context for all files
+const context = await esbuild.context({
+  // Basic options
   bundle: true,
   platform: 'node',
+  format: 'cjs',
+  target: 'es2018',
+  logLevel: 'info',
+  sourcemap: prod ? false : 'inline',
+  treeShaking: true,
+  minify: prod,
+  
+  // Entry points
+  entryPoints: ['./src/main.ts'],
+  
+  // Output settings
+  outfile: jsOutfile,
+  
+  // Banners
+  banner: {
+    js: jsBanner,
+    css: cssBanner
+  },
+  
+  // Externals
   external: [
     'obsidian',
     'electron',
@@ -56,31 +79,60 @@ const jsContext = await esbuild.context({
     '@lezer/lr',
     ...builtins,
   ],
-  format: 'cjs',
-  target: 'es2018',
-  logLevel: 'info',
-  sourcemap: prod ? false : 'inline',
-  treeShaking: true,
-  outfile: prod ? 'main.js' : `${process.env.OUTPATH}/main.js`,
-  entryNames: '[name]',
-  minify: prod,
+  
+  // Plugins
+  plugins: [
+    Vue({
+      isProd: prod,
+      template: {
+        compilerOptions: {
+          isCustomElement: tag => tag.includes('-'),
+        },
+      },
+      // CSS handling - extract CSS to a file
+      cssInline: false,
+      cssExtract: true,
+      scopeId: 'hash',
+      postcss: {
+        options: {},
+        plugins: [],
+      },
+    }),
+  ],
+  
+  // Loaders
   loader: { '.css': 'css' },
 })
 
-const cssContext = await esbuild.context({
-  entryPoints: ['src/main.css'],
-  outfile: prod ? 'styles.css' : `${process.env.OUTPATH}/styles.css`,
-  bundle: true,
-  allowOverwrite: true,
-  minify: false,
-})
-
-if (prod) {
-  await jsContext.rebuild()
-  await cssContext.rebuild()
-  process.exit(0)
+// Function to rename CSS file
+function renameCssFile() {
+  fs.access(tempCssOutfile, fs.constants.F_OK, (err) => {
+    if (!err) {
+      fs.rename(tempCssOutfile, cssOutfile, (renameErr) => {
+        if (renameErr) {
+          console.error('Error renaming CSS file:', renameErr)
+        } else {
+          console.log(`CSS file renamed to ${cssOutfile}`)
+        }
+      })
+    }
+  })
 }
+
+// For production, build once and exit
+if (prod) {
+  await context.rebuild()
+  renameCssFile()
+  process.exit(0)
+} 
+// For development, watch for changes
 else {
-  await jsContext.watch()
-  await cssContext.watch()
+  await context.watch()
+  
+  // Watch for CSS file generation and rename it
+  fs.watchFile(tempCssOutfile, () => {
+    renameCssFile()
+  })
+  
+  console.log('Watching for changes...')
 }
