@@ -11,26 +11,14 @@
             "id": "fd8e2ebc6e164f37",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "Folder1/Folder1-1/Note1-1.md",
+                "mode": "source",
+                "source": true
+              },
               "icon": "lucide-file",
-              "title": "New tab"
-            }
-          }
-        ]
-      },
-      {
-        "id": "58c32c65e85faff1",
-        "type": "tabs",
-        "children": [
-          {
-            "id": "bdfc2d6130abf943",
-            "type": "leaf",
-            "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
+              "title": "Note1-1"
             }
           }
         ]
@@ -106,6 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
+                "file": "Folder1/Folder1-1/Note1-1.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -115,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks"
+              "title": "Backlinks for Note1-1"
             }
           },
           {
@@ -165,8 +154,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -175,11 +163,29 @@
       "canvas:Create new canvas": false,
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
-      "command-palette:Open command palette": false
+      "command-palette:Open command palette": false,
+      "iconic:Open rulebook": false
     }
   },
-  "active": "e7a7a0f8c4a11ac0",
+  "active": "fd8e2ebc6e164f37",
   "lastOpenFiles": [
+    "Folder1/_meta.md",
+    "Folder1/Folder1-1/Note1-1.md",
+    "Folder2/Folder2-1/Note2-1.md",
+    "Folder2/Folder2-1/_assets/img2x.png",
+    "Folder2/Folder2-1/_assets/img1x.png",
+    "Folder2/Folder2-1/_meta.md",
+    "Folder1/Note1.md",
+    "Folder1/_assets/img1.png",
+    "Folder2/Note2.md",
+    "Folder2/Folder2-1/_assets",
+    "Folder2/Folder2-1",
+    "Folder2",
+    "Folder1/_assets/img2.png",
+    "Folder1/_assets",
+    "Folder1/Folder1-1",
+    "Folder1",
+    "Untitled.md",
     "Welcome.md"
   ]
 }
