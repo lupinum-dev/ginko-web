@@ -284,6 +284,10 @@ function updateGraph() {
   
   console.log('Updating graph with nodes:', nodes.value.length, 'links:', links.value.length);
   
+  // Log target nodes specifically
+  const targetNodes = nodes.value.filter(node => node.id && String(node.id).startsWith('target:'));
+  console.log(`Target nodes to render: ${targetNodes.length}`, targetNodes);
+  
   try {
     // Make a deep copy of nodes and links to avoid proxy issues
     const safeNodes = nodes.value.map(node => ({...node}));
@@ -319,7 +323,14 @@ function updateGraph() {
         enter => {
           console.log('Creating new nodes:', enter.size());
           const nodeGroup = enter.append('g')
-            .attr('class', d => `node ${d.type}`)
+            .attr('class', d => {
+              let classes = `node ${d.type}`;
+              if (d.id && String(d.id).startsWith('target:')) {
+                classes += ' target-node';
+                console.log(`Created target node with class: ${classes}`);
+              }
+              return classes;
+            })
             .call(drag())
             .on('click', (event, d) => handleNodeClick(event, d))
             .on('mouseover', (event, d) => handleNodeMouseOver(event, d))
@@ -329,8 +340,9 @@ function updateGraph() {
           nodeGroup.append('circle')
             .attr('r', d => getNodeRadius(d))
             .attr('fill', d => getNodeColor(d))
-            .attr('stroke', 'var(--background-primary)')
-            .attr('stroke-width', 1.5)
+            .attr('stroke', d => d.id && String(d.id).startsWith('target:') ? '#7950f2' : 'var(--background-primary)')
+            .attr('stroke-width', d => d.id && String(d.id).startsWith('target:') ? 2.5 : 1.5)
+            .attr('stroke-dasharray', d => d.id && String(d.id).startsWith('target:') ? '3,3' : null)
             .classed('copied', d => d.copied === true);
           
           // Add text label
@@ -345,6 +357,25 @@ function updateGraph() {
         },
         update => {
           console.log('Updating existing nodes:', update.size());
+          
+          // Update the node classes
+          update.attr('class', d => {
+            let classes = `node ${d.type}`;
+            if (d.id && String(d.id).startsWith('target:')) {
+              classes += ' target-node';
+            }
+            return classes;
+          });
+          
+          // Update circle attributes
+          update.select('circle')
+            .attr('r', d => getNodeRadius(d))
+            .attr('fill', d => getNodeColor(d))
+            .attr('stroke', d => d.id && String(d.id).startsWith('target:') ? '#7950f2' : 'var(--background-primary)')
+            .attr('stroke-width', d => d.id && String(d.id).startsWith('target:') ? 2.5 : 1.5)
+            .attr('stroke-dasharray', d => d.id && String(d.id).startsWith('target:') ? '3,3' : null)
+            .classed('copied', d => d.copied === true);
+          
           return update;
         },
         exit => {
@@ -352,7 +383,7 @@ function updateGraph() {
           return exit.remove();
         }
       );
-    
+      
     console.log('Nodes updated');
     
     // Immediately position nodes in a static layout as fallback
@@ -378,11 +409,12 @@ function getNodeRadius(node) {
       return 8;
     case 'fileAsset':
       return 6;
+    case 'targetFile':
+      return 12; // Make target files larger
     default:
       return 8;
   }
 }
-
 function ticked() {
   try {
     if (!linkElements.value || !nodeElements.value) return;
@@ -489,8 +521,17 @@ function handleNodeMouseOver(event, d) {
       .style('top', `${event.pageY + 10}px`);
     
     let content = `<div><strong>${d.name || 'Unknown'}</strong></div>`;
-    content += `<div>${d.path || ''}</div>`;
-    content += `<div>Type: ${d.type || 'Unknown'}</div>`;
+    
+    if (d.type === 'targetFile') {
+      content += `<div class="target-path">Target file in: ${d.path || ''}</div>`;
+      content += `<div>Type: ${d.type || 'Unknown'} (Copied)</div>`;
+    } else {
+      content += `<div>${d.path || ''}</div>`;
+      content += `<div>Type: ${d.type || 'Unknown'}</div>`;
+      if (d.copied) {
+        content += `<div>Status: Copied</div>`;
+      }
+    }
     
     tooltip.html(content);
   } catch (error) {
@@ -520,6 +561,8 @@ function getNodeColor(node) {
       return '#4dabf7'; // Blue for meta files
     } else if (type.includes('Asset') || type === 'fileAsset') {
       return '#ff6b6b'; // Red for assets
+    } else if (type === 'targetFile') {
+      return '#7950f2'; // Purple for target files
     } else {
       return '#adb5bd'; // Gray for other files
     }
@@ -645,29 +688,53 @@ async function copySelectedFile() {
       return;
     }
     
+    console.log(`Starting copy operation for file: ${filePath}`);
+    
     // Copy the file
-    await fileService.copyFile(file);
+    const targetPath = await fileService.copyFile(file);
+    console.log(`File copied to target path: ${targetPath}`);
     
     // Mark the file as copied in the dependency manager
     props.dependencyManager.markFileAsCopied(filePath);
+    console.log(`File marked as copied in dependency manager: ${filePath}`);
     
-    // Update the graph to reflect the copied status
-    if (props.dependencyManager?.getGraph().hasNode(filePath)) {
-      props.dependencyManager.getGraph().setNodeAttribute(filePath, 'copied', true);
-    }
+    // Add the target file and create a dependency
+    props.dependencyManager.addTargetFile(file, targetPath);
+    console.log(`Target file added to dependency manager: ${targetPath}`);
     
     // Update the node appearance
     if (nodeElements.value) {
       nodeElements.value.filter(node => node.id === filePath)
         .select('circle')
         .classed('copied', true);
+      console.log(`Updated node appearance for ${filePath}`);
     }
     
-    // Emit event
+    // Update the graph explicitly
+    const updatedGraph = props.dependencyManager.getGraphAsJson();
+    console.log('Updated graph after copy:', 
+      `nodes: ${updatedGraph.nodes.length}`, 
+      `edges: ${updatedGraph.edges.length}`
+    );
+    
+    // Look for target nodes
+    const targetNodes = updatedGraph.nodes.filter(node => 
+      node.key.startsWith('target:')
+    );
+    console.log(`Found ${targetNodes.length} target nodes in graph data`);
+    
+    // Explicitly rebuild the graph with updated data
+    buildGraphData(updatedGraph);
+    updateGraph();
+    
+    // Emit event but don't trigger a full reload
     emits('file-copied', filePath);
     
-    // Refresh the graph
-    refreshGraph();
+    // Force graph to redraw to ensure target nodes are visible
+    setTimeout(() => {
+      updateGraph();
+      console.log('Graph updated after timeout to ensure target nodes are visible');
+    }, 500);
   } catch (error) {
     console.error('Error copying file:', error);
   }
@@ -681,18 +748,30 @@ async function copyAllFiles() {
     const files = props.dependencyManager.getFiles();
     
     // Copy all files
-    await fileService.copyFiles(files);
+    const targetPaths = await fileService.copyFiles(files);
     
-    // Mark all files as copied
-    files.forEach(file => {
-      props.dependencyManager?.markFileAsCopied(file.getRelativePath());
+    // Mark all files as copied and add target files
+    files.forEach((file, index) => {
+      const relativePath = file.getRelativePath();
+      props.dependencyManager?.markFileAsCopied(relativePath);
+      
+      // Add target file and create dependency if we have a target path
+      if (index < targetPaths.length) {
+        props.dependencyManager?.addTargetFile(file, targetPaths[index]);
+      }
     });
     
-    // Emit event
+    // Emit event but don't trigger a full reload
     emits('copy-completed');
     
-    // Refresh the graph
+    // Refresh the graph locally
     refreshGraph();
+    
+    // Force a second update after a short delay to ensure target nodes are rendered
+    setTimeout(() => {
+      updateGraph();
+      console.log('Graph updated after timeout to ensure target nodes are visible after copying all files');
+    }, 500);
   } catch (error) {
     console.error('Error copying all files:', error);
   }
@@ -701,6 +780,22 @@ async function copyAllFiles() {
 function resetCopiedFiles() {
   try {
     if (!props.dependencyManager) return;
+    
+    // Get the graph
+    const graph = props.dependencyManager.getGraph();
+    
+    // Remove target file nodes from the graph
+    const targetNodes = [];
+    graph.forEachNode((node) => {
+      if (String(node).startsWith('target:')) {
+        targetNodes.push(node);
+      }
+    });
+    
+    // Drop target nodes
+    targetNodes.forEach(node => {
+      graph.dropNode(node);
+    });
     
     // Clear copied files in the dependency manager
     props.dependencyManager.clearCopiedFiles();
@@ -731,8 +826,36 @@ function setTargetDirectory() {
 }
 
 function refreshGraph() {
-  // Emit refresh event so parent component can rebuild the graph
-  emits('refresh');
+  console.log('Manually refreshing graph...');
+  
+  // If we have a dependencyManager, update our local graph data from it
+  if (props.dependencyManager) {
+    const updatedGraph = props.dependencyManager.getGraphAsJson();
+    console.log('Updated graph data:', 
+      `nodes: ${updatedGraph.nodes.length}`, 
+      `edges: ${updatedGraph.edges.length}`
+    );
+    
+    // Look for target nodes
+    const targetNodes = updatedGraph.nodes.filter(node => 
+      node.key.startsWith('target:')
+    );
+    console.log(`Found ${targetNodes.length} target nodes in graph data`);
+    
+    // Explicitly rebuild the graph with updated data
+    buildGraphData(updatedGraph);
+    updateGraph();
+    
+    // Force a second update after a short delay to ensure target nodes are rendered
+    setTimeout(() => {
+      updateGraph();
+      console.log('Graph updated after timeout to ensure target nodes are visible');
+    }, 500);
+  }
+  
+  // Don't emit refresh event as it causes the parent to reload all files
+  // which would lose the target nodes
+  // emits('refresh');
 }
 
 // Add a simple method to render static nodes if simulation fails
@@ -1141,5 +1264,72 @@ function renderStaticNodes() {
     width: 100%;
     margin-bottom: 8px;
   }
+}
+
+/* Target file node styling */
+:deep(.node.targetFile circle) {
+  stroke: #7950f2;
+  stroke-width: 2.5px;
+  stroke-dasharray: 3, 3;
+}
+
+/* Copied-to edge styling */
+:deep(.link.copied_to) {
+  stroke: #7950f2;
+  stroke-width: 2px;
+  stroke-dasharray: 5, 3;
+  animation: dash 15s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: 200;
+  }
+}
+
+/* Tooltip enhancement for target files */
+:deep(.graph-tooltip .target-path) {
+  font-style: italic;
+  color: #7950f2;
+}
+
+/* Add these styles to the <style> section in FileGraph.vue */
+
+:deep(.node.target-node) {
+  opacity: 1 !important; /* Always show target nodes */
+}
+
+:deep(.node.target-node circle) {
+  stroke: #7950f2;
+  stroke-width: 2.5px;
+  stroke-dasharray: 3, 3;
+  filter: drop-shadow(0 0 3px rgba(121, 80, 242, 0.5));
+}
+
+:deep(.node.target-node text) {
+  font-weight: bold;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Make the copied-to edge more visible */
+:deep(.link.copied_to) {
+  stroke: #7950f2;
+  stroke-width: 2.5px;
+  stroke-dasharray: 5, 3;
+  stroke-opacity: 0.8;
+  animation: dash 15s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: 200;
+  }
+}
+
+/* Highlight effect when mouse is over target node or source node */
+:deep(.node.target-node:hover circle),
+:deep(.node.selected.target-node circle) {
+  stroke-width: 4px;
+  filter: drop-shadow(0 0 5px rgba(121, 80, 242, 0.8));
 }
 </style>

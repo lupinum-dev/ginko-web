@@ -28,10 +28,10 @@ export class DependencyManager {
    */
   constructor() {
     // Create a graph with mixed node/edge types, no multi-edges, no self-loops
-    this.graph = new Graph({ 
+    this.graph = new Graph({
       type: 'mixed',
       multi: false,
-      allowSelfLoops: false 
+      allowSelfLoops: false
     });
   }
 
@@ -51,13 +51,13 @@ export class DependencyManager {
     // Clear existing graph and reset edge counter
     this.graph.clear();
     this.edgeIdCounter = 0;
-    
+
     // First create all nodes
     this.createNodes();
-    
+
     // Then create the edges between nodes
     this.createEdges();
-    
+
     return this.graph;
   }
 
@@ -70,9 +70,9 @@ export class DependencyManager {
       if (file.getRelativePath().endsWith('/')) {
         return;
       }
-      
+
       const relativePath = file.getRelativePath();
-      
+
       // Add each file as a node in the graph
       this.graph.addNode(relativePath, {
         type: file.getType(),
@@ -93,11 +93,11 @@ export class DependencyManager {
         // Process asset dependencies (images)
         const assetDependencies = file.getAssetDependencies();
         this.addEdgesToGraph(file.getRelativePath(), assetDependencies, 'depends_on_asset');
-        
+
         // Process meta file dependencies (_meta.md files)
         const metaDependencies = file.getMetaDependencies();
         this.addEdgesToGraph(file.getRelativePath(), metaDependencies, 'depends_on_meta');
-        
+
         // Process copy dependencies (if any)
         const copyDependencies = file.getCopyDependencies();
         if (copyDependencies.length > 0) {
@@ -136,20 +136,20 @@ export class DependencyManager {
    */
   markFileAsCopied(filePath: string): void {
     this.copiedFiles.add(filePath);
-    
+
     // Update node attributes if the node exists
     if (this.graph.hasNode(filePath)) {
       this.graph.setNodeAttribute(filePath, 'copied', true);
     }
   }
-  
+
   /**
    * Clear all copied file markers
    */
   clearCopiedFiles(): void {
     // Clear the set of copied files
     this.copiedFiles.clear();
-    
+
     // Update node attributes
     this.graph.forEachNode((node) => {
       if (this.graph.hasNodeAttribute(node, 'copied')) {
@@ -157,7 +157,7 @@ export class DependencyManager {
       }
     });
   }
-  
+
   /**
    * Get all copied files
    * @returns Set of copied file paths
@@ -165,7 +165,62 @@ export class DependencyManager {
   getCopiedFiles(): Set<string> {
     return new Set(this.copiedFiles);
   }
-  
+
+  /**
+ * Add a target file and create a dependency from the source file
+ * @param sourceFile The source file
+ * @param targetPath The target file path
+ */
+  addTargetFile(sourceFile: fileBase, targetPath: string): void {
+    const sourcePath = sourceFile.getRelativePath();
+    
+    // Create a unique key for the target node
+    const fileName = this.getFileName(targetPath);
+    const targetKey = `target:${targetPath}`;
+    
+    // Add the target node if it doesn't exist
+    if (!this.graph.hasNode(targetKey)) {
+      this.graph.addNode(targetKey, {
+        type: 'targetFile',
+        label: fileName,
+        path: targetPath, // Store the full path for reference
+        copied: true
+      } as NodeAttributes);
+      
+      console.log(`Target node created: ${targetKey} for file ${fileName}`);
+    }
+    
+    // Add an edge from the source to the target
+    if (this.graph.hasNode(sourcePath)) {
+      const edgeId = `geid_${this.edgeIdCounter}_${this.graph.size}`;
+      this.graph.addEdge(
+        sourcePath,
+        targetKey,
+        {
+          key: edgeId,
+          type: 'copied_to'
+        } as EdgeAttributes
+      );
+      this.edgeIdCounter++;
+      console.log(`Edge created from ${sourcePath} to ${targetKey}`);
+    } else {
+      console.warn(`Source node ${sourcePath} not found, cannot create edge`);
+    }
+  }
+
+  /**
+   * Extract the file name from a path
+   * @param filePath The file path
+   * @returns The file name
+   * @private
+   */
+  private getFileName(filePath: string): string {
+    // Split by forward and backward slashes
+    const parts = filePath.split(/[\/\\]/);
+    // Return the last part
+    return parts[parts.length - 1];
+  }
+
   /**
    * Check if a file has been copied
    * @param filePath Relative path of the file
@@ -190,7 +245,7 @@ export class DependencyManager {
   getGraphAsJson(): any {
     return this.graph.toJSON();
   }
-  
+
   /**
    * Get all files
    * @returns Array of files
@@ -198,7 +253,7 @@ export class DependencyManager {
   getFiles(): fileBase[] {
     return this.files;
   }
-  
+
   /**
    * Get a file by its relative path
    * @param relativePath The relative path of the file

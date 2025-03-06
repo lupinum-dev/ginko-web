@@ -185,14 +185,24 @@ function safeGetProperty(obj: any, path: string, defaultValue: any = undefined) 
 // Event handlers
 function handleFileCopied(filePath: string) {
   console.log('File copied:', filePath);
-  // Refresh the graph after a file is copied
-  loadFiles();
+  // Don't reload files from scratch as it will lose the target nodes
+  // Instead, just update the graph data from the dependency manager
+  graphData.value = dependencyManager.getGraphAsJson();
+  console.log('Graph data updated after file copied:', 
+    `nodes: ${graphData.value.nodes.length}`, 
+    `edges: ${graphData.value.edges.length}`
+  );
 }
 
 function handleCopyCompleted() {
   console.log('All files copied');
-  // Refresh the graph after all files are copied
-  loadFiles();
+  // Don't reload files from scratch as it will lose the target nodes
+  // Instead, just update the graph data from the dependency manager
+  graphData.value = dependencyManager.getGraphAsJson();
+  console.log('Graph data updated after copy completed:', 
+    `nodes: ${graphData.value.nodes.length}`, 
+    `edges: ${graphData.value.edges.length}`
+  );
 }
 
 </script>
