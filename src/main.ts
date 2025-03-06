@@ -1,5 +1,5 @@
 import { Plugin, ItemView, WorkspaceLeaf } from 'obsidian'
-import { setupFileWatcher } from './processor/services/fileWatcher'
+import { setupFileWatcher } from './services/fileWatcher'
 import { createApp } from 'vue'
 import FileGraphView from './components/FileGraphView.vue'
 
