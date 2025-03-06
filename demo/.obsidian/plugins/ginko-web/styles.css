@@ -1,0 +1,764 @@
+/* src/settings/settings.css */
+:root {
+  --ginko-primary: var(--text-accent, #87285E);
+  --ginko-success: var(--color-green, #4caf50);
+  --ginko-error: var(--text-error, #ff5555);
+  --ginko-warning: var(--text-warning, #ffb86c);
+  --ginko-muted: var(--text-muted, #999);
+  --ginko-border-radius-sm: 4px;
+  --ginko-border-radius-md: 8px;
+  --ginko-border-radius-lg: 12px;
+  --ginko-spacing-xs: 0.5rem;
+  --ginko-spacing-sm: 0.8rem;
+  --ginko-spacing-md: 1.2rem;
+  --ginko-spacing-lg: 1.5rem;
+  --ginko-spacing-xl: 2rem;
+  --ginko-transition-fast: 0.2s ease;
+  --ginko-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --ginko-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.ginko-web-settings-indent {
+  margin-left: 24px;
+  border-left: 2px solid var(--background-modifier-border);
+  padding-left: 16px;
+}
+.ginko-web-settings-indent .setting-item {
+  border: none;
+}
+.ginko-web-settings-section {
+  margin-bottom: var(--ginko-spacing-lg);
+}
+.ginko-web-settings-banner {
+  background: var(--background-secondary);
+  padding: var(--ginko-spacing-xl);
+  border-radius: var(--ginko-border-radius-md);
+  margin-bottom: var(--ginko-spacing-xl);
+  text-align: center;
+  box-shadow: var(--ginko-shadow-sm);
+}
+.ginko-web-settings-logo {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--ginko-spacing-md);
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path fill="%2387285E" d="M50 5C25.2 5 5 25.2 5 50s20.2 45 45 45 45-20.2 45-45S74.8 5 50 5zm0 80c-19.3 0-35-15.7-35-35s15.7-35 35-35 35 15.7 35 35-15.7 35-35 35z"/><path fill="%2387285E" d="M65 35H45c-5.5 0-10 4.5-10 10v20c0 5.5 4.5 10 10 10h20c5.5 0 10-4.5 10-10V45c0-5.5-4.5-10-10-10zm0 30H45V45h20v20z"/></svg>');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.ginko-web-settings-title {
+  font-size: 1.8em;
+  font-weight: bold;
+  margin-bottom: var(--ginko-spacing-xs);
+  color: var(--text-normal);
+}
+.ginko-web-settings-description {
+  font-size: 1.1em;
+  color: var(--text-muted);
+}
+.ginko-web-settings-step {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--ginko-border-radius-lg);
+  padding: var(--ginko-spacing-lg);
+  margin-bottom: var(--ginko-spacing-lg);
+  position: relative;
+  transition: border-color var(--ginko-transition-fast), box-shadow var(--ginko-transition-fast);
+}
+.ginko-web-settings-step.is-active {
+  box-shadow: var(--ginko-shadow-md);
+}
+.ginko-web-settings-step.is-required {
+  border-left: 4px solid var(--ginko-error);
+}
+.ginko-web-settings-step.is-optional {
+  border-left: 4px solid var(--ginko-muted);
+}
+.ginko-web-settings-step.is-completed {
+  border-left: 4px solid var(--ginko-success);
+}
+.ginko-web-settings-step.is-preparation {
+  border-left: 4px solid var(--ginko-primary);
+  background: var(--background-secondary);
+}
+.ginko-web-settings-step-header {
+  display: flex;
+  align-items: center;
+  gap: var(--ginko-spacing-md);
+  margin-bottom: var(--ginko-spacing-md);
+}
+.ginko-web-settings-step-number {
+  background: var(--background-modifier-border);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.1em;
+  transition: background var(--ginko-transition-fast), color var(--ginko-transition-fast);
+}
+.ginko-web-settings-step.is-completed .ginko-web-settings-step-number {
+  background: var(--ginko-success);
+  color: white;
+}
+.ginko-web-settings-step.is-preparation .ginko-web-settings-step-number {
+  background: var(--ginko-primary);
+  color: white;
+}
+.ginko-web-settings-step-title {
+  font-size: 1.3em;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+.ginko-web-settings-step.is-optional .ginko-web-settings-step-title::after {
+  content: "(Optional)";
+  font-size: 0.8em;
+  font-weight: normal;
+  color: var(--ginko-muted);
+  margin-left: var(--ginko-spacing-xs);
+}
+.ginko-web-settings-step-content {
+  margin-left: 48px;
+}
+.ginko-web-settings-step-description {
+  margin-bottom: var(--ginko-spacing-md);
+  color: var(--text-normal);
+}
+.ginko-web-settings-step-status {
+  position: absolute;
+  top: var(--ginko-spacing-lg);
+  right: var(--ginko-spacing-lg);
+  font-size: 0.9em;
+  display: flex;
+  align-items: center;
+  gap: var(--ginko-spacing-xs);
+}
+.ginko-web-settings-step-status.is-completed {
+  color: var(--ginko-success);
+}
+.ginko-web-settings-preparation-section {
+  background: var(--background-primary);
+  border-radius: var(--ginko-border-radius-md);
+  padding: var(--ginko-spacing-md);
+  margin-bottom: var(--ginko-spacing-md);
+}
+.ginko-web-settings-preparation-section:last-child {
+  margin-bottom: 0;
+}
+.ginko-web-settings-preparation-title {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin-bottom: var(--ginko-spacing-sm);
+  color: var(--text-normal);
+  display: flex;
+  align-items: center;
+  gap: var(--ginko-spacing-xs);
+}
+.ginko-web-settings-preparation-content {
+  color: var(--ginko-muted);
+  font-size: 0.95em;
+  line-height: 1.5;
+}
+.ginko-web-settings-preparation-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ginko-spacing-xs);
+  margin-top: var(--ginko-spacing-md);
+  padding: 0.6rem 1.2rem;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-radius: var(--ginko-border-radius-sm);
+  font-size: 0.9em;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all var(--ginko-transition-fast);
+}
+.ginko-web-settings-preparation-button:hover {
+  background: var(--interactive-accent-hover);
+  transform: translateY(-1px);
+}
+.ginko-web-settings-usage-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--ginko-spacing-md);
+  margin-top: var(--ginko-spacing-md);
+}
+.ginko-web-settings-usage-option {
+  flex: 1;
+  background: var(--background-secondary);
+  border: 2px solid var(--background-modifier-border);
+  border-radius: var(--ginko-border-radius-md);
+  padding: var(--ginko-spacing-lg);
+  cursor: pointer;
+  transition: all var(--ginko-transition-fast);
+  text-align: center;
+}
+.ginko-web-settings-usage-option:hover {
+  transform: translateY(-2px);
+  border-color: var(--interactive-accent);
+}
+.ginko-web-settings-usage-option.is-selected {
+  background: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+.ginko-web-settings-usage-icon {
+  font-size: 2em;
+  margin-bottom: var(--ginko-spacing-xs);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.ginko-web-settings-usage-icon svg {
+  width: 32px;
+  height: 32px;
+}
+.ginko-web-settings-usage-option.is-selected .ginko-web-settings-usage-icon svg path {
+  fill: var(--text-on-accent);
+}
+.ginko-web-settings-usage-title {
+  font-weight: 600;
+  margin-bottom: var(--ginko-spacing-xs);
+}
+.ginko-web-settings-usage-description {
+  font-size: 0.9em;
+  opacity: 0.8;
+  margin-bottom: var(--ginko-spacing-md);
+}
+.ginko-web-settings-usage-features {
+  text-align: left;
+  padding: 0 var(--ginko-spacing-md);
+}
+.ginko-web-settings-usage-features ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ginko-web-settings-usage-features li {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-bottom: var(--ginko-spacing-xs);
+  font-size: 0.9em;
+  color: var(--ginko-muted);
+}
+.ginko-web-settings-usage-features li::before {
+  content: "\2713";
+  position: absolute;
+  left: 0;
+  color: var(--ginko-primary);
+}
+.ginko-web-settings-usage-option.is-selected .ginko-web-settings-usage-features li {
+  color: var(--text-on-accent);
+}
+.ginko-web-settings-usage-option.is-selected .ginko-web-settings-usage-features li::before {
+  color: var(--text-on-accent);
+}
+.ginko-web-settings-license-input {
+  margin-top: var(--ginko-spacing-md);
+  display: none;
+  width: 100%;
+}
+.ginko-web-settings-license-input.is-visible {
+  display: block;
+}
+.ginko-web-settings-license-input .setting-item-control {
+  width: 100%;
+  padding: 0;
+}
+.ginko-web-settings-license-input .setting-item-control input {
+  width: 100%;
+}
+.ginko-web-settings-language-mode {
+  display: flex;
+  gap: var(--ginko-spacing-md);
+  margin-bottom: var(--ginko-spacing-xl);
+}
+.ginko-web-settings-language-button {
+  flex: 1;
+  padding: var(--ginko-spacing-md);
+  border-radius: var(--ginko-border-radius-md);
+  border: 1px solid var(--background-modifier-border);
+  cursor: pointer;
+  transition: all var(--ginko-transition-fast);
+}
+.ginko-web-settings-language-button:hover {
+  background-color: var(--background-modifier-hover);
+}
+.ginko-web-settings-language-button.is-selected {
+  border-color: var(--ginko-primary);
+  background-color: var(--interactive-accent-hover);
+}
+.ginko-web-settings-language-icon {
+  font-size: 1.5rem;
+  margin-bottom: var(--ginko-spacing-xs);
+}
+.ginko-web-settings-language-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+.ginko-web-settings-language-description {
+  font-size: 0.9em;
+  color: var(--ginko-muted);
+}
+.ginko-web-settings-step-content .setting-item {
+  border: none;
+  padding: 0;
+  margin-bottom: var(--ginko-spacing-md);
+}
+.ginko-web-settings-step-content .setting-item-control {
+  padding: 0;
+}
+.ginko-web-settings-helper-text {
+  font-size: 0.85em;
+  color: var(--ginko-muted);
+  margin-top: var(--ginko-spacing-xs);
+  padding: var(--ginko-spacing-xs);
+  background: var(--background-secondary);
+  border-radius: var(--ginko-border-radius-sm);
+  line-height: 1.4;
+}
+.ginko-web-settings-template-description {
+  margin-top: var(--ginko-spacing-xs);
+  padding: var(--ginko-spacing-sm);
+  background: var(--background-secondary);
+  border-radius: var(--ginko-border-radius-sm);
+  font-size: 0.9em;
+  color: var(--ginko-muted);
+}
+.ginko-web-settings-learn-link {
+  display: inline-block;
+  color: var(--ginko-primary);
+  text-decoration: none;
+  font-size: 0.9em;
+  margin-bottom: var(--ginko-spacing-md);
+  margin-top: var(--ginko-spacing-xs);
+  transition: color var(--ginko-transition-fast);
+}
+.ginko-web-settings-learn-link:hover {
+  text-decoration: underline;
+  color: var(--text-accent-hover);
+}
+.ginko-web-settings-step-content button {
+  background-color: var(--background-modifier-border);
+  color: var(--text-normal);
+  font-size: 0.9em;
+  padding: 6px 12px;
+  border-radius: var(--ginko-border-radius-sm);
+  transition: all var(--ginko-transition-fast);
+  border: 1px solid var(--background-modifier-border);
+}
+.ginko-web-settings-step-content button:hover {
+  background-color: var(--background-modifier-hover);
+  border-color: var(--background-modifier-border-hover);
+  transform: translateY(-1px);
+}
+.ginko-web-settings-path-buttons {
+  display: flex;
+  gap: 8px;
+}
+.ginko-web-settings-copy-btn,
+.ginko-web-settings-open-btn {
+  background: transparent;
+  border: 1px solid var(--background-modifier-border);
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: var(--ginko-border-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.8;
+  transition: all var(--ginko-transition-fast);
+}
+.ginko-web-settings-copy-btn:hover,
+.ginko-web-settings-open-btn:hover {
+  opacity: 1;
+  background-color: var(--background-modifier-hover);
+  border-color: var(--background-modifier-border-hover);
+}
+.ginko-web-settings-path-status {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+.ginko-web-settings-status-message {
+  padding: 8px 12px;
+  border-radius: var(--ginko-border-radius-sm);
+  font-weight: 500;
+}
+.ginko-web-settings-status-message.mod-valid {
+  background-color: var(--ginko-success);
+  color: white;
+}
+.ginko-web-settings-status-message.mod-warning {
+  background-color: var(--ginko-warning);
+  color: white;
+}
+.ginko-web-settings-status-message.mod-error {
+  background-color: var(--ginko-error);
+  color: white;
+}
+.ginko-web-settings-runtime-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: var(--ginko-border-radius-sm);
+  font-size: 0.8em;
+  margin-left: 8px;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.ginko-web-settings-runtime-badge.mod-npm {
+  background-color: #cb3837;
+  color: white;
+}
+.ginko-web-settings-runtime-badge.mod-deno {
+  background-color: #000000;
+  color: white;
+}
+.ginko-web-settings-runtime-badge.mod-bun {
+  background-color: #fbf0df;
+  color: #000000;
+}
+.ginko-web-settings-runtime-badge.mod-pnpm {
+  background-color: #f69220;
+  color: white;
+}
+.ginko-web-settings-runtime-badge.mod-obsidian {
+  background-color: #6c31e3;
+  color: white;
+}
+.ginko-web-settings-paths {
+  margin-top: var(--ginko-spacing-lg);
+  padding: var(--ginko-spacing-md);
+  background: var(--background-secondary);
+  border-radius: var(--ginko-border-radius-md);
+}
+.ginko-web-settings-path-item {
+  display: flex;
+  flex-direction: column;
+  margin: 16px 0;
+  gap: 8px;
+}
+.ginko-web-settings-path-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+.ginko-web-settings-path-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ginko-web-settings-path-label {
+  color: var(--ginko-muted);
+  font-weight: 600;
+  font-size: 0.95em;
+}
+.ginko-web-settings-path-value {
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+  color: var(--ginko-error);
+  padding: 8px 12px;
+  background-color: var(--background-primary);
+  border-radius: var(--ginko-border-radius-sm);
+  width: 100%;
+  word-break: break-all;
+  cursor: text;
+  user-select: all;
+  border: 1px solid var(--background-modifier-border);
+}
+.ginko-web-settings-path-value.mod-error {
+  color: var(--ginko-error);
+  border-color: var(--ginko-error);
+}
+.ginko-web-settings-path-value.mod-warning {
+  color: var(--ginko-warning);
+  border-color: var(--ginko-warning);
+}
+.ginko-web-settings-path-value.mod-valid {
+  color: var(--ginko-success);
+  border-color: var(--ginko-success);
+}
+.ginko-web-settings-debug-section {
+  margin-top: 16px;
+  padding: 16px;
+  background-color: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--ginko-border-radius-md);
+}
+.ginko-web-settings-debug-content {
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+  padding: 12px;
+  background-color: var(--background-secondary);
+  border-radius: var(--ginko-border-radius-sm);
+  overflow-x: auto;
+  margin-bottom: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.ginko-web-settings-debug-buttons {
+  display: flex;
+  gap: 8px;
+}
+.ginko-web-settings-debug-button {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  padding: 8px 16px;
+  border-radius: var(--ginko-border-radius-sm);
+  border: none;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color var(--ginko-transition-fast);
+  flex: 1;
+}
+.ginko-web-settings-debug-button:hover {
+  background-color: var(--interactive-accent-hover);
+}
+.ginko-web-settings-description-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ginko-spacing-sm);
+}
+.ginko-web-settings-utility-description {
+  margin-bottom: var(--ginko-spacing-sm);
+  color: var(--text-normal);
+}
+.ginko-web-settings-warning {
+  margin-bottom: var(--ginko-spacing-sm);
+  font-style: italic;
+  color: var(--ginko-warning);
+}
+.ginko-web-settings-links-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ginko-spacing-sm);
+}
+.ginko-web-settings-doc-link {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  border-radius: var(--ginko-border-radius-sm);
+  font-size: 0.85em;
+  color: var(--ginko-primary);
+  background: var(--background-modifier-border);
+  text-decoration: none;
+  transition: all var(--ginko-transition-fast);
+  white-space: nowrap;
+  max-width: fit-content;
+}
+.ginko-web-settings-doc-link:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-accent-hover);
+  transform: translateY(-1px);
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.ginko-web-settings-status-message,
+.ginko-web-settings-step-status {
+  animation: fadeIn 0.3s ease-out;
+}
+.ginko-blocks-reset-modal-action {
+  background: var(--background-secondary);
+  border-radius: var(--ginko-border-radius-lg);
+  padding: var(--ginko-spacing-lg);
+  margin-bottom: var(--ginko-spacing-lg);
+}
+.ginko-blocks-reset-modal-heading {
+  color: var(--text-normal);
+  font-size: 1.3em;
+  font-weight: 600;
+  margin: 0 0 var(--ginko-spacing-md) 0;
+}
+.ginko-blocks-reset-modal-details {
+  line-height: 1.6;
+  display: grid;
+  gap: var(--ginko-spacing-xs);
+}
+.ginko-blocks-reset-modal-details strong {
+  color: var(--ginko-primary);
+  display: inline-block;
+  width: 4rem;
+}
+.ginko-blocks-reset-modal-warning {
+  background: var(--background-modifier-error);
+  color: var(--text-on-accent);
+  padding: var(--ginko-spacing-md);
+  border-radius: var(--ginko-border-radius-lg);
+  margin: var(--ginko-spacing-lg) 0;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--ginko-spacing-xs);
+}
+.ginko-blocks-reset-modal-consequences {
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--ginko-border-radius-lg);
+  padding: var(--ginko-spacing-md);
+  margin: var(--ginko-spacing-lg) 0;
+}
+.ginko-blocks-reset-modal-consequences p {
+  color: var(--ginko-muted);
+  font-weight: 500;
+  margin: 0 0 var(--ginko-spacing-sm) 0;
+}
+.ginko-blocks-reset-modal-consequences ul {
+  margin: 0;
+  padding-left: var(--ginko-spacing-lg);
+}
+.ginko-blocks-reset-modal-consequences li {
+  color: var(--text-normal);
+  margin-bottom: var(--ginko-spacing-xs);
+  line-height: 1.4;
+}
+.ginko-blocks-reset-modal-consequences li:last-child {
+  margin-bottom: 0;
+}
+.ginko-blocks-reset-modal .setting-item {
+  border: none;
+  padding: 0;
+  margin-top: var(--ginko-spacing-xl);
+}
+.ginko-blocks-reset-modal .setting-item-control {
+  display: flex;
+  gap: var(--ginko-spacing-md);
+  justify-content: flex-end;
+}
+.ginko-blocks-reset-modal button {
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--ginko-border-radius-md);
+  font-weight: 500;
+}
+.ginko-blocks-reset-modal button:not(.mod-cta) {
+  background: var(--background-modifier-border);
+  color: var(--text-normal);
+}
+.ginko-blocks-reset-modal button.mod-cta {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+.ginko-web-reset-storage-modal {
+  padding: var(--ginko-spacing-md);
+}
+.ginko-web-reset-storage-modal h2 {
+  margin-bottom: var(--ginko-spacing-md);
+  text-align: center;
+}
+.ginko-web-reset-storage-modal .storage-list {
+  margin-bottom: var(--ginko-spacing-md);
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--ginko-border-radius-sm);
+  padding: var(--ginko-spacing-xs);
+}
+.ginko-web-reset-storage-modal .setting-item {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--ginko-border-radius-sm);
+  margin-bottom: var(--ginko-spacing-xs);
+  padding: var(--ginko-spacing-xs);
+}
+.ginko-web-reset-storage-modal .setting-item:hover {
+  background-color: var(--background-modifier-hover);
+}
+.ginko-web-reset-storage-modal .setting-item-description {
+  font-family: var(--font-monospace);
+  font-size: 0.8em;
+  word-break: break-all;
+}
+@media (max-width: 768px) {
+  .ginko-web-settings-language-mode,
+  .ginko-web-settings-usage-options {
+    grid-template-columns: 1fr;
+  }
+  .ginko-web-settings-step-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ginko-web-settings-step-content {
+    margin-left: 0;
+  }
+  .ginko-web-settings-step-status {
+    position: static;
+    margin-top: var(--ginko-spacing-xs);
+  }
+}
+
+/* src/main.css */
+.ginko-web-settings-indent {
+  margin-left: 24px;
+}
+.ginko-web-settings-documentation ul {
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+.ginko-web-settings-documentation a {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+.ginko-web-settings-documentation a:hover {
+  text-decoration: underline;
+}
+.ginko-web-settings-info-box {
+  padding: 12px 16px;
+  margin: 12px 0;
+  border-radius: 4px;
+  background-color: var(--background-secondary);
+}
+.ginko-web-settings-path-item {
+  margin: 8px 0;
+  font-family: var(--font-monospace);
+  font-size: 0.9em;
+}
+.ginko-web-settings-path-label {
+  color: var(--text-muted);
+  display: inline-block;
+  width: 120px;
+}
+.ginko-web-settings-path-value {
+  color: var(--text-normal);
+}
+.ginko-web-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+}
+.ginko-web-status-warning {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-warning);
+}
+.ginko-web-status-success {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-green);
+}
+.ginko-web-status-warning .lucide-alert-triangle {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+.ginko-web-status-success .lucide-check-circle {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+.ginko-web-status-warning .lucide {
+  color: var(--text-error);
+  --icon-size: var(--icon-size-m);
+}
+.ginko-web-status-bar:hover .ginko-web-status-warning {
+  text-decoration: underline;
+}
