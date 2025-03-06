@@ -20,8 +20,19 @@
               "icon": "lucide-file",
               "title": "Note1-1"
             }
+          },
+          {
+            "id": "c050cbcafc3034ec",
+            "type": "leaf",
+            "state": {
+              "type": "ginko-file-list-view",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "Vault Files"
+            }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -141,20 +152,21 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Welcome.md",
+                "file": "Folder1/Folder1-1/Note1-1.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of Welcome"
+              "title": "Outline of Note1-1"
             }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 962.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -164,10 +176,11 @@
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "iconic:Open rulebook": false
+      "iconic:Open rulebook": false,
+      "ginko-web:Show Vault Files": false
     }
   },
-  "active": "fd8e2ebc6e164f37",
+  "active": "c050cbcafc3034ec",
   "lastOpenFiles": [
     "Folder1/_meta.md",
     "Folder1/Folder1-1/Note1-1.md",
