@@ -1,4 +1,5 @@
 import { File } from './file';
+import path from 'path';
 
 /**
  * NoteFile class
@@ -28,7 +29,7 @@ export class NoteFile extends File {
   }
 
   /**
-   * Extract image references from markdown content
+   * Extract image references from markdown content and resolve paths
    * @returns Array of image paths referenced in the note
    */
   getImageDependencies(): string[] {
@@ -36,13 +37,37 @@ export class NoteFile extends File {
     const imageRegex = /!\[.*?\]\((.*?)\)/g;
     const matches = [...this.content.matchAll(imageRegex)];
     
-    // Normalize paths by removing leading slash
-    return matches.map(match => match[1].replace(/^\//, '')); 
+    if (matches.length === 0) {
+      return [];
+    }
+    
+    // Get the directory of this note
+    const noteDir = path.dirname(this.relativePath);
+    
+    // Normalize and resolve image paths
+    return matches.map(match => {
+      // Get the raw image path from the match
+      let imagePath = match[1].trim();
+      
+      // Remove any URL fragments or query parameters
+      imagePath = imagePath.split('#')[0].split('?')[0];
+      
+      // Handle relative paths 
+      if (!imagePath.startsWith('/')) {
+        // It's a relative path, resolve it from the note's location
+        imagePath = path.join(noteDir, imagePath);
+      } else {
+        // It's an absolute path (from vault root), remove leading slash
+        imagePath = imagePath.substring(1);
+      }
+      
+      // Normalize path separators to forward slashes
+      return imagePath.replace(/\\/g, '/');
+    });
   }
 
   /**
    * Get all dependencies for this note 
-   * (Currently only images, but could be extended for other types)
    * @returns Array of dependency paths
    */
   getDependencies(): string[] {

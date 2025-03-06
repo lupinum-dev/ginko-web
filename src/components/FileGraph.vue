@@ -27,17 +27,31 @@
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import * as d3 from 'd3';
 
-// Define props
+// Define props for graph data
 interface Props {
-  files: Array<{
-    name: string;
-    path: string;
-    extension: string;
-    children: any;
-    isFolder: boolean;
-    size: string;
-    mtime: string;
-  }>;
+  graphData?: {
+    options: {
+      type: string;
+      multi: boolean;
+      allowSelfLoops: boolean;
+    };
+    attributes: Record<string, any>;
+    nodes: Array<{
+      key: string;
+      attributes: {
+        type: string;
+        label: string;
+      };
+    }>;
+    edges: Array<{
+      key: string;
+      source: string;
+      target: string;
+      attributes: {
+        type: string;
+      };
+    }>;
+  };
 }
 
 const props = defineProps<Props>();
@@ -55,48 +69,23 @@ const zoom = ref<any>(null);
 const nodeElements = ref<any>(null);
 const linkElements = ref<any>(null);
 
-// Safely get property from nested objects
-function safeGet(obj, path, defaultValue = undefined) {
-  const parts = path.split('.');
-  let current = obj;
-  
-  for (let i = 0; i < parts.length; i++) {
-    if (current === null || current === undefined) {
-      return defaultValue;
-    }
-    current = current[parts[i]];
-  }
-  
-  return current === undefined ? defaultValue : current;
-}
-
-// Watch for changes in files prop with safeguards
-watch(() => props.files, (newFiles) => {
-  if (!newFiles || !Array.isArray(newFiles)) {
-    console.log('No valid files data received');
+// Watch for changes in graph data
+watch(() => props.graphData, (newGraphData) => {
+  if (!newGraphData) {
+    console.log('No valid graph data received');
     return;
   }
   
-  console.log('Files changed:', newFiles.length);
-  if (newFiles.length > 0) {
-    try {
-      // Use a safely serialized sample to avoid proxy issues
-      const sample = {
-        name: safeGet(newFiles[0], 'name', ''),
-        path: safeGet(newFiles[0], 'path', ''),
-        type: safeGet(newFiles[0], 'isFolder', false) ? 'folder' : 'file'
-      };
-      console.log('Sample file:', JSON.stringify(sample));
-    } catch (error) {
-      console.log('Could not stringify sample file');
-    }
-  }
+  console.log('Graph data changed:', 
+    `nodes: ${newGraphData.nodes.length}`, 
+    `edges: ${newGraphData.edges.length}`
+  );
   
-  buildGraphData(newFiles);
+  buildGraphData(newGraphData);
   if (svg.value) {
     updateGraph();
   }
-}, { deep: false, immediate: true });
+}, { deep: true, immediate: true });
 
 // Lifecycle hooks
 onMounted(async () => {
@@ -107,7 +96,9 @@ onMounted(async () => {
     console.log('Graph container found:', graphContainer.value);
     console.log('Container dimensions:', graphContainer.value.clientWidth, 'x', graphContainer.value.clientHeight);
     initGraph();
-    buildGraphData(props.files);
+    if (props.graphData) {
+      buildGraphData(props.graphData);
+    }
     updateGraph();
   } else {
     console.error('Graph container not found!');
@@ -169,99 +160,41 @@ function initGraph() {
   console.log('Graph structure initialized');
 }
 
-function buildGraphData(files) {
+function buildGraphData(graphData) {
   try {
     // Clear existing data
     nodes.value = [];
     links.value = [];
     
-    if (!files || !Array.isArray(files)) {
-      console.error('Invalid files data', files);
+    if (!graphData || !graphData.nodes || !graphData.edges) {
+      console.error('Invalid graph data', graphData);
       return;
     }
     
-    console.log('Building graph from files:', files.length);
+    console.log('Building graph from data:', 
+      `nodes: ${graphData.nodes.length}`, 
+      `edges: ${graphData.edges.length}`
+    );
     
-    // Create a map for quick node lookup
-    const nodeMap = new Map();
+    // Process nodes
+    nodes.value = graphData.nodes.map(node => ({
+      id: node.key,
+      key: node.key,
+      name: node.attributes.label,
+      type: node.attributes.type,
+      path: node.key, // Use key as path
+      x: Math.random() * width.value,
+      y: Math.random() * height.value
+    }));
     
-    // Add root node first
-    const rootNode = {
-      id: '/',
-      name: 'Root',
-      path: '/',
-      type: 'folder',
-      extension: '',
-      size: '',
-      mtime: '',
-      x: width.value / 2,
-      y: height.value / 2
-    };
-    nodes.value.push(rootNode);
-    nodeMap.set('/', rootNode);
-    
-    // Add nodes - create plain JS objects to avoid proxy issues
-    files.forEach(file => {
-      if (!file || typeof file !== 'object') return;
-      
-      const node = {
-        id: safeGet(file, 'path', ''),
-        name: safeGet(file, 'name', ''),
-        path: safeGet(file, 'path', ''),
-        type: safeGet(file, 'isFolder', false) ? 'folder' : 'file',
-        extension: safeGet(file, 'extension', ''),
-        size: safeGet(file, 'size', ''),
-        mtime: safeGet(file, 'mtime', ''),
-        x: Math.random() * width.value,
-        y: Math.random() * height.value
-      };
-      
-      // Skip root as we already added it
-      if (node.id === '/') return;
-      
-      // Skip empty paths
-      if (!node.id) return;
-      
-      nodes.value.push(node);
-      nodeMap.set(node.id, node);
-    });
-    
-    // Create links
-    nodes.value.forEach(node => {
-      if (node.path === '/') return; // Skip root
-      
-      try {
-        const lastSlashIndex = node.path.lastIndexOf('/');
-        if (lastSlashIndex > 0) {
-          const parentPath = node.path.substring(0, lastSlashIndex);
-          
-          // Check if parent exists in our node map
-          if (nodeMap.has(parentPath)) {
-            links.value.push({
-              id: `${parentPath}-${node.path}`,
-              source: parentPath,
-              target: node.path
-            });
-          } else {
-            // Link to root if parent doesn't exist
-            links.value.push({
-              id: `/-${node.path}`,
-              source: '/',
-              target: node.path
-            });
-          }
-        } else {
-          // Files/folders in root
-          links.value.push({
-            id: `/-${node.path}`,
-            source: '/',
-            target: node.path
-          });
-        }
-      } catch (error) {
-        console.error('Error creating link for node:', node.path, error);
-      }
-    });
+    // Process edges
+    links.value = graphData.edges.map(edge => ({
+      id: edge.key,
+      key: edge.key,
+      source: edge.source,
+      target: edge.target,
+      type: edge.attributes.type
+    }));
     
     console.log('Graph data built with nodes:', nodes.value.length, 'links:', links.value.length);
   } catch (error) {
@@ -298,7 +231,8 @@ function updateGraph() {
     linkElements.value = linkElements.value
       .data(safeLinks, d => d.id)
       .join('line')
-      .attr('stroke', 'var(--text-muted)')
+      .attr('class', d => `link ${d.type}`)
+      .attr('stroke', d => d.type === 'depends_on' ? '#ff6b6b' : 'var(--text-muted)')
       .attr('stroke-opacity', 0.6)
       .attr('stroke-width', 1.5);
     
@@ -319,7 +253,7 @@ function updateGraph() {
           
           // Add circle for node
           nodeGroup.append('circle')
-            .attr('r', d => d.type === 'folder' ? 12 : 8)
+            .attr('r', d => getNodeRadius(d))
             .attr('fill', d => getNodeColor(d))
             .attr('stroke', 'var(--background-primary)')
             .attr('stroke-width', 1.5);
@@ -356,6 +290,21 @@ function updateGraph() {
     console.error('Error in updateGraph:', error);
     // Use static layout as fallback
     renderStaticNodes();
+  }
+}
+
+function getNodeRadius(node) {
+  if (!node) return 8;
+  
+  switch (node.type) {
+    case 'NoteFile':
+      return 10;
+    case 'MetaFile':
+      return 8;
+    case 'AssetFile':
+      return 6;
+    default:
+      return 8;
   }
 }
 
@@ -461,11 +410,7 @@ function handleNodeMouseOver(event, d) {
     
     let content = `<div><strong>${d.name || 'Unknown'}</strong></div>`;
     content += `<div>${d.path || ''}</div>`;
-    
-    if (d.type !== 'folder') {
-      content += `<div>Size: ${d.size || 'N/A'}</div>`;
-      content += `<div>Modified: ${d.mtime || 'N/A'}</div>`;
-    }
+    content += `<div>Type: ${d.type || 'Unknown'}</div>`;
     
     tooltip.html(content);
   } catch (error) {
@@ -486,25 +431,17 @@ function getNodeColor(node) {
   try {
     if (!node) return 'var(--text-muted)';
     
-    if (node.type === 'folder') {
-      return 'var(--interactive-accent)';
+    // Color based on file type
+    switch (node.type) {
+      case 'NoteFile':
+        return '#42b883'; // Vue green for markdown
+      case 'MetaFile':
+        return '#4dabf7'; // Blue for meta files
+      case 'AssetFile':
+        return '#ff6b6b'; // Red for assets
+      default:
+        return '#adb5bd'; // Gray for other files
     }
-    
-    // Color based on file extension
-    const extension = node.extension?.toLowerCase();
-    if (extension === 'md') {
-      return '#42b883'; // Vue green for markdown
-    } else if (['jpg', 'jpeg', 'png', 'gif', 'svg'].includes(extension)) {
-      return '#ff6b6b'; // Red for images
-    } else if (['pdf'].includes(extension)) {
-      return '#ff922b'; // Orange for PDFs
-    } else if (['js', 'ts', 'jsx', 'tsx'].includes(extension)) {
-      return '#4dabf7'; // Blue for code
-    } else if (['json', 'yml', 'yaml', 'toml'].includes(extension)) {
-      return '#ae3ec9'; // Purple for config
-    }
-    
-    return '#adb5bd'; // Gray for other files
   } catch (error) {
     console.error('Error in getNodeColor:', error);
     return '#adb5bd'; // Default gray
@@ -576,7 +513,8 @@ function filterGraph() {
     nodes.value.forEach(node => {
       if (
         (node.name && node.name.toLowerCase().includes(term)) || 
-        (node.path && node.path.toLowerCase().includes(term))
+        (node.path && node.path.toLowerCase().includes(term)) ||
+        (node.type && node.type.toLowerCase().includes(term))
       ) {
         matchingNodes.add(node.id);
       }
@@ -741,19 +679,34 @@ function renderStaticNodes() {
 }
 
 :deep(.link) {
-  stroke: var(--text-muted);
   stroke-opacity: 0.6;
   stroke-width: 1.5px;
 }
 
 :deep(.link.highlighted) {
-  stroke: var(--text-accent);
   stroke-opacity: 1;
   stroke-width: 2px;
+}
+
+:deep(.link.depends_on) {
+  stroke: #ff6b6b;
+  stroke-dasharray: 5, 5;
 }
 
 :deep(.node text) {
   pointer-events: none;
   user-select: none;
+}
+
+:deep(.node.NoteFile circle) {
+  stroke: #42b883;
+}
+
+:deep(.node.MetaFile circle) {
+  stroke: #4dabf7;
+}
+
+:deep(.node.AssetFile circle) {
+  stroke: #ff6b6b;
 }
 </style>

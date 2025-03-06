@@ -149,9 +149,19 @@
               "icon": "lucide-list",
               "title": "Outline of Note1-1"
             }
+          },
+          {
+            "id": "05a23eb56974ce1f",
+            "type": "leaf",
+            "state": {
+              "type": "ginko-file-graph-view",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "Vault Files Graph"
+            }
           }
         ],
-        "currentTab": 3
+        "currentTab": 4
       }
     ],
     "direction": "horizontal",
@@ -171,11 +181,11 @@
       "ginko-web:Show Vault Files Graph": false
     }
   },
-  "active": "7082390064509056",
+  "active": "05a23eb56974ce1f",
   "lastOpenFiles": [
     "Folder1/_meta.md",
-    "Folder1/Note1.md",
     "Folder1/Folder1-1/Note1-1.md",
+    "Folder1/Note1.md",
     "Folder2/Folder2-1/Note2-1.md",
     "Folder2/Folder2-1/_assets/img2x.png",
     "Folder2/Folder2-1/_assets/img1x.png",
