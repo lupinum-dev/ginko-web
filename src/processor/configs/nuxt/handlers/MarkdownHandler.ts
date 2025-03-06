@@ -36,17 +36,41 @@ class MarkdownModifierAdapter implements ContentModifier {
     this.markdownModifier = new MarkdownModifier(blockModifiers);
   }
 
-  modify(content: string, frontmatter: Record<string, any>): string {
+  // TODO: Improve ERROR message!!
+  modify(content: string, frontmatter: Record<string, any>, sourcePath: string): string {
     // Parse the content into a Ginko AST
-    const ast = parseMarkdown(content);
-    // JSON stringify the ast
-    console.log('ast', JSON.stringify(ast, null, 2))
+    try {
+      const ast = parseMarkdown(content);
 
-    // Apply the markdown modifier
-    const modifiedAst = this.markdownModifier.modify(ast);
-    console.log('modifiedAst', JSON.stringify(modifiedAst, null, 2))
-    // Convert modified AST back to markdown
-    return astToMarkdown(modifiedAst as GinkoAST);
+      // Add defensive check for valid AST
+      if (!ast || typeof ast !== 'object') {
+        console.warn('Invalid AST structure in file:', sourcePath);
+        console.warn(ast)
+        return `# Error Found
+Invalid AST structure detected
+
+\`\`\`\`
+${content}
+\`\`\`\``;
+      }
+
+      // Apply the markdown modifier
+      const modifiedAst = this.markdownModifier.modify(ast);
+
+      // Convert modified AST back to markdown
+      return astToMarkdown(modifiedAst as GinkoAST);
+    } catch (error) {
+      console.warn('Error parsing markdown: in file', sourcePath, error.message);
+      console.warn('Content:', content);
+      console.warn('Error stack:', error.stack);
+
+      return `# Error Found
+Error parsing markdown: ${error.message}
+
+\`\`\`\`
+${content}
+\`\`\`\``;
+    }
   }
 }
 
@@ -137,7 +161,7 @@ export class MarkdownHandler implements FileHandler {
       // Apply all modifiers to the content
       let modifiedContent = content
       for (const modifier of this.modifiers) {
-        modifiedContent = modifier.modify(modifiedContent, frontmatter)
+        modifiedContent = modifier.modify(modifiedContent, frontmatter, sourcePath)
       }
 
       // Remove any empty frontmatter that might have been added by modifiers

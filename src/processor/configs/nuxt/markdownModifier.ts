@@ -186,8 +186,6 @@ export class AssetLinkModifier implements ContentModifier {
             updatedFrontmatter.hero_image = targetPath
           }
 
-          console.log('targetPath', targetPath)
-
           if (isImage) {
             // Build the custom-image component with all properties
             let imageComponent = `:ginko-image{src="${targetPath}" alt="${cleanAltText}"`
@@ -249,7 +247,7 @@ export class AssetLinkModifier implements ContentModifier {
  * Interface for content modifiers that can transform markdown content
  */
 export interface ContentModifier {
-  modify: (content: string, frontmatter: Record<string, any>) => string
+  modify: (content: string, frontmatter: Record<string, any>, sourcePath: string) => string
 
   // add the
 }
