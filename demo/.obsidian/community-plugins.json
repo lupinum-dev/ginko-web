@@ -1,6 +1,6 @@
 [
   "ginko-blocks",
-  "ginko-web",
   "hot-reload",
-  "iconic"
+  "iconic",
+  "ginko-web"
 ]

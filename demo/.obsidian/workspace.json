@@ -20,19 +20,8 @@
               "icon": "lucide-file",
               "title": "Note1-1"
             }
-          },
-          {
-            "id": "c050cbcafc3034ec",
-            "type": "leaf",
-            "state": {
-              "type": "ginko-file-list-view",
-              "state": {},
-              "icon": "lucide-file",
-              "title": "Vault Files"
-            }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -160,13 +149,23 @@
               "icon": "lucide-list",
               "title": "Outline of Note1-1"
             }
+          },
+          {
+            "id": "c62c035c1a52b35c",
+            "type": "leaf",
+            "state": {
+              "type": "ginko-file-graph-view",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "Vault Files Graph"
+            }
           }
         ],
-        "currentTab": 3
+        "currentTab": 4
       }
     ],
     "direction": "horizontal",
-    "width": 962.5
+    "width": 1544.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -177,18 +176,20 @@
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
       "iconic:Open rulebook": false,
-      "ginko-web:Show Vault Files": false
+      "ginko-web:Show Vault Files": false,
+      "ginko-web:Show Vault Files List": false,
+      "ginko-web:Show Vault Files Graph": false
     }
   },
-  "active": "c050cbcafc3034ec",
+  "active": "c62c035c1a52b35c",
   "lastOpenFiles": [
     "Folder1/_meta.md",
+    "Folder1/Note1.md",
     "Folder1/Folder1-1/Note1-1.md",
     "Folder2/Folder2-1/Note2-1.md",
     "Folder2/Folder2-1/_assets/img2x.png",
     "Folder2/Folder2-1/_assets/img1x.png",
     "Folder2/Folder2-1/_meta.md",
-    "Folder1/Note1.md",
     "Folder1/_assets/img1.png",
     "Folder2/Note2.md",
     "Folder2/Folder2-1/_assets",

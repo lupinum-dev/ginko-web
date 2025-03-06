@@ -1,31 +1,35 @@
 import { Plugin, ItemView, WorkspaceLeaf } from 'obsidian'
 import { setupFileWatcher } from './processor/services/fileWatcher'
 import { createApp } from 'vue'
-import FileListView from './components/FileListView.vue'
+import FileGraphView from './components/FileGraphView.vue'
 
-// Define a view type for our file list
-const FILE_LIST_VIEW_TYPE = 'ginko-file-list-view';
+// Define view types
+const FILE_GRAPH_VIEW_TYPE = 'ginko-file-graph-view';
 
 export default class GinkoWebPlugin extends Plugin {
   async onload() {
     this.registerCommands()
-    setupFileWatcher(this, this.app)
     
-    // Register the custom view
+    // Only setup file watcher if the service exists
+    if (typeof setupFileWatcher === 'function') {
+      setupFileWatcher(this, this.app)
+    }
+    
+    // Register the graph view
     this.registerView(
-      FILE_LIST_VIEW_TYPE,
-      (leaf) => new GinkoFileListView(leaf, this.app)
+      FILE_GRAPH_VIEW_TYPE,
+      (leaf) => new GinkoFileGraphView(leaf, this.app)
     );
     
-    // Add a ribbon icon to open the file list view
-    this.addRibbonIcon('folder', 'Show Vault Files', () => {
-      this.activateView();
+    // Add a ribbon icon to open the file graph view
+    this.addRibbonIcon('network', 'Show Vault Files Graph', () => {
+      this.activateView(FILE_GRAPH_VIEW_TYPE);
     });
   }
 
   onunload() {
-    // Deregister the view
-    this.app.workspace.detachLeavesOfType(FILE_LIST_VIEW_TYPE);
+    // Deregister the views
+    this.app.workspace.detachLeavesOfType(FILE_GRAPH_VIEW_TYPE);
   }
 
   async loadSettings() {
@@ -41,41 +45,47 @@ export default class GinkoWebPlugin extends Plugin {
   }
 
   private registerBasicCommands() {
-    // Add a command to open the file list view
+    // Add a command to open the file graph view
     this.addCommand({
-      id: 'open-file-list-view',
-      name: 'Open File List View',
+      id: 'open-file-graph-view',
+      name: 'Open File Graph View',
       callback: () => {
-        this.activateView();
+        this.activateView(FILE_GRAPH_VIEW_TYPE);
       }
     });
   }
   
-  // Helper method to activate the file list view
-  async activateView() {
-    const { workspace } = this.app;
-    
-    // Check if view is already open
-    const existingLeaves = workspace.getLeavesOfType(FILE_LIST_VIEW_TYPE);
-    if (existingLeaves.length > 0) {
-      // If it exists, reveal it
-      workspace.revealLeaf(existingLeaves[0]);
-      return;
+  // Helper method to activate a view
+  async activateView(viewType: string) {
+    try {
+      const { workspace } = this.app;
+      
+      // Check if view is already open
+      const existingLeaves = workspace.getLeavesOfType(viewType);
+      if (existingLeaves.length > 0) {
+        // If it exists, reveal it
+        workspace.revealLeaf(existingLeaves[0]);
+        return;
+      }
+      
+      // Otherwise, create a new leaf in the right sidebar
+      const leaf = workspace.getRightLeaf(false);
+      if (leaf) {
+        await leaf.setViewState({
+          type: viewType,
+          active: true,
+        });
+        
+        workspace.revealLeaf(leaf);
+      }
+    } catch (error) {
+      console.error(`Failed to activate view ${viewType}:`, error);
     }
-    
-    // Otherwise, create a new leaf in the right sidebar
-    const leaf = workspace.getRightLeaf(false);
-    await leaf.setViewState({
-      type: FILE_LIST_VIEW_TYPE,
-      active: true,
-    });
-    
-    workspace.revealLeaf(leaf);
   }
 }
 
-// Custom view class for the file list
-class GinkoFileListView extends ItemView {
+// Custom view class for the file graph
+class GinkoFileGraphView extends ItemView {
   private vueApp: any;
   private obsidianApp: any;
   
@@ -85,29 +95,72 @@ class GinkoFileListView extends ItemView {
   }
   
   getViewType(): string {
-    return FILE_LIST_VIEW_TYPE;
+    return FILE_GRAPH_VIEW_TYPE;
   }
   
   getDisplayText(): string {
-    return 'Vault Files';
+    return 'Vault Files Graph';
   }
   
   async onOpen() {
-    const container = this.containerEl.children[1];
-    container.empty();
-    
-    // Create a div for the Vue app
-    const vueContainer = container.createDiv({ cls: 'ginko-file-list-container' });
-    
-    // Mount the Vue app
-    this.vueApp = createApp(FileListView, { app: this.obsidianApp });
-    this.vueApp.mount(vueContainer);
+    try {
+      const container = this.containerEl.children[1];
+      container.empty();
+      
+      // Create a div for the Vue app
+      const vueContainer = container.createDiv({ cls: 'ginko-file-graph-container' });
+      
+      // Create a simple app object with only the necessary properties
+      const safeApp = {
+        vault: {
+          getAllLoadedFiles: () => {
+            // Create a safe copy of the files to avoid proxy issues
+            const files = this.obsidianApp.vault.getAllLoadedFiles();
+            return files.map(file => {
+              try {
+                return {
+                  name: file.name,
+                  path: file.path,
+                  extension: file.extension || '',
+                  children: file.children || null,
+                  stat: file.stat ? {
+                    size: file.stat.size,
+                    mtime: file.stat.mtime
+                  } : null
+                };
+              } catch (error) {
+                console.error('Error creating safe file copy:', error);
+                return {
+                  name: '',
+                  path: '',
+                  extension: '',
+                  children: null,
+                  stat: null
+                };
+              }
+            });
+          }
+        }
+      };
+      
+      // Mount the Vue app with the safe app object
+      this.vueApp = createApp(FileGraphView, { app: safeApp });
+      this.vueApp.mount(vueContainer);
+      
+      console.log('FileGraphView component mounted successfully');
+    } catch (error) {
+      console.error('Error opening FileGraphView:', error);
+    }
   }
   
   async onClose() {
     // Unmount the Vue app when the view is closed
     if (this.vueApp) {
-      this.vueApp.unmount();
+      try {
+        this.vueApp.unmount();
+      } catch (error) {
+        console.error('Error unmounting Vue app:', error);
+      }
     }
   }
 }
