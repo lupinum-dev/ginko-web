@@ -1,9 +1,9 @@
 {
-	"id": "ginko-web",
-	"name": "Ginko Web",
-	"version": "0.0.6",
-	"minAppVersion": "0.15.0",
-	"description": "Ginko Web is a plugin that allows you to publish your Obsidian notes to the web.",
-	"authorUrl": "https://www.lupinum.com",
-	"isDesktopOnly": false
+  "id": "ginko-web",
+  "name": "Ginko Web",
+  "version": "0.0.6",
+  "minAppVersion": "0.15.0",
+  "description": "Ginko Web is a plugin that allows you to publish your Obsidian notes to the web.",
+  "authorUrl": "https://www.lupinum.com",
+  "isDesktopOnly": false
 }
