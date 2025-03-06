@@ -67,10 +67,46 @@ export class fileNote extends fileBase {
   }
 
   /**
+   * Get meta file dependencies - a note depends on _meta.md files in its
+   * directory and all parent directories
+   * @returns Array of meta file paths that this note depends on
+   */
+  getMetaDependencies(): string[] {
+    const dependencies: string[] = [];
+    const dirParts = path.dirname(this.relativePath).split('/');
+    
+    // Build path components for the current directory and all parent directories
+    let currentPath = '';
+    for (let i = 0; i < dirParts.length; i++) {
+      if (dirParts[i]) {
+        if (currentPath) {
+          currentPath += '/';
+        }
+        currentPath += dirParts[i];
+        
+        // Add dependency on _meta.md in this directory
+        const metaPath = `${currentPath}/_meta.md`;
+        dependencies.push(metaPath);
+      }
+    }
+    
+    return dependencies;
+  }
+
+  /**
    * Get all dependencies for this note 
    * @returns Array of dependency paths
    */
   getDependencies(): string[] {
+    // We don't combine these arrays here so the caller can distinguish types
+    return this.getImageDependencies();
+  }
+  
+  /**
+   * Get asset dependencies specifically
+   * @returns Array of asset dependencies
+   */
+  getAssetDependencies(): string[] {
     return this.getImageDependencies();
   }
 

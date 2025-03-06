@@ -85,23 +85,36 @@ export class DependencyManager {
     this.files.forEach(file => {
       // Only note files can have dependencies
       if (file instanceof fileNote) {
-        const dependencies = file.getDependencies();
+        // Process asset dependencies (images)
+        const assetDependencies = file.getAssetDependencies();
+        this.addEdgesToGraph(file.getRelativePath(), assetDependencies, 'depends_on_asset');
         
-        // For each dependency, create an edge if the target exists
-        dependencies.forEach(dep => {
-          if (this.graph.hasNode(dep)) {
-            const edgeId = `geid_${this.edgeIdCounter}_${this.graph.size}`;
-            this.graph.addEdge(
-              file.getRelativePath(), 
-              dep, 
-              {
-                key: edgeId,
-                type: 'depends_on'
-              } as EdgeAttributes
-            );
-            this.edgeIdCounter++;
-          }
-        });
+        // Process meta file dependencies (_meta.md files)
+        const metaDependencies = file.getMetaDependencies();
+        this.addEdgesToGraph(file.getRelativePath(), metaDependencies, 'depends_on_meta');
+      }
+    });
+  }
+
+  /**
+   * Add edges to the graph for a given source, targets, and dependency type
+   * @param source Source node key
+   * @param targets Array of target node keys
+   * @param dependencyType Type of dependency relationship
+   */
+  private addEdgesToGraph(source: string, targets: string[], dependencyType: string): void {
+    targets.forEach(target => {
+      if (this.graph.hasNode(target)) {
+        const edgeId = `geid_${this.edgeIdCounter}_${this.graph.size}`;
+        this.graph.addEdge(
+          source,
+          target,
+          {
+            key: edgeId,
+            type: dependencyType
+          } as EdgeAttributes
+        );
+        this.edgeIdCounter++;
       }
     });
   }
