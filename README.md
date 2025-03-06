@@ -102,3 +102,11 @@ We welcome contributions! Feel free to:
 - Improve documentation
 
 Copyright 2025 <a href="www.lupinum.com">Lupinum OG</a>
+
+## Development
+
+This project uses Vite as its bundler. To get started with development:
+
+1. Clone the repository
+2. Install dependencies with `npm install` or `pnpm install`
+3. Run `npm run dev` or `pnpm dev` to start the development server with watch mode
