@@ -1,12 +1,12 @@
-import { File } from './file';
+import { fileBase } from './fileBase';
 
 /**
- * AssetFile class
+ * fileAsset class
  * Represents binary assets like images that can be referenced by notes
  */
-export class AssetFile extends File {
+export class fileAsset extends fileBase {
   /**
-   * Creates a new AssetFile instance
+   * Creates a new fileAsset instance
    * @param path - Absolute file path
    * @param name - File name
    * @param relativePath - Path relative to the root directory

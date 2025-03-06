@@ -1,13 +1,13 @@
 /**
- * Base File class
+ * Base fileBase class
  * Represents a file in the dependency graph
  */
-export abstract class File {
+export abstract class fileBase {
   /**
-   * Creates a new File instance
+   * Creates a new fileBase instance
    * @param path - Absolute file path
    * @param relativePath - Path relative to the root directory
-   * @param name - File name
+   * @param name - fileBase name
    */
   constructor(
     protected path: string,

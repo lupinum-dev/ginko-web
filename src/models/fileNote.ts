@@ -1,15 +1,15 @@
-import { File } from './file';
-import path from 'path';
+import { fileBase } from './fileBase';
+import * as path from 'path';
 
 /**
  * NoteFile class
  * Represents markdown notes that may have dependencies on other files
  */
-export class NoteFile extends File {
+export class fileNote extends fileBase {
   private content: string;
 
   /**
-   * Creates a new NoteFile instance
+   * Creates a new fileNote instance
    * @param path - Absolute file path
    * @param name - File name
    * @param content - Markdown content

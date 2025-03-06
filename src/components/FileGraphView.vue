@@ -11,7 +11,7 @@
 import { ref, onMounted, watch, computed, reactive } from 'vue';
 import FileGraph from './FileGraph.vue';
 import { DependencyManager } from '../services/dependencyManager';
-import { File, NoteFile, AssetFile, MetaFile } from '../models';
+import { fileBase, fileMeta, fileNote, fileAsset } from '../models';
 import { App } from 'obsidian';
 
 // Define props
@@ -24,7 +24,7 @@ const props = defineProps<Props>();
 // Reactive state
 const loading = ref(true);
 const graphData = ref<any>(null);
-const files = ref<File[]>([]);
+const files = ref<fileBase[]>([]);
 const dependencyManager = new DependencyManager();
 
 // Watch for app changes with safeguards
@@ -78,7 +78,7 @@ async function loadFiles() {
     files.value = await processObsidianFiles(allFiles);
     
     // Build the dependency graph
-    dependencyManager.setFiles(files.value as File[]);
+    dependencyManager.setFiles(files.value as fileBase[]);
     dependencyManager.buildGraph();
     graphData.value = dependencyManager.getGraphAsJson();
     
@@ -95,8 +95,8 @@ async function loadFiles() {
 }
 
 // Process Obsidian files into our model classes
-async function processObsidianFiles(obsidianFiles: any[]): Promise<File[]> {
-  const processedFiles: File[] = [];
+async function processObsidianFiles(obsidianFiles: any[]): Promise<fileBase[]> {
+  const processedFiles: fileBase[] = [];
   
   // Process each file from Obsidian
   for (const file of obsidianFiles) {
@@ -122,7 +122,7 @@ async function processObsidianFiles(obsidianFiles: any[]): Promise<File[]> {
       // Process different file types
       if (filePath.endsWith('_meta.md')) {
         // Meta file
-        processedFiles.push(new MetaFile(absolutePath, name, filePath));
+        processedFiles.push(new fileMeta(absolutePath, name, filePath));
       } else if (extension === 'md') {
         // Note file - fetch content for dependency extraction
         let content = '';
@@ -132,10 +132,10 @@ async function processObsidianFiles(obsidianFiles: any[]): Promise<File[]> {
           console.warn(`Could not read file content for ${filePath}:`, readError);
         }
         
-        processedFiles.push(new NoteFile(absolutePath, name, content, filePath));
+        processedFiles.push(new fileNote(absolutePath, name, content, filePath));
       } else if (['png', 'jpg', 'jpeg', 'gif', 'svg'].includes(extension.toLowerCase())) {
         // Asset file
-        processedFiles.push(new AssetFile(absolutePath, name, filePath));
+        processedFiles.push(new fileAsset(absolutePath, name, filePath));
       }
       // Other file types can be processed here as needed
       

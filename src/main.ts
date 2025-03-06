@@ -111,68 +111,9 @@ class GinkoFileGraphView extends ItemView {
       // Create a div for the Vue app
       const vueContainer = container.createDiv({ cls: 'ginko-file-graph-container' });
       
-      // Create a simple app object with only the necessary properties
-      const safeApp = {
-        vault: {
-          getAllLoadedFiles: () => {
-            // Create a safe copy of the files to avoid proxy issues
-            const files = this.obsidianApp.vault.getAllLoadedFiles();
-            return files.map((file: any) => {
-              try {
-                return {
-                  name: file.name,
-                  path: file.path,
-                  extension: file.extension || '',
-                  children: file.children || null,
-                  stat: file.stat ? {
-                    size: file.stat.size,
-                    mtime: file.stat.mtime
-                  } : null
-                };
-              } catch (error) {
-                console.error('Error creating safe file copy:', error);
-                return {
-                  name: '',
-                  path: '',
-                  extension: '',
-                  children: null,
-                  stat: null
-                };
-              }
-            });
-          },
-          getAbstractFileByPath: (path: string) => {
-            // Safely proxy the getAbstractFileByPath method
-            try {
-              return this.obsidianApp.vault.getAbstractFileByPath(path);
-            } catch (error) {
-              console.error('Error getting file by path:', error);
-              return null;
-            }
-          },
-          cachedRead: async (file: any) => {
-            // Safely proxy the cachedRead method from the obsidian app
-            try {
-              // If we received a simplified file object, we need to get the original file
-              if (file && typeof file === 'object' && file.path) {
-                // Find the original file by path
-                const originalFile = this.obsidianApp.vault.getAbstractFileByPath(file.path);
-                if (originalFile) {
-                  return await this.obsidianApp.vault.cachedRead(originalFile);
-                }
-              }
-              // Fallback to direct call if the file is already a proper Obsidian file object
-              return await this.obsidianApp.vault.cachedRead(file);
-            } catch (error) {
-              console.error('Error reading file:', error);
-              return '';
-            }
-          }
-        }
-      };
       
       // Mount the Vue app with the safe app object
-      this.vueApp = createApp(FileGraphView, { app: safeApp });
+      this.vueApp = createApp(FileGraphView, { app: this.obsidianApp });
       this.vueApp.mount(vueContainer);
       
       console.log('FileGraphView component mounted successfully');

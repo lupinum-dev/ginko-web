@@ -1,5 +1,5 @@
 import type { App, TAbstractFile } from 'obsidian'
-import type GinkoWebPlugin from '../../main'
+import GinkoWebPlugin from '../main'
 
 export function setupFileWatcher(plugin: GinkoWebPlugin, app: App) {
   app.workspace.onLayoutReady(() => {

@@ -1,5 +1,5 @@
 import Graph from 'graphology';
-import { File, NoteFile, AssetFile, MetaFile } from '../models';
+import { fileBase, fileNote, fileAsset, fileMeta } from '../models';
 
 // Define the interface for node attributes
 interface NodeAttributes {
@@ -18,7 +18,7 @@ interface EdgeAttributes {
  */
 export class DependencyManager {
   private graph: Graph;
-  private files: File[] = [];
+  private files: fileBase[] = [];
   private edgeIdCounter: number = 0;
 
   /**
@@ -37,7 +37,7 @@ export class DependencyManager {
    * Set the files to be used for building the graph
    * @param files Array of File objects
    */
-  setFiles(files: File[]): void {
+  setFiles(files: fileBase[]): void {
     this.files = files;
   }
 
@@ -84,7 +84,7 @@ export class DependencyManager {
     // Process each file to check for dependencies
     this.files.forEach(file => {
       // Only note files can have dependencies
-      if (file instanceof NoteFile) {
+      if (file instanceof fileNote) {
         const dependencies = file.getDependencies();
         
         // For each dependency, create an edge if the target exists
@@ -126,7 +126,7 @@ export class DependencyManager {
    * Get all files
    * @returns Array of files
    */
-  getFiles(): File[] {
+  getFiles(): fileBase[] {
     return this.files;
   }
 }

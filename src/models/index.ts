@@ -1,9 +1,4 @@
-/**
- * File model exports
- */
-
-// Export all file models
-export * from './file';
-export * from './metaFile';
-export * from './noteFile';
-export * from './assetFile';
+export * from './fileBase';
+export * from './fileMeta';
+export * from './fileNote';
+export * from './fileAsset';

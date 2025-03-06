@@ -151,7 +151,7 @@
             }
           },
           {
-            "id": "05a23eb56974ce1f",
+            "id": "d2e5977a45542cde",
             "type": "leaf",
             "state": {
               "type": "ginko-file-graph-view",
@@ -181,7 +181,7 @@
       "ginko-web:Show Vault Files Graph": false
     }
   },
-  "active": "05a23eb56974ce1f",
+  "active": "d2e5977a45542cde",
   "lastOpenFiles": [
     "Folder1/_meta.md",
     "Folder1/Folder1-1/Note1-1.md",

@@ -297,11 +297,11 @@ function getNodeRadius(node) {
   if (!node) return 8;
   
   switch (node.type) {
-    case 'NoteFile':
+    case 'fileNote':
       return 10;
-    case 'MetaFile':
+    case 'fileMeta':
       return 8;
-    case 'AssetFile':
+    case 'fileAsset':
       return 6;
     default:
       return 8;

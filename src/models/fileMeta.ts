@@ -1,12 +1,12 @@
-import { File } from './file';
+import { fileBase } from './fileBase';
 
 /**
- * MetaFile class
+ * fileMeta class
  * Represents metadata files for folders (typically _meta.md files)
  */
-export class MetaFile extends File {
+export class fileMeta extends fileBase {
   /**
-   * Creates a new MetaFile instance
+   * Creates a new fileMeta instance
    * @param path - Absolute file path
    * @param name - File name
    * @param relativePath - Path relative to the root directory
