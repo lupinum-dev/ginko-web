@@ -1,0 +1,470 @@
+{
+  "source": {
+    "name": "demo",
+    "type": "folder",
+    "path": "/Users/matthias/Git/2025/ginko-web/demo",
+    "children": [
+      {
+        "name": "AA",
+        "type": "folder",
+        "path": "/Users/matthias/Git/2025/ginko-web/demo/AA",
+        "children": [
+          {
+            "name": "B",
+            "type": "folder",
+            "path": "/Users/matthias/Git/2025/ginko-web/demo/AA/B",
+            "children": [
+              {
+                "name": "C",
+                "type": "folder",
+                "path": "/Users/matthias/Git/2025/ginko-web/demo/AA/B/C",
+                "children": [
+                  {
+                    "name": "n3.md",
+                    "type": "file",
+                    "path": "/Users/matthias/Git/2025/ginko-web/demo/AA/B/C/n3.md",
+                    "extension": "md",
+                    "content": "![](AA/_assets/aa1.png)![](Z/X/_assets/x1.png)"
+                  }
+                ]
+              },
+              {
+                "name": "_assets",
+                "type": "folder",
+                "path": "/Users/matthias/Git/2025/ginko-web/demo/AA/B/_assets",
+                "children": [
+                  {
+                    "name": "aa3.png",
+                    "type": "file",
+                    "path": "/Users/matthias/Git/2025/ginko-web/demo/AA/B/_assets/aa3.png",
+                    "extension": "png"
+                  }
+                ]
+              },
+              {
+                "name": "_meta.md",
+                "type": "file",
+                "path": "/Users/matthias/Git/2025/ginko-web/demo/AA/B/_meta.md",
+                "extension": "md",
+                "content": "---\nslug: test\ngroup: true\n---\n"
+              },
+              {
+                "name": "n2.md",
+                "type": "file",
+                "path": "/Users/matthias/Git/2025/ginko-web/demo/AA/B/n2.md",
+                "extension": "md",
+                "content": "Note 2"
+              }
+            ]
+          },
+          {
+            "name": "_assets",
+            "type": "folder",
+            "path": "/Users/matthias/Git/2025/ginko-web/demo/AA/_assets",
+            "children": [
+              {
+                "name": "aa1.png",
+                "type": "file",
+                "path": "/Users/matthias/Git/2025/ginko-web/demo/AA/_assets/aa1.png",
+                "extension": "png"
+              },
+              {
+                "name": "aa2.png",
+                "type": "file",
+                "path": "/Users/matthias/Git/2025/ginko-web/demo/AA/_assets/aa2.png",
+                "extension": "png"
+              }
+            ]
+          },
+          {
+            "name": "n1.md",
+            "type": "file",
+            "path": "/Users/matthias/Git/2025/ginko-web/demo/AA/n1.md",
+            "extension": "md",
+            "content": "# Note 1\n\nThis is a test note with some embedded images.\n![](AA/_assets/aa1.png)\n![](AA/B/_assets/aa3.png)"
+          }
+        ]
+      },
+      {
+        "name": "Z",
+        "type": "folder",
+        "path": "/Users/matthias/Git/2025/ginko-web/demo/Z",
+        "children": [
+          {
+            "name": "N1+",
+            "type": "folder",
+            "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/N1+",
+            "children": [
+              {
+                "name": "n1-deutsch__de.md",
+                "type": "file",
+                "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/N1+/n1-deutsch__de.md",
+                "extension": "md",
+                "content": "Deutsch Content here\n![](AA/_assets/aa1.png)![](Z/X/_assets/x1.png)"
+              },
+              {
+                "name": "n1-english__en.md",
+                "type": "file",
+                "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/N1+/n1-english__en.md",
+                "extension": "md",
+                "content": "English Content here\n![](AA/_assets/aa1.png)![](Z/X/_assets/x1.png)"
+              }
+            ]
+          },
+          {
+            "name": "X",
+            "type": "folder",
+            "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/X",
+            "children": [
+              {
+                "name": "Y",
+                "type": "folder",
+                "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/X/Y",
+                "children": [
+                  {
+                    "name": "1. n3 - 758e6953+",
+                    "type": "folder",
+                    "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/X/Y/1. n3 - 758e6953+",
+                    "children": [
+                      {
+                        "name": "n3__de.md",
+                        "type": "file",
+                        "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/X/Y/1. n3 - 758e6953+/n3__de.md",
+                        "extension": "md",
+                        "content": "Content"
+                      },
+                      {
+                        "name": "n3__en.md",
+                        "type": "file",
+                        "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/X/Y/1. n3 - 758e6953+/n3__en.md",
+                        "extension": "md",
+                        "content": "Content"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "2.n4 - a94f347f+",
+                    "type": "folder",
+                    "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/X/Y/2.n4 - a94f347f+",
+                    "children": [
+                      {
+                        "name": "n3__de.md",
+                        "type": "file",
+                        "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/X/Y/2.n4 - a94f347f+/n3__de.md",
+                        "extension": "md",
+                        "content": "Content"
+                      },
+                      {
+                        "name": "n3__en.md",
+                        "type": "file",
+                        "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/X/Y/2.n4 - a94f347f+/n3__en.md",
+                        "extension": "md",
+                        "content": "Content"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "_meta.md",
+                    "type": "file",
+                    "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/X/Y/_meta.md",
+                    "extension": "md",
+                    "content": "---\nslug__de: slug-de\nslug__en: slug-en\naddtional-prop: yes\n---\n"
+                  }
+                ]
+              },
+              {
+                "name": "_assets",
+                "type": "folder",
+                "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/X/_assets",
+                "children": [
+                  {
+                    "name": "x1.png",
+                    "type": "file",
+                    "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/X/_assets/x1.png",
+                    "extension": "png"
+                  },
+                  {
+                    "name": "x2.png",
+                    "type": "file",
+                    "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/X/_assets/x2.png",
+                    "extension": "png"
+                  }
+                ]
+              },
+              {
+                "name": "_meta.md",
+                "type": "file",
+                "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/X/_meta.md",
+                "extension": "md",
+                "content": "---\nslug__en: english\nslug__de: deutsch\ngroup: true\n---\n"
+              },
+              {
+                "name": "n2+",
+                "type": "folder",
+                "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/X/n2+",
+                "children": [
+                  {
+                    "name": "n2__de.md",
+                    "type": "file",
+                    "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/X/n2+/n2__de.md",
+                    "extension": "md",
+                    "content": "Written Content here - DE\n![](Z/X/_assets/x1.png)![](Z/X/_assets/x2.png)"
+                  },
+                  {
+                    "name": "n2__en.md",
+                    "type": "file",
+                    "path": "/Users/matthias/Git/2025/ginko-web/demo/Z/X/n2+/n2__en.md",
+                    "extension": "md",
+                    "content": "Written Content here - EN\n![](Z/X/_assets/x1.png)![](Z/X/_assets/x2.png)"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "target": {
+    "name": "target",
+    "type": "folder",
+    "path": "/Users/matthias/Git/2025/ginko-web/target",
+    "children": [
+      {
+        "name": "content",
+        "type": "folder",
+        "path": "/Users/matthias/Git/2025/ginko-web/target/content",
+        "children": [
+          {
+            "name": "AA",
+            "type": "folder",
+            "path": "/Users/matthias/Git/2025/ginko-web/target/content/AA",
+            "children": [
+              {
+                "name": "n1.md",
+                "type": "file",
+                "path": "/Users/matthias/Git/2025/ginko-web/target/content/AA/n1.md",
+                "extension": "md",
+                "content": "# Note 1\n\nThis is a test note with some embedded images.\n![](/_assets/5af5bd24cdd372f8e8d4295082b5c379.png)}\n![](/_assets/c17653b9bf85fea0554f1a945b1b9c83.png)}"
+              },
+              {
+                "name": "test",
+                "type": "folder",
+                "path": "/Users/matthias/Git/2025/ginko-web/target/content/AA/test",
+                "children": [
+                  {
+                    "name": ".navigation.json",
+                    "type": "file",
+                    "path": "/Users/matthias/Git/2025/ginko-web/target/content/AA/test/.navigation.json",
+                    "extension": "json"
+                  },
+                  {
+                    "name": "C",
+                    "type": "folder",
+                    "path": "/Users/matthias/Git/2025/ginko-web/target/content/AA/test/C",
+                    "children": [
+                      {
+                        "name": "n3.md",
+                        "type": "file",
+                        "path": "/Users/matthias/Git/2025/ginko-web/target/content/AA/test/C/n3.md",
+                        "extension": "md",
+                        "content": "![](/_assets/5af5bd24cdd372f8e8d4295082b5c379.png)}![](/_assets/6927a3982362e9113478c881a815843d.png)}"
+                      }
+                    ]
+                  },
+                  {
+                    "name": "n2.md",
+                    "type": "file",
+                    "path": "/Users/matthias/Git/2025/ginko-web/target/content/AA/test/n2.md",
+                    "extension": "md",
+                    "content": "Note 2"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "de",
+            "type": "folder",
+            "path": "/Users/matthias/Git/2025/ginko-web/target/content/de",
+            "children": [
+              {
+                "name": "Z",
+                "type": "folder",
+                "path": "/Users/matthias/Git/2025/ginko-web/target/content/de/Z",
+                "children": [
+                  {
+                    "name": "deutsch",
+                    "type": "folder",
+                    "path": "/Users/matthias/Git/2025/ginko-web/target/content/de/Z/deutsch",
+                    "children": [
+                      {
+                        "name": ".navigation.json",
+                        "type": "file",
+                        "path": "/Users/matthias/Git/2025/ginko-web/target/content/de/Z/deutsch/.navigation.json",
+                        "extension": "json"
+                      },
+                      {
+                        "name": "n2.md",
+                        "type": "file",
+                        "path": "/Users/matthias/Git/2025/ginko-web/target/content/de/Z/deutsch/n2.md",
+                        "extension": "md",
+                        "content": "Written Content here - DE\n![](/_assets/6927a3982362e9113478c881a815843d.png)}![](/_assets/4b8714d30a66555fc6b12675ca324aac.png)}"
+                      },
+                      {
+                        "name": "slug-de",
+                        "type": "folder",
+                        "path": "/Users/matthias/Git/2025/ginko-web/target/content/de/Z/deutsch/slug-de",
+                        "children": [
+                          {
+                            "name": ".navigation.json",
+                            "type": "file",
+                            "path": "/Users/matthias/Git/2025/ginko-web/target/content/de/Z/deutsch/slug-de/.navigation.json",
+                            "extension": "json"
+                          },
+                          {
+                            "name": "1.n3-758e6953.md",
+                            "type": "file",
+                            "path": "/Users/matthias/Git/2025/ginko-web/target/content/de/Z/deutsch/slug-de/1.n3-758e6953.md",
+                            "extension": "md",
+                            "content": "Content"
+                          },
+                          {
+                            "name": "2.n3-a94f347f.md",
+                            "type": "file",
+                            "path": "/Users/matthias/Git/2025/ginko-web/target/content/de/Z/deutsch/slug-de/2.n3-a94f347f.md",
+                            "extension": "md",
+                            "content": "Content"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "n1-deutsch.md",
+                    "type": "file",
+                    "path": "/Users/matthias/Git/2025/ginko-web/target/content/de/Z/n1-deutsch.md",
+                    "extension": "md",
+                    "content": "Deutsch Content here\n![](/_assets/5af5bd24cdd372f8e8d4295082b5c379.png)}![](/_assets/6927a3982362e9113478c881a815843d.png)}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "name": "en",
+            "type": "folder",
+            "path": "/Users/matthias/Git/2025/ginko-web/target/content/en",
+            "children": [
+              {
+                "name": "Z",
+                "type": "folder",
+                "path": "/Users/matthias/Git/2025/ginko-web/target/content/en/Z",
+                "children": [
+                  {
+                    "name": "english",
+                    "type": "folder",
+                    "path": "/Users/matthias/Git/2025/ginko-web/target/content/en/Z/english",
+                    "children": [
+                      {
+                        "name": ".navigation.json",
+                        "type": "file",
+                        "path": "/Users/matthias/Git/2025/ginko-web/target/content/en/Z/english/.navigation.json",
+                        "extension": "json"
+                      },
+                      {
+                        "name": "n2.md",
+                        "type": "file",
+                        "path": "/Users/matthias/Git/2025/ginko-web/target/content/en/Z/english/n2.md",
+                        "extension": "md",
+                        "content": "Written Content here - EN\n![](/_assets/6927a3982362e9113478c881a815843d.png)}![](/_assets/4b8714d30a66555fc6b12675ca324aac.png)}"
+                      },
+                      {
+                        "name": "slug-en",
+                        "type": "folder",
+                        "path": "/Users/matthias/Git/2025/ginko-web/target/content/en/Z/english/slug-en",
+                        "children": [
+                          {
+                            "name": ".navigation.json",
+                            "type": "file",
+                            "path": "/Users/matthias/Git/2025/ginko-web/target/content/en/Z/english/slug-en/.navigation.json",
+                            "extension": "json"
+                          },
+                          {
+                            "name": "1.n3-758e6953.md",
+                            "type": "file",
+                            "path": "/Users/matthias/Git/2025/ginko-web/target/content/en/Z/english/slug-en/1.n3-758e6953.md",
+                            "extension": "md",
+                            "content": "Content"
+                          },
+                          {
+                            "name": "2.n3-a94f347f.md",
+                            "type": "file",
+                            "path": "/Users/matthias/Git/2025/ginko-web/target/content/en/Z/english/slug-en/2.n3-a94f347f.md",
+                            "extension": "md",
+                            "content": "Content"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "n1-english.md",
+                    "type": "file",
+                    "path": "/Users/matthias/Git/2025/ginko-web/target/content/en/Z/n1-english.md",
+                    "extension": "md",
+                    "content": "English Content here\n![](/_assets/5af5bd24cdd372f8e8d4295082b5c379.png)}![](/_assets/6927a3982362e9113478c881a815843d.png)}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "public",
+        "type": "folder",
+        "path": "/Users/matthias/Git/2025/ginko-web/target/public",
+        "children": [
+          {
+            "name": "_assets",
+            "type": "folder",
+            "path": "/Users/matthias/Git/2025/ginko-web/target/public/_assets",
+            "children": [
+              {
+                "name": "4b8714d30a66555fc6b12675ca324aac.png",
+                "type": "file",
+                "path": "/Users/matthias/Git/2025/ginko-web/target/public/_assets/4b8714d30a66555fc6b12675ca324aac.png",
+                "extension": "png"
+              },
+              {
+                "name": "5af5bd24cdd372f8e8d4295082b5c379.png",
+                "type": "file",
+                "path": "/Users/matthias/Git/2025/ginko-web/target/public/_assets/5af5bd24cdd372f8e8d4295082b5c379.png",
+                "extension": "png"
+              },
+              {
+                "name": "6927a3982362e9113478c881a815843d.png",
+                "type": "file",
+                "path": "/Users/matthias/Git/2025/ginko-web/target/public/_assets/6927a3982362e9113478c881a815843d.png",
+                "extension": "png"
+              },
+              {
+                "name": "83b741a698174adbe8989326bd46a5ff.png",
+                "type": "file",
+                "path": "/Users/matthias/Git/2025/ginko-web/target/public/_assets/83b741a698174adbe8989326bd46a5ff.png",
+                "extension": "png"
+              },
+              {
+                "name": "c17653b9bf85fea0554f1a945b1b9c83.png",
+                "type": "file",
+                "path": "/Users/matthias/Git/2025/ginko-web/target/public/_assets/c17653b9bf85fea0554f1a945b1b9c83.png",
+                "extension": "png"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
