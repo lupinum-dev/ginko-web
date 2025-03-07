@@ -130,6 +130,8 @@ export default class GinkoWebPlugin extends Plugin {
       handler?: () => Promise<void>
     }
 
+    
+
     // Define ribbon icons with their specific configurations
     const ribbonIcons: RibbonIcon[] = [
       { id: 'upload', name: 'Ginko Process' },

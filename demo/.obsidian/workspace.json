@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "AA/_meta.md",
+                "file": "Z/X/_meta.md",
                 "mode": "source",
                 "source": false
               },
@@ -140,7 +140,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "AA/_meta.md",
+                "file": "Z/X/_meta.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -173,8 +173,9 @@
   },
   "active": "c3b96c46ec44739f",
   "lastOpenFiles": [
-    "Z/X/_meta.md",
     "Z/X/Y/_meta.md",
+    "AA/B/_meta.md",
+    "Z/X/_meta.md",
     "Z/X/Y/n3+/n3__de.md",
     "Z/X/n2+/n2__en.md",
     "Z/X/n2+/n2__de.md",
@@ -190,7 +191,6 @@
     "AA/B/_assets/Ginko Blocks.png",
     "AA/B/_assets/aa3.png",
     "AA/_assets/aa2.png",
-    "AA/_meta.md",
     "AA/B/C/New Note.md",
     "Z/X/_assets/img2x.png",
     "AA/_assets/img2.png",
