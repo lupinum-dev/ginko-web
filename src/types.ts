@@ -1,69 +1,36 @@
-// types.ts
-import { TFile, TFolder } from 'obsidian';
+// src/types.ts
+import type { TFile } from 'obsidian';
 
-/**
- * Supported event types from Obsidian vault
- */
 export type EventType = 'create' | 'modify' | 'delete' | 'rename';
+export type FileType = 'markdown' | 'meta' | 'asset' | 'unknown';
 
-/**
- * Supported frameworks for target projects
- */
-export type Framework = 'generic' | 'nextjs' | 'nuxtjs' | 'custom';
-
-/**
- * Event object representing a file operation in the vault
- */
-export interface VaultEvent {
-  type: EventType;
-  file: TFile;
-  timestamp: number;
-  oldPath?: string; // Only for rename events
-}
-
-/**
- * Rule interface that all rule modules must implement
- */
-export interface Rule {
+export interface SyncEvent {
   name: string;
-  targetBase: string;
-  applyRule(filePath: string, operation: EventType, metadata?: Record<string, any>): string;
+  path: string;
+  type: FileType;
+  action: EventType;
+  oldPath?: string;
+  content?: string;
+  timestamp: number;
 }
 
-/**
- * Plugin settings interface
- */
-export interface VaultSyncSettings {
-  framework: Framework;
-  targetBase: string;
-  languages: string[];
-  excludeFolders: string[];
-  debounceTime: number;
+export interface SyncSettings {
+  targetBasePath: string;
+  excludePaths: string[];
   debugMode: boolean;
-  nextjsConfig: {
-    contentDir: string;
-  };
-  nuxtjsConfig: {
-    contentDir: string;
-  };
-  customRules: Record<string, any>;
 }
 
-/**
- * Default settings
- */
-export const DEFAULT_SETTINGS: VaultSyncSettings = {
-  framework: 'generic',
-  targetBase: './content',
-  languages: ['en', 'de', 'fr'],
-  excludeFolders: ['.obsidian', 'templates'],
-  debounceTime: 500,
-  debugMode: false,
-  nextjsConfig: {
-    contentDir: './content'
-  },
-  nuxtjsConfig: {
-    contentDir: './content'
-  },
-  customRules: {}
+export const DEFAULT_SETTINGS: SyncSettings = {
+  targetBasePath: './target',
+  excludePaths: ['.obsidian', '.git', 'node_modules'],
+  debugMode: false
 };
+
+// For testing
+export interface FileSystem {
+  mkdir(path: string, options?: { recursive: boolean }): Promise<void>;
+  writeFile(path: string, content: string, encoding?: string): Promise<void>;
+  readFile(path: string, encoding?: string): Promise<string>;
+  rm(path: string, options?: { recursive: boolean, force: boolean }): Promise<void>;
+  access(path: string): Promise<boolean>;
+}

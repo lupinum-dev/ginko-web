@@ -363,6 +363,5 @@
   "add-asset-to-note": [
     [{"name":"Ginko Blocks.png","path":"AA/B/_assets/Ginko Blocks.png","type":"asset","action":"create"}],
     [{"name":"n2.md","path":"AA/B/n2.md","type":"markdown","action":"modify"}]
-  ],
-  
+  ]
 }
