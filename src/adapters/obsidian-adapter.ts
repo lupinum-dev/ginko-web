@@ -134,4 +134,14 @@ export class ObsidianAdapter {
     
     return 'unknown';
   }
+  
+  // Method to register a custom rule
+  registerRule(rule: any): void {
+    this.syncManager.registerRule(rule);
+  }
+  
+  // Update settings
+  updateSettings(settings: Partial<SyncSettings>): void {
+    this.syncManager.updateSettings(settings);
+  }
 }
