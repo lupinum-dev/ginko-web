@@ -1,0 +1,148 @@
+[
+  [
+    {
+      "name": "aa1.png",
+      "path": "AA/_assets/aa1.png",
+      "type": "asset",
+      "action": "create",
+      "timestamp": 1741372527051
+    },
+    {
+      "name": "aa2.png",
+      "path": "AA/_assets/aa2.png",
+      "type": "asset",
+      "action": "create",
+      "timestamp": 1741372527051
+    },
+    {
+      "name": "_meta.md",
+      "path": "Z/X/_meta.md",
+      "type": "meta",
+      "action": "create",
+      "timestamp": 1741372527052
+    },
+    {
+      "name": "_meta.md",
+      "path": "AA/B/_meta.md",
+      "type": "meta",
+      "action": "create",
+      "timestamp": 1741372527052
+    },
+    {
+      "name": "x2.png",
+      "path": "Z/X/_assets/x2.png",
+      "type": "asset",
+      "action": "create",
+      "timestamp": 1741372527052
+    },
+    {
+      "name": "x1.png",
+      "path": "Z/X/_assets/x1.png",
+      "type": "asset",
+      "action": "create",
+      "timestamp": 1741372527052
+    },
+    {
+      "name": "_meta.md",
+      "path": "Z/X/Y/_meta.md",
+      "type": "meta",
+      "action": "create",
+      "timestamp": 1741372527053
+    },
+    {
+      "name": "aa3.png",
+      "path": "AA/B/_assets/aa3.png",
+      "type": "asset",
+      "action": "create",
+      "timestamp": 1741372527053
+    },
+    {
+      "name": "n1.md",
+      "path": "AA/n1.md",
+      "type": "markdown",
+      "action": "create",
+      "timestamp": 1741372527037,
+      "content": "# Note 1\n\nThis is a test note with some embedded images.\n![](AA/_assets/aa1.png)\n![](AA/B/_assets/aa3.png)"
+    },
+    {
+      "name": "n1-deutsch__de.md",
+      "path": "Z/N1+/n1-deutsch__de.md",
+      "type": "markdown",
+      "action": "create",
+      "timestamp": 1741372527051,
+      "content": "Deutsch Content here\n![](AA/_assets/aa1.png)![](Z/X/_assets/x1.png)"
+    },
+    {
+      "name": "n1-english__en.md",
+      "path": "Z/N1+/n1-english__en.md",
+      "type": "markdown",
+      "action": "create",
+      "timestamp": 1741372527051,
+      "content": "English Content here\n![](AA/_assets/aa1.png)![](Z/X/_assets/x1.png)"
+    },
+    {
+      "name": "n2.md",
+      "path": "AA/B/n2.md",
+      "type": "markdown",
+      "action": "create",
+      "timestamp": 1741372527052,
+      "content": "Note 2"
+    },
+    {
+      "name": "n2__de.md",
+      "path": "Z/X/n2+/n2__de.md",
+      "type": "markdown",
+      "action": "create",
+      "timestamp": 1741372527052,
+      "content": "Written Content here - DE\n![](Z/X/_assets/x1.png)![](Z/X/_assets/x2.png)"
+    },
+    {
+      "name": "n2__en.md",
+      "path": "Z/X/n2+/n2__en.md",
+      "type": "markdown",
+      "action": "create",
+      "timestamp": 1741372527052,
+      "content": "Written Content here - EN\n![](Z/X/_assets/x1.png)![](Z/X/_assets/x2.png)"
+    },
+    {
+      "name": "n3.md",
+      "path": "AA/B/C/n3.md",
+      "type": "markdown",
+      "action": "create",
+      "timestamp": 1741372527052,
+      "content": "![](AA/_assets/aa1.png)![](Z/X/_assets/x1.png)"
+    },
+    {
+      "name": "n3__de.md",
+      "path": "Z/X/Y/2.n4 - a94f347f+/n3__de.md",
+      "type": "markdown",
+      "action": "create",
+      "timestamp": 1741372527053,
+      "content": "Content"
+    },
+    {
+      "name": "n3__en.md",
+      "path": "Z/X/Y/2.n4 - a94f347f+/n3__en.md",
+      "type": "markdown",
+      "action": "create",
+      "timestamp": 1741372527053,
+      "content": "Content"
+    },
+    {
+      "name": "n3__de.md",
+      "path": "Z/X/Y/1. n3 - 758e6953+/n3__de.md",
+      "type": "markdown",
+      "action": "create",
+      "timestamp": 1741372527053,
+      "content": "Content"
+    },
+    {
+      "name": "n3__en.md",
+      "path": "Z/X/Y/1. n3 - 758e6953+/n3__en.md",
+      "type": "markdown",
+      "action": "create",
+      "timestamp": 1741372527053,
+      "content": "Content"
+    }
+  ]
+]

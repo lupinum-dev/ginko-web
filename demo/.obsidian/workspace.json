@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Z/X/Y/_meta.md",
+                "file": "AA/B/_meta.md",
                 "mode": "source",
                 "source": false
               },
@@ -140,7 +140,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Z/X/Y/_meta.md",
+                "file": "AA/B/_meta.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -165,7 +165,6 @@
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
       "iconic:Open rulebook": false,
-      "ginko-web:Show Vault Files Graph": false,
       "ginko-web:Ginko Process": false,
       "ginko-web:Create ID": false,
       "ginko-web:Export GinkoCache": false,
@@ -174,9 +173,11 @@
   },
   "active": "c3b96c46ec44739f",
   "lastOpenFiles": [
+    "AA/B/n2.md",
     "AA/B/_meta.md",
-    "Z/X/Y/_meta.md",
+    "AA/B/C/n3.md",
     "Z/X/_meta.md",
+    "Z/X/Y/_meta.md",
     "Z/X/Y/2.n4 - a94f347f+/n3__de.md",
     "Z/X/Y/2.n4 - a94f347f+/n3__en.md",
     "Z/X/Y/1. n3 - 758e6953+/n3__en.md",
@@ -187,8 +188,6 @@
     "Z/X/n2+/n2__de.md",
     "Z/N1+/n1-deutsch__de.md",
     "Z/N1+/n1-english__en.md",
-    "AA/B/C/n3.md",
-    "AA/B/n2.md",
     "AA/n1.md",
     "AA/_assets/aa1.png",
     "Z/X/_assets/x1.png",
