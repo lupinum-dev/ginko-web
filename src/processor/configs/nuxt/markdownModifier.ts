@@ -190,12 +190,13 @@ export class AssetLinkModifier implements ContentModifier {
 
           if (isImage) {
             // Build the custom-image component with all properties
-            let imageComponent = `:ginko-image{src="${targetPath}" alt="${cleanAltText}"`
+            // let imageComponent = `:ginko-image{src="${targetPath}" alt="${cleanAltText}"`
+            let imageComponent = `![](${targetPath})`
 
             // Add size properties if available
-            if (size) {
-              imageComponent += ` width="${size.width}" height="${size.height}"`
-            }
+            // if (size) {
+            //   imageComponent += ` width="${size.width}" height="${size.height}"`
+            // }
 
             // Add all other properties to the component
             for (const [key, value] of Object.entries(properties)) {

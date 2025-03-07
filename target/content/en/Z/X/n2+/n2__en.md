@@ -1,2 +1,0 @@
-Written Content here - EN
-:ginko-image{src="/_assets/6927a3982362e9113478c881a815843d.png" alt="" width="1801" height="480"}:ginko-image{src="/_assets/4b8714d30a66555fc6b12675ca324aac.png" alt="" width="296" height="297"}

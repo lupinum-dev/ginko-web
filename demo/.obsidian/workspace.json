@@ -13,7 +13,7 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Z/X/_meta.md",
+                "file": "Z/X/Y/_meta.md",
                 "mode": "source",
                 "source": false
               },
@@ -140,7 +140,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Z/X/_meta.md",
+                "file": "Z/X/Y/_meta.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -168,15 +168,21 @@
       "ginko-web:Show Vault Files Graph": false,
       "ginko-web:Ginko Process": false,
       "ginko-web:Create ID": false,
-      "ginko-web:Export GinkoCache": false
+      "ginko-web:Export GinkoCache": false,
+      "ginko-web:Export Folder Structure": false
     }
   },
   "active": "c3b96c46ec44739f",
   "lastOpenFiles": [
-    "Z/X/Y/_meta.md",
     "AA/B/_meta.md",
+    "Z/X/Y/_meta.md",
     "Z/X/_meta.md",
-    "Z/X/Y/n3+/n3__de.md",
+    "Z/X/Y/2.n4 - a94f347f+/n3__de.md",
+    "Z/X/Y/2.n4 - a94f347f+/n3__en.md",
+    "Z/X/Y/1. n3 - 758e6953+/n3__en.md",
+    "Z/X/Y/1. n3 - 758e6953+/n3__de.md",
+    "Z/X/Y/n4 - a94f347f+/Untitled.md",
+    "Z/X/Y/2.n4 - a94f347f+",
     "Z/X/n2+/n2__en.md",
     "Z/X/n2+/n2__de.md",
     "Z/N1+/n1-deutsch__de.md",
@@ -187,7 +193,6 @@
     "AA/_assets/aa1.png",
     "Z/X/_assets/x1.png",
     "Z/X/_assets/x2.png",
-    "Z/X/Y/n3+/n3__en.md",
     "AA/B/_assets/Ginko Blocks.png",
     "AA/B/_assets/aa3.png",
     "AA/_assets/aa2.png",
@@ -196,7 +201,7 @@
     "AA/_assets/img2.png",
     "AA/_assets/img1x.png",
     "Z/X/_assets/img1x.png",
-    "Z/X/Y/n3+",
+    "Z/X/Y/1. n3 - 758e6953+",
     "Z/X/n2+",
     "Z/X/_assets",
     "Z/X/Y",
@@ -205,7 +210,6 @@
     "Z",
     "AA/B/_assets",
     "AA/B/C",
-    "AA/_assets",
     "AA/B/C/n4.md",
     "A/B/n4.md",
     "Target/content/de/slug-de/n1-deutsch__de.md",
@@ -215,8 +219,6 @@
     "Target/content/a/_meta.md",
     "Target/content/a/n1.md",
     "Target/content/a/B/C/n3.md",
-    "Target/content/a/B/n2.md",
-    "Target/Z/X/Y/n3+/n3__en.md",
-    "Target/Z/X/Y/n3+/n3__de.md"
+    "Target/content/a/B/n2.md"
   ]
 }

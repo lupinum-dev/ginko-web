@@ -57,14 +57,17 @@ export class MarkdownHandler implements FileHandler {
   private parseFileInfo(lastPart: string, beforeLastPart: string): FileInfo {
     const fileNameWithoutExt = lastPart.replace(/\.md$/, '')
     const localeMatch = fileNameWithoutExt.match(/^(.+)__([a-z]{2})$/)
-    const colocationMatch = beforeLastPart.match(/^(?:\d+\.)?\s*(.+?)\s*-\s*([a-z0-9]+)\+$/)
+    
+    // Updated regex to make the ID optional
+    // It will match both "FolderName - 758e6953+" and "FolderName+"
+    const colocationMatch = beforeLastPart.match(/^(?:\d+\.)?\s*(.+?)(?:\s*-\s*([a-z0-9]+))?\+$/)
 
     return {
       isLocalized: !!localeMatch,
       locale: localeMatch ? localeMatch[2] : null,
       baseName: localeMatch ? localeMatch[1] : fileNameWithoutExt,
       isColocated: !!colocationMatch,
-      colocationId: colocationMatch ? colocationMatch[2] : null,
+      colocationId: colocationMatch && colocationMatch[2] ? colocationMatch[2] : null,
       colocationBaseName: colocationMatch ? colocationMatch[1].trim() : beforeLastPart,
     }
   }
@@ -94,7 +97,10 @@ export class MarkdownHandler implements FileHandler {
       preserveLeadingNumbers: true
     })
 
-    const fileName = `${numericPrefix}${sanitizedBaseName}-${fileInfo.colocationId}`
+    // Handle the case when colocationId is null
+    const fileName = fileInfo.colocationId 
+      ? `${numericPrefix}${sanitizedBaseName}-${fileInfo.colocationId}`
+      : `${numericPrefix}${sanitizedBaseName}`
 
     const checkLocalizedPath = `${sourcePathParts.slice(0, -2).join('/')}/`
     const metaItem = this.cacheService.meta.getMetaItem(checkLocalizedPath)

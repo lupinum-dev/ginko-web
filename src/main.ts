@@ -130,7 +130,22 @@ export default class GinkoWebPlugin extends Plugin {
       handler?: () => Promise<void>
     }
 
-    
+    // Register commands
+    this.addCommand({
+      id: 'export-folder-structure',
+      name: 'Export folder structure to JSON',
+      callback: async () => {
+        try {
+          const { exportFolderStructure } = await import('./tools/exportFolderStates')
+          await exportFolderStructure()
+          new Notice('✅ Folder structure exported successfully!')
+        }
+        catch (error) {
+          console.error('Failed to export folder structure:', error)
+          new Notice('❌ Failed to export folder structure')
+        }
+      }
+    });
 
     // Define ribbon icons with their specific configurations
     const ribbonIcons: RibbonIcon[] = [
@@ -158,6 +173,21 @@ export default class GinkoWebPlugin extends Plugin {
           catch (error) {
             console.error('Failed to export cache:', error)
             new Notice('❌ Failed to export cache')
+          }
+        },
+      },
+      {
+        id: 'folder',
+        name: 'Export Folder Structure',
+        handler: async () => {
+          try {
+            const { exportFolderStructure } = await import('./tools/exportFolderStates')
+            await exportFolderStructure()
+            new Notice('✅ Folder structure exported successfully!')
+          }
+          catch (error) {
+            console.error('Failed to export folder structure:', error)
+            new Notice('❌ Failed to export folder structure')
           }
         },
       },
