@@ -1,0 +1,368 @@
+{
+  "initial": [
+    [
+      {
+        "name": "_meta.md",
+        "path": "A/_meta.md",
+        "type": "meta",
+        "action": "create"
+      },
+      {
+        "name": "n1.md",
+        "path": "A/n1.md",
+        "type": "markdown",
+        "action": "create"
+      },
+      {
+        "name": "_meta.md",
+        "path": "Z/_meta.md",
+        "type": "meta",
+        "action": "create"
+      },
+      {
+        "name": "n2.md",
+        "path": "A/B/n2.md",
+        "type": "markdown",
+        "action": "create"
+      },
+      {
+        "name": "img1.png",
+        "path": "A/_assets/img1.png",
+        "type": "asset",
+        "action": "create"
+      },
+      {
+        "name": "img2.png",
+        "path": "A/_assets/img2.png",
+        "type": "asset",
+        "action": "create"
+      },
+      {
+        "name": "n1-deutsch__de.md",
+        "path": "Z/N1+/n1-deutsch__de.md",
+        "type": "markdown",
+        "action": "create"
+      },
+      {
+        "name": "n1-english__en.md",
+        "path": "Z/N1+/n1-english__en.md",
+        "type": "markdown",
+        "action": "create"
+      },
+      {
+        "name": "_meta.md",
+        "path": "Z/X/_meta.md",
+        "type": "meta",
+        "action": "create"
+      },
+      {
+        "name": "n3.md",
+        "path": "A/B/C/n3.md",
+        "type": "markdown",
+        "action": "create"
+      },
+      {
+        "name": "img1x.png",
+        "path": "Z/X/_assets/img1x.png",
+        "type": "asset",
+        "action": "create"
+      },
+      {
+        "name": "img2x.png",
+        "path": "Z/X/_assets/img2x.png",
+        "type": "asset",
+        "action": "create"
+      },
+      {
+        "name": "n2__de.md",
+        "path": "Z/X/n2+/n2__de.md",
+        "type": "markdown",
+        "action": "create"
+      },
+      {
+        "name": "n2__en.md",
+        "path": "Z/X/n2+/n2__en.md",
+        "type": "markdown",
+        "action": "create"
+      },
+      {
+        "name": "n3__de.md",
+        "path": "Z/X/Y/n3+/n3__de.md",
+        "type": "markdown",
+        "action": "create"
+      },
+      {
+        "name": "n3__en.md",
+        "path": "Z/X/Y/n3+/n3__en.md",
+        "type": "markdown",
+        "action": "create"
+      }
+    ]
+  ],
+  "note-creation": [
+    [
+      {
+        "name": "Untitled.md",
+        "path": "A/B/C/Untitled.md",
+        "type": "markdown",
+        "action": "create"
+      }
+    ],
+    [
+      {
+        "name": "n4.md",
+        "path": "A/B/C/n4.md",
+        "type": "markdown",
+        "action": "rename",
+        "oldPath": "A/B/C/Untitled.md"
+      }
+    ],
+    [
+      {
+        "name": "n4.md",
+        "path": "A/B/C/n4.md",
+        "type": "markdown",
+        "action": "modify"
+      }
+    ]
+  ],
+  "note-moification": [
+    [
+      {
+        "name": "n4.md",
+        "path": "A/B/C/n4.md",
+        "type": "markdown",
+        "action": "modify"
+      }
+    ],
+    [
+      {
+        "name": "n4.md",
+        "path": "A/B/C/n4.md",
+        "type": "markdown",
+        "action": "modify"
+      }
+    ],
+    [
+      {
+        "name": "n4.md",
+        "path": "A/B/C/n4.md",
+        "type": "markdown",
+        "action": "modify"
+      }
+    ]
+  ],
+  "move-file-to-new-folder": [
+    [
+      {
+        "name": "n4.md",
+        "path": "A/B/n4.md",
+        "type": "markdown",
+        "action": "rename",
+        "oldPath": "A/B/C/n4.md"
+      }
+    ]
+  ],
+  "move-multiple-files-to-new-folder": [
+    [
+      {
+        "name": "n4.md",
+        "path": "A/B/C/n4.md",
+        "type": "markdown",
+        "action": "rename",
+        "oldPath": "A/B/n4.md"
+      },
+      {
+        "name": "n2.md",
+        "path": "A/B/C/n2.md",
+        "type": "markdown",
+        "action": "rename",
+        "oldPath": "A/B/n2.md"
+      }
+    ]
+  ],
+  "rename-folder-without-affecting-assets": [
+    [
+      {
+        "name": "n3.md",
+        "path": "A/BB/C/n3.md",
+        "type": "markdown",
+        "action": "rename",
+        "oldPath": "A/B/C/n3.md"
+      },
+      {
+        "name": "n4.md",
+        "path": "A/BB/n4.md",
+        "type": "markdown",
+        "action": "rename",
+        "oldPath": "A/B/n4.md"
+      },
+      {
+        "name": "n2.md",
+        "path": "A/BB/n2.md",
+        "type": "markdown",
+        "action": "rename",
+        "oldPath": "A/B/n2.md"
+      }
+    ]
+  ],
+  "rename-folder-with-affecting-assets": [
+    [
+      {
+        "name": "_meta.md",
+        "path": "AA/_meta.md",
+        "type": "meta",
+        "action": "rename",
+        "oldPath": "A/_meta.md"
+      },
+      {
+        "name": "n1.md",
+        "path": "AA/n1.md",
+        "type": "markdown",
+        "action": "rename",
+        "oldPath": "A/n1.md"
+      },
+      {
+        "name": "img1.png",
+        "path": "AA/_assets/img1.png",
+        "type": "asset",
+        "action": "rename",
+        "oldPath": "A/_assets/img1.png"
+      },
+      {
+        "name": "img2.png",
+        "path": "AA/_assets/img2.png",
+        "type": "asset",
+        "action": "rename",
+        "oldPath": "A/_assets/img2.png"
+      },
+      {
+        "name": "n3.md",
+        "path": "AA/B/C/n3.md",
+        "type": "markdown",
+        "action": "rename",
+        "oldPath": "A/B/C/n3.md"
+      },
+      {
+        "name": "n2.md",
+        "path": "AA/B/n2.md",
+        "type": "markdown",
+        "action": "rename",
+        "oldPath": "A/B/n2.md"
+      },
+      {
+        "name": "n3__de.md",
+        "path": "Z/X/Y/n3+/n3__de.md",
+        "type": "markdown",
+        "action": "modify"
+      },
+      {
+        "name": "n3__en.md",
+        "path": "Z/X/Y/n3+/n3__en.md",
+        "type": "markdown",
+        "action": "modify"
+      },
+      {
+        "name": "n3.md",
+        "path": "AA/B/C/n3.md",
+        "type": "markdown",
+        "action": "modify"
+      },
+      {
+        "name": "n2.md",
+        "path": "AA/B/n2.md",
+        "type": "markdown",
+        "action": "modify"
+      }
+    ]
+  ],
+  "note-deletion": [
+    [
+      {
+        "name": "n4.md",
+        "path": "A/B/n4.md",
+        "type": "markdown",
+        "action": "delete"
+      }
+    ]
+  ],
+  "create-meta-file": [
+    [
+      {
+        "name": "Untitled.md",
+        "path": "AA/Untitled.md",
+        "type": "markdown",
+        "action": "create"
+      }
+    ],
+    [
+      {
+        "name": "_meta.md",
+        "path": "AA/_meta.md",
+        "type": "meta",
+        "action": "rename",
+        "oldPath": "AA/Untitled.md"
+      }
+    ],
+    [
+      {
+        "name": "_meta.md",
+        "path": "AA/_meta.md",
+        "type": "meta",
+        "action": "modify"
+      }
+    ]
+  ],
+  "rename-asset": [
+    [
+      {
+        "name": "img1x.png",
+        "path": "AA/_assets/img1x.png",
+        "type": "asset",
+        "action": "rename",
+        "oldPath": "AA/_assets/img1.png"
+      },
+      {
+        "name": "n1-deutsch__de.md",
+        "path": "Z/N1+/n1-deutsch__de.md",
+        "type": "markdown",
+        "action": "modify"
+      },
+      {
+        "name": "n1-english__en.md",
+        "path": "Z/N1+/n1-english__en.md",
+        "type": "markdown",
+        "action": "modify"
+      },
+      {
+        "name": "n3__de.md",
+        "path": "Z/X/Y/n3+/n3__de.md",
+        "type": "markdown",
+        "action": "modify"
+      },
+      {
+        "name": "n3__en.md",
+        "path": "Z/X/Y/n3+/n3__en.md",
+        "type": "markdown",
+        "action": "modify"
+      },
+      {
+        "name": "n3.md",
+        "path": "AA/B/C/n3.md",
+        "type": "markdown",
+        "action": "modify"
+      },
+      {
+        "name": "n2.md",
+        "path": "AA/B/n2.md",
+        "type": "markdown",
+        "action": "modify"
+      }
+    ]
+  ],
+  "add-asset-to-note": [
+    [{"name":"Ginko Blocks.png","path":"AA/B/_assets/Ginko Blocks.png","type":"asset","action":"create"}],
+    [{"name":"n2.md","path":"AA/B/n2.md","type":"markdown","action":"modify"}]
+  ],
+  
+}

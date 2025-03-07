@@ -1,5 +1,3 @@
 Note Content
-
-![](img1.png)
-![](img2.png)
-![](img1x.png)
+![](Z/X/_assets/img1.png)
+![](AA/_assets/img1x.png)

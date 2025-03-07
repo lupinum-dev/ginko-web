@@ -1,2 +1,2 @@
 Note Content
-![](img1x.png)
+![](Z/X/_assets/img1.png)
