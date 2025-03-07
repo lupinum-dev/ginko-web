@@ -98,7 +98,7 @@ export class SyncManager {
   private async preProcessMetaFiles(): Promise<void> {
     // Find meta files in the queue
     const metaFiles = this.eventQueue.filter(event => 
-      event.type === 'meta' && 
+      event.name.endsWith('_meta.md') && 
       (event.action === 'create' || event.action === 'modify') &&
       event.content
     );

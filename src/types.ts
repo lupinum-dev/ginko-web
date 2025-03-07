@@ -2,12 +2,10 @@
 import type { TFile } from 'obsidian';
 
 export type EventType = 'create' | 'modify' | 'delete' | 'rename';
-export type FileType = 'markdown' | 'meta' | 'asset' | 'unknown';
 
 export interface SyncEvent {
   name: string;
   path: string;
-  type: FileType;
   action: EventType;
   oldPath?: string;
   content?: string;

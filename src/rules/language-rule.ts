@@ -16,8 +16,8 @@ export class LanguageRule implements Rule {
   
   shouldApply(event: SyncEvent): boolean {
     // Apply to files with language suffixes
-    if (event.type !== 'markdown') {
-      return false;
+    if (event.name.endsWith('.md')) {
+      return true;
     }
     
     // Check for language suffix pattern (filename__lang.md)

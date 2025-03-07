@@ -67,20 +67,17 @@ export class ObsidianAdapter {
     file: TFile, 
     action: 'create' | 'modify' | 'delete'
   ): Promise<void> {
-    // Determine file type
-    const fileType = this.getFileType(file);
     
     // Create sync event
     const event: SyncEvent = {
       name: file.name,
       path: file.path,
-      type: fileType,
       action,
       timestamp: Date.now()
     };
     
     // Add content for markdown and meta files
-    if ((fileType === 'markdown' || fileType === 'meta') && action !== 'delete') {
+    if (file.name.endsWith('.md') && action !== 'delete') {
       try {
         event.content = await this.app.vault.cachedRead(file);
       } catch (error) {
@@ -93,21 +90,18 @@ export class ObsidianAdapter {
   }
   
   private async handleRenameEvent(file: TFile, oldPath: string): Promise<void> {
-    // Determine file type
-    const fileType = this.getFileType(file);
-    
+
     // Create sync event
     const event: SyncEvent = {
       name: file.name,
       path: file.path,
-      type: fileType,
       action: 'rename',
       oldPath,
       timestamp: Date.now()
     };
     
     // Add content for markdown and meta files
-    if (fileType === 'markdown' || fileType === 'meta') {
+    if (file.name.endsWith('.md')) {
       try {
         event.content = await this.app.vault.cachedRead(file);
       } catch (error) {
@@ -119,21 +113,7 @@ export class ObsidianAdapter {
     await this.syncManager.queueEvent(event);
   }
   
-  private getFileType(file: TFile): FileType {
-    if (file.name.endsWith('_meta.md')) {
-      return 'meta';
-    }
-    
-    if (file.extension === 'md') {
-      return 'markdown';
-    }
-    
-    if (file.path.includes('_assets/')) {
-      return 'asset';
-    }
-    
-    return 'unknown';
-  }
+
   
   // Method to register a custom rule
   registerRule(rule: any): void {
