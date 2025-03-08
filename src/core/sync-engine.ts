@@ -1,5 +1,5 @@
 // src/core/sync-engine.ts
-import { FileEvent, Logger, QueueState, Rule, SORT_ORDER, SyncSettings } from '../types';
+import { FileEvent, Logger, QueueState, Rule, SORT_ORDER, SyncSettings, FileSystem } from '../types';
 import * as path from 'path';
 import { processEvent } from './process-event';
 
@@ -166,7 +166,8 @@ export const processBatch = async (
   events: ReadonlyArray<FileEvent>,
   settings: SyncSettings,
   rules: ReadonlyArray<Rule>,
-  logger?: Logger
+  logger?: Logger,
+  fileSystem?: FileSystem
 ): Promise<void> => {
   if (events.length === 0) return;
   
@@ -177,7 +178,7 @@ export const processBatch = async (
   
   // Process each event sequentially
   for (const event of sortedEvents) {
-    await processEvent(event, settings, rules, logger);
+    await processEvent(event, settings, rules, logger, fileSystem);
   }
   
   logger?.info('sync-engine', `Completed processing batch of ${events.length} events`);
@@ -189,7 +190,8 @@ export const processBatch = async (
 export const createEventQueueHandler = (
   settings: SyncSettings,
   rules: ReadonlyArray<Rule>,
-  logger?: Logger
+  logger?: Logger,
+  fileSystem?: FileSystem
 ) => {
   // State for the queue (will be updated immutably)
   let queueState: QueueState = {
@@ -217,8 +219,8 @@ export const createEventQueueHandler = (
     };
     
     try {
-      // Process the batch
-      await processBatch(currentEvents, settings, rules, logger);
+      // Process the batch, passing the fileSystem parameter
+      await processBatch(currentEvents, settings, rules, logger, fileSystem);
     } catch (error) {
       logger?.error('sync-engine', `Error processing batch: ${error}`);
     } finally {
@@ -281,13 +283,14 @@ export const createEventQueueHandler = (
 export const createSyncEngine = (
   settings: SyncSettings, 
   initialRules: ReadonlyArray<Rule> = [],
-  logger?: Logger
+  logger?: Logger,
+  fileSystem?: FileSystem
 ) => {
   // Store rules immutably
   let rules = [...initialRules];
   
-  // Create queue handler
-  const queueEvent = createEventQueueHandler(settings, rules, logger);
+  // Create queue handler with optional fileSystem
+  const queueEvent = createEventQueueHandler(settings, rules, logger, fileSystem);
   
   logger?.debug('sync-engine', 'Created sync engine');
   

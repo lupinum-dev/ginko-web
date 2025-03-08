@@ -1,7 +1,12 @@
 // src/core/sync-engine.test.ts
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { shouldExclude, sortEvents, wildcardToRegExp, createEventQueueHandler, processEvent } from '../src/core/sync-engine';
-import { FileEvent, Logger, Rule, SyncSettings } from '../src/types';
+import { shouldExclude, sortEvents, createEventQueueHandler } from '../src/core/sync-engine';
+import { FileEvent, Logger, Rule, SyncSettings, FileSystem } from '../src/types';
+
+// Mock the processEvent function completely instead of spying on it
+vi.mock('../src/core/process-event', () => ({
+  processEvent: vi.fn().mockResolvedValue(undefined)
+}));
 
 // Mock logger for testing
 const createMockLogger = (): Logger => ({
@@ -10,6 +15,16 @@ const createMockLogger = (): Logger => ({
   warn: vi.fn(),
   error: vi.fn(),
   dispose: vi.fn().mockResolvedValue(undefined)
+});
+
+// Mock file system for testing
+const createMockFileSystem = (): FileSystem => ({
+  readFile: vi.fn().mockResolvedValue(''),
+  writeFile: vi.fn().mockResolvedValue(undefined),
+  deleteFile: vi.fn().mockResolvedValue(undefined),
+  moveFile: vi.fn().mockResolvedValue(undefined),
+  createDirectory: vi.fn().mockResolvedValue(undefined),
+  exists: vi.fn().mockResolvedValue(false)
 });
 
 describe('sync-engine - shouldExclude', () => {
@@ -196,21 +211,25 @@ describe('sync-engine - sortEvents', () => {
 
 describe('sync-engine - Event Queue', () => {
   let mockLogger: Logger;
+  let mockFs: FileSystem;
   
   // Mock implementation for timer functions
   beforeEach(() => {
     mockLogger = createMockLogger();
+    mockFs = createMockFileSystem();
     vi.useFakeTimers();
   });
   
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
   
   it('should process events after batch delay', async () => { 
     const settings: Partial<SyncSettings> = {
       obsidianRoot: '/Users/obsidian/vault/demo/',
-      targetBasePath: './target',
+      // Use a non-existent path that won't be created on disk
+      targetBasePath: '/virtual/testing/path',
       contentPath: 'content',
       assetsPath: 'assets',
       excludePaths: [],
@@ -222,12 +241,8 @@ describe('sync-engine - Event Queue', () => {
     // Mock rules for testing
     const mockRules: Rule[] = [];
     
-    // Spy on processEvent
-    const processEventSpy = vi.spyOn({ processEvent }, 'processEvent');
-    processEventSpy.mockImplementation(() => Promise.resolve());
-    
-    // Create queue handler
-    const queueEvent = createEventQueueHandler(settings as SyncSettings, mockRules, mockLogger);
+    // Create queue handler with mock filesystem
+    const queueEvent = createEventQueueHandler(settings as SyncSettings, mockRules, mockLogger, mockFs);
     
     // Queue two events
     const event1: FileEvent = { 
@@ -252,8 +267,7 @@ describe('sync-engine - Event Queue', () => {
     // Advance timers to trigger batch processing
     await vi.advanceTimersByTimeAsync(150);
     
-    // Ensure processEvent was called for both events
-    expect(processEventSpy).toHaveBeenCalledTimes(0); // Will be 0 because we mocked it
+    // Check that logger was called with appropriate messages
     expect(mockLogger.debug).toHaveBeenCalledWith(
       'sync-engine', 
       expect.stringContaining('Queuing create event')
@@ -267,7 +281,7 @@ describe('sync-engine - Event Queue', () => {
   it('should exclude events for excluded paths', () => {
     const settings: Partial<SyncSettings> = {
       obsidianRoot: '/Users/obsidian/vault/demo/',
-      targetBasePath: './target',
+      targetBasePath: '/virtual/testing/path',
       contentPath: 'content',
       assetsPath: 'assets',
       excludePaths: ['/temp'],
@@ -276,8 +290,8 @@ describe('sync-engine - Event Queue', () => {
       logToDisk: false
     };
     
-    // Create queue handler
-    const queueEvent = createEventQueueHandler(settings as SyncSettings, [], mockLogger);
+    // Create queue handler with mock filesystem
+    const queueEvent = createEventQueueHandler(settings as SyncSettings, [], mockLogger, mockFs);
     
     // Queue event for excluded path
     const event: FileEvent = { 
@@ -300,7 +314,7 @@ describe('sync-engine - Event Queue', () => {
   it('should reset timeout when new events are queued', async () => {
     const settings: Partial<SyncSettings> = {
       obsidianRoot: '/Users/obsidian/vault/demo/',
-      targetBasePath: './target',
+      targetBasePath: '/virtual/testing/path',
       contentPath: 'content',
       assetsPath: 'assets',
       excludePaths: [],
@@ -310,8 +324,8 @@ describe('sync-engine - Event Queue', () => {
       logFilePath: '.obsidian/plugins/ginko'
     };
     
-    // Create queue handler
-    const queueEvent = createEventQueueHandler(settings as SyncSettings, [], mockLogger);
+    // Create queue handler with mock filesystem
+    const queueEvent = createEventQueueHandler(settings as SyncSettings, [], mockLogger, mockFs);
     
     // Queue first event
     const event1: FileEvent = { 
@@ -361,4 +375,3 @@ describe('sync-engine - Event Queue', () => {
     );
   });
 });
-
