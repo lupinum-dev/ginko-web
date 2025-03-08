@@ -1,0 +1,13 @@
+=== Vault Sync Log Started at 2025-03-08T11:13:31.283Z ===
+[2025-03-08T11:13:31.283Z] [INFO] [main] Initializing Vault Sync Plugin
+[2025-03-08T11:13:31.283Z] [INFO] [obsidian-adapter] Setting up Obsidian sync
+[2025-03-08T11:13:31.283Z] [INFO] [obsidian-adapter] Created 3 sync rules
+[2025-03-08T11:13:31.283Z] [DEBUG] [obsidian-adapter] Loaded rule: Localized Markdown Rule
+[2025-03-08T11:13:31.283Z] [DEBUG] [obsidian-adapter] Loaded rule: Markdown Rule
+[2025-03-08T11:13:31.283Z] [DEBUG] [obsidian-adapter] Loaded rule: Asset Rule
+[2025-03-08T11:13:31.283Z] [DEBUG] [sync-engine] Created sync engine
+[2025-03-08T11:13:31.283Z] [DEBUG] [obsidian-adapter] Setting up event listeners
+[2025-03-08T11:13:31.283Z] [DEBUG] [obsidian-adapter] Event listeners setup complete
+[2025-03-08T11:13:31.283Z] [INFO] [obsidian-adapter] Obsidian sync setup complete
+[2025-03-08T11:13:31.284Z] [INFO] [main] Vault Sync Plugin loaded
+[2025-03-08T11:13:51.384Z] [INFO] [main] Vault Sync Plugin unloaded
