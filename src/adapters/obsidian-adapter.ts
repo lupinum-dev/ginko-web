@@ -160,8 +160,6 @@ export const setupObsidianSync = (
   
   // Create rules
   const rules = createSyncRules(settings);
-
-  console.log('settings', JSON.stringify(settings, null, 2))
   
   // Create sync engine
   const syncEngine = createSyncEngine(settings, rules, logger);
