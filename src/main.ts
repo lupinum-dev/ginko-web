@@ -4,6 +4,7 @@ import { setupObsidianSync } from './adapters/obsidian-adapter';
 import { resetVault } from './core/reset-vault';
 import { DEFAULT_SETTINGS, Logger, SyncSettings } from './types';
 import { createLogger } from './utils/logger';
+import { normalizeSettingsPath, normalizeTargetPath } from './utils/path-utils';
 
 export default class VaultSyncPlugin extends Plugin {
   settings: SyncSettings;
@@ -13,7 +14,14 @@ export default class VaultSyncPlugin extends Plugin {
   async onload() {
     // Load settings
     await this.loadSettings();
-    
+
+    // Set Obsidian Root
+    // TODO: Check on Windows if this path is normalized correctly
+    this.settings = {
+      ...this.settings,
+      obsidianRoot: this.app.vault.getRoot().vault.adapter.basePath
+    };
+
     // Initialize logger
     this.logger = createLogger(this.settings);
     this.logger.info('main', 'Initializing Vault Sync Plugin');
@@ -69,6 +77,8 @@ export default class VaultSyncPlugin extends Plugin {
       
       // Call reset function
       await resetVault(this.app, this.syncEngine, this.settings, this.logger);
+
+
       
       // Show success notice
       new Notice('Vault sync reset complete!');
@@ -112,9 +122,13 @@ class VaultSyncSettingsTab extends PluginSettingTab {
       .addText(text => {
         text
           .setPlaceholder('./target')
-          .setValue(this.plugin.settings.targetBasePath)
+          .setValue(this.plugin.settings.targetBasePathUser)
           .onChange(async (value) => {
-            this.plugin.settings = { ...this.plugin.settings, targetBasePath: value };
+            this.plugin.settings = {
+              ...this.plugin.settings,
+              targetBasePathUser: value,
+              targetBasePath: normalizeTargetPath(value, this.app.vault.getRoot().path)
+            };
             await this.plugin.saveSettings();
           });
       });
@@ -126,9 +140,13 @@ class VaultSyncSettingsTab extends PluginSettingTab {
       .addText(text => {
         text
           .setPlaceholder('content')
-          .setValue(this.plugin.settings.contentPath)
+          .setValue(this.plugin.settings.contentPathUser)
           .onChange(async (value) => {
-            this.plugin.settings = { ...this.plugin.settings, contentPath: value };
+            this.plugin.settings = {
+              ...this.plugin.settings,
+              contentPathUser: value,
+              contentPath: normalizeSettingsPath(value)
+            };
             await this.plugin.saveSettings();
           });
       });
@@ -140,9 +158,13 @@ class VaultSyncSettingsTab extends PluginSettingTab {
       .addText(text => {
         text
           .setPlaceholder('public/_assets')
-          .setValue(this.plugin.settings.assetsPath)
+          .setValue(this.plugin.settings.assetsPathUser)
           .onChange(async (value) => {
-            this.plugin.settings = { ...this.plugin.settings, assetsPath: value };
+            this.plugin.settings = {
+              ...this.plugin.settings,
+              assetsPathUser: value,
+              assetsPath: normalizeSettingsPath(value)
+            };
             await this.plugin.saveSettings();
           });
       });

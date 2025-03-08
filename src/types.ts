@@ -6,19 +6,23 @@ export type FileType = 'markdown' | 'meta' | 'asset' | 'unknown';
 
 // Event representing a file change
 export interface FileEvent {
-  readonly name: string;
-  readonly path: string;
-  readonly type: FileType;
-  readonly action: EventType;
-  readonly oldPath?: string;
-  readonly content?: string;
-  readonly timestamp: number;
+  name: string;
+  path: string;
+  type: FileType;
+  action: EventType;
+  oldPath?: string;
+  content?: string;
+  timestamp: number;
 }
 
 // Plugin settings
 export interface SyncSettings {
+  readonly obsidianRoot: string;
+  readonly targetBasePathUser: string;
   readonly targetBasePath: string;
+  readonly contentPathUser: string;
   readonly contentPath: string;
+  readonly assetsPathUser: string;
   readonly assetsPath: string;
   readonly excludePaths: string[];
   readonly excludeFiles: string[];
@@ -28,8 +32,12 @@ export interface SyncSettings {
 
 // Default settings
 export const DEFAULT_SETTINGS: SyncSettings = {
+  obsidianRoot: '',
+  targetBasePathUser: './target',
   targetBasePath: './target',
+  contentPathUser: 'content',
   contentPath: 'content',
+  assetsPathUser: 'public/_assets',
   assetsPath: 'public/_assets',
   excludePaths: ['.obsidian', '.git', 'node_modules'],
   excludeFiles: [],

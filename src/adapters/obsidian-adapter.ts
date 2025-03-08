@@ -80,6 +80,7 @@ export const setupEventListeners = (
       
       logger?.debug('obsidian-adapter', `File created: ${file.path}`);
       const event = await createFileEvent(app, file, 'create', undefined, logger);
+      ;
       
       if (event.type !== 'unknown') {
         syncEngine.queueEvent(event);
@@ -159,6 +160,8 @@ export const setupObsidianSync = (
   
   // Create rules
   const rules = createSyncRules(settings);
+
+  console.log('settings', JSON.stringify(settings, null, 2))
   
   // Create sync engine
   const syncEngine = createSyncEngine(settings, rules, logger);
