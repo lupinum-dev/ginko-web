@@ -13,37 +13,38 @@ export class SyncEngine {
   private eventQueue: FileEvent[] = [];
   private processing = false;
   private timeoutId: NodeJS.Timeout | null = null;
-  private logger: Logger;
+  private logger?: Logger;
+  private fs: FileSystem;
   
   constructor(
     fs: FileSystem, 
     settings: SyncSettings, 
     rules: Rule[] = [],
-    logger: Logger
+    logger?: Logger
   ) {
     this.fs = fs;
     this.settings = settings;
     this.rules = [...rules];
     this.logger = logger;
     
-    this.logger.debug('sync-engine.ts', 'SyncEngine initialized');
+    this.logger?.debug('sync-engine.ts', 'SyncEngine initialized');
   }
   
   // Add a rule
   addRule(rule: Rule): void {
     this.rules.push(rule);
-    this.logger.debug('sync-engine.ts', `Added rule: ${rule.name}`);
+    this.logger?.debug('sync-engine.ts', `Added rule: ${rule.name}`);
   }
   
   // Queue an event for processing
   queueEvent(event: FileEvent): void {
     // Skip excluded paths
     if (this.shouldExclude(event.path)) {
-      this.logger.debug('sync-engine.ts', `Skipping excluded path: ${event.path}`);
+      this.logger?.debug('sync-engine.ts', `Skipping excluded path: ${event.path}`);
       return;
     }
     
-    this.logger.debug('sync-engine.ts', `Queuing ${event.action} event for ${event.path}`);
+    this.logger?.debug('sync-engine.ts', `Queuing ${event.action} event for ${event.path}`);
     this.eventQueue.push(event);
     
     if (this.timeoutId) {
@@ -60,22 +61,29 @@ export class SyncEngine {
     }
     
     this.processing = true;
-    this.logger.info('sync-engine.ts', `Processing ${this.eventQueue.length} events`);
+    this.logger?.info('sync-engine.ts', `Processing ${this.eventQueue.length} events`);
     
     try {
-      // Sort the queue by event type 
-      this.eventQueue = await this.sortQueue(this.eventQueue);
-      
-      // Start processing events
-      // TODO: Make sure we process each event in the queue, sequentially after sorted
-      // TODO: Make sure we handle the case when we currently 3 items (first batch) are queued, and after 250 5 new events (second batch) are added, make sure we process each file of the first batch,then we process with the second batch and proces sequenectly as sorted
-      await processEvent(event);
-
-      
-      // Clear queue
+      // Take current batch of events
+      const currentBatch = [...this.eventQueue];
       this.eventQueue = [];
+      
+      // Sort the current batch
+      const sortedBatch = await this.sortQueue(currentBatch);
+      
+      // Process each event in the sorted batch sequentially
+      for (const event of sortedBatch) {
+        this.logger?.debug('sync-engine.ts', `Processing event: ${event.action} for ${event.path}`);
+        await processEvent([event]); // Process single event at a time
+      }
+      
+      // If new events were queued during processing, process them next
+      if (this.eventQueue.length > 0) {
+        this.logger?.debug('sync-engine.ts', `New events queued during processing, starting next batch`);
+        await this.processQueue();
+      }
     } catch (error) {
-      this.logger.error('sync-engine.ts', `Error processing queue: ${error}`);
+      this.logger?.error('sync-engine.ts', `Error processing queue: ${error}`);
     } finally {
       this.processing = false;
       this.timeoutId = null;
@@ -117,18 +125,18 @@ export class SyncEngine {
             const pathComponents = normalizedPath.split(path.sep);
             if (pathComponents.some(component => pattern.test(component)) || 
                 pattern.test(normalizedPath)) {
-              this.logger.debug('sync-engine.ts', `Path ${filePath} excluded by pattern ${excludePath}`);
+              this.logger?.debug('sync-engine.ts', `Path ${filePath} excluded by pattern ${excludePath}`);
               return true;
             }
           } else if (pattern.test(normalizedPath)) {
-            this.logger.debug('sync-engine.ts', `Path ${filePath} excluded by pattern ${excludePath}`);
+            this.logger?.debug('sync-engine.ts', `Path ${filePath} excluded by pattern ${excludePath}`);
             return true;
           }
         } 
         // Simple path matching (exact or prefix)
         else if (normalizedPath === normalizedExcludePath || 
                  normalizedPath.startsWith(normalizedExcludePath + path.sep)) {
-          this.logger.debug('sync-engine.ts', `Path ${filePath} excluded by path ${excludePath}`);
+          this.logger?.debug('sync-engine.ts', `Path ${filePath} excluded by path ${excludePath}`);
           return true;
         }
       }
@@ -144,11 +152,11 @@ export class SyncEngine {
           if (normalizedExcludeFile.includes('*')) {
             const pattern = this.wildcardToRegExp(normalizedExcludeFile);
             if (pattern.test(normalizedPath)) {
-              this.logger.debug('sync-engine.ts', `Path ${filePath} excluded by file pattern ${excludeFile}`);
+              this.logger?.debug('sync-engine.ts', `Path ${filePath} excluded by file pattern ${excludeFile}`);
               return true;
             }
           } else if (normalizedPath.endsWith(normalizedExcludeFile)) {
-            this.logger.debug('sync-engine.ts', `Path ${filePath} excluded by file path ${excludeFile}`);
+            this.logger?.debug('sync-engine.ts', `Path ${filePath} excluded by file path ${excludeFile}`);
             return true;
           }
         } 
@@ -157,11 +165,11 @@ export class SyncEngine {
           if (excludeFile.includes('*')) {
             const pattern = this.wildcardToRegExp(excludeFile);
             if (pattern.test(fileName)) {
-              this.logger.debug('sync-engine.ts', `File ${fileName} excluded by pattern ${excludeFile}`);
+              this.logger?.debug('sync-engine.ts', `File ${fileName} excluded by pattern ${excludeFile}`);
               return true;
             }
           } else if (fileName === excludeFile) {
-            this.logger.debug('sync-engine.ts', `File ${fileName} excluded by name ${excludeFile}`);
+            this.logger?.debug('sync-engine.ts', `File ${fileName} excluded by name ${excludeFile}`);
             return true;
           }
         }
@@ -188,10 +196,10 @@ export class SyncEngine {
   }
 }
 
-const processEvent = async (event: FileEvent[]): Promise<void> => {
-  console.log('Starting to process events:', event);
+export const processEvent = async (events: FileEvent[]): Promise<void> => {
+  console.log('Starting to process events:', events);
   // random time between 250ms and 500ms
   const randomTime = Math.floor(Math.random() * 250) + 250;
   await new Promise(resolve => setTimeout(resolve, randomTime));
-  console.log('Finished processing events:', event);
+  console.log('Finished processing events:', events);
 }
