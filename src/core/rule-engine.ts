@@ -1,123 +1,79 @@
-// src/core/rule-engine.ts
-import { Rule, SyncEvent, RuleContext, SyncSettings } from '../types';
+// src/core/rules-engine.ts
+import { FileEvent, Rule, TransformContext } from '../types';
 
-export class RuleEngine {
-  private rules: Rule[] = [];
-  private activeRuleNames: string[] = [];
-  private context: RuleContext;
+// Apply a sequence of rules to transform a path
+export function applyRules(
+  event: FileEvent, 
+  rules: Rule[], 
+  context: TransformContext
+): string {
+  let targetPath = event.path;
   
-  constructor(settings: SyncSettings) {
-    // Initialize rule context
-    this.context = {
-      metaCache: new Map(),
-      targetBasePath: settings.targetBasePath,
-      contentPath: settings.contentPath,
-      assetsPath: settings.assetsPath,
-      debug: settings.debugMode
-    };
-    
-    this.activeRuleNames = settings.activeRules;
-  }
-  
-  /**
-   * Register a rule with the engine
-   */
-  registerRule(rule: Rule): void {
-    this.rules.push(rule);
-    // Sort rules by priority (higher numbers are higher priority)
-    this.rules.sort((a, b) => b.priority - a.priority);
-    
-    if (this.context.debug) {
-      console.log(`Registered rule: ${rule.name} (priority: ${rule.priority})`);
+  // Apply each applicable rule in sequence
+  for (const rule of rules) {
+    if (rule.shouldApply(event, context)) {
+      targetPath = rule.transform(targetPath, context);
     }
   }
   
-  /**
-   * Apply active rules to an event
-   */
-  applyRules(event: SyncEvent): SyncEvent {
-    if (this.context.debug) {
-      console.log(`Applying rules to: ${event.path}`);
-    }
-    
-    let transformedEvent = { ...event };
-    
-    // Apply each active rule in order
-    for (const rule of this.rules) {
-      // Skip if the rule is not active
-      if (!this.activeRuleNames.includes(rule.name)) {
-        continue;
-      }
-      
-      // Skip if the rule shouldn't apply to this event
-      if (!rule.shouldApply(transformedEvent)) {
-        continue;
-      }
-      
-      // Apply the rule
-      if (this.context.debug) {
-        console.log(`Applying rule ${rule.name} to ${transformedEvent.path}`);
-      }
-      
-      transformedEvent = rule.apply(transformedEvent, this.context);
-      
-      if (this.context.debug) {
-        console.log(`After ${rule.name}: ${transformedEvent.path}`);
-      }
-    }
-    
-    return transformedEvent;
-  }
+  return targetPath;
+}
+
+// Update meta cache when a meta file changes
+export function updateMetaCache(
+  dirPath: string, 
+  meta: any, 
+  context: TransformContext
+): TransformContext {
+  // Create new context with updated cache (immutable approach)
+  const newMetaCache = new Map(context.metaCache);
+  newMetaCache.set(dirPath, meta);
   
-  /**
-   * Update the metaCache with new meta content
-   */
-  updateMetaCache(path: string, content: any): void {
-    this.context.metaCache.set(path, content);
-    
-    if (this.context.debug) {
-      console.log(`Updated meta cache for ${path}`);
-    }
-  }
+  return {
+    ...context,
+    metaCache: newMetaCache
+  };
+}
+
+// Add an asset mapping
+export function updateAssetMap(
+  sourcePath: string, 
+  targetPath: string, 
+  context: TransformContext
+): TransformContext {
+  // Create new asset map with the addition
+  const newAssetMap = new Map(context.assetMap);
+  newAssetMap.set(sourcePath, targetPath);
   
-  /**
-   * Get the list of active rules
-   */
-  getActiveRules(): string[] {
-    return [...this.activeRuleNames];
-  }
+  return {
+    ...context,
+    assetMap: newAssetMap
+  };
+}
+
+// Find paths affected by a slug change
+export function findAffectedPaths(
+  dirPath: string,
+  pathMap: Map<string, string>
+): string[] {
+  return Array.from(pathMap.keys())
+    .filter(sourcePath => sourcePath.startsWith(dirPath));
+}
+
+// Calculate new target path for an affected file
+export function recalculateTargetPath(
+  sourcePath: string,
+  event: FileEvent,
+  rules: Rule[],
+  context: TransformContext
+): string {
+  // Create a new event for the source path
+  const pathEvent: FileEvent = {
+    ...event,
+    path: sourcePath,
+    name: sourcePath.split('/').pop() || '',
+  };
   
-  /**
-   * Set the active rules
-   */
-  setActiveRules(ruleNames: string[]): void {
-    this.activeRuleNames = [...ruleNames];
-    
-    if (this.context.debug) {
-      console.log(`Active rules set to: ${this.activeRuleNames.join(', ')}`);
-    }
-  }
-  
-  /**
-   * Update the rule context with new settings
-   */
-  updateContext(settings: SyncSettings): void {
-    this.context.targetBasePath = settings.targetBasePath;
-    this.context.contentPath = settings.contentPath;
-    this.context.assetsPath = settings.assetsPath;
-    this.context.debug = settings.debugMode;
-    
-    this.activeRuleNames = settings.activeRules;
-    
-    if (this.context.debug) {
-      console.log('Rule context updated with new settings');
-    }
-  }
-  
-  /**
-   * Get all registered rules
-   */
-  getRules(): Rule[] {
-    return [...this.rules];
-  }
+  // Apply rules to get the new target path
+  return applyRules(pathEvent, rules, context);
 }

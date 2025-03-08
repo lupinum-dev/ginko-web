@@ -1,127 +1,150 @@
 // src/adapters/obsidian-adapter.ts
 import { App, Plugin, TAbstractFile, TFile } from 'obsidian';
-import { SyncManager } from '../core/sync-manager';
-import { SyncEvent, FileType, SyncSettings } from '../types';
+import { SyncEngine } from '../core/sync-engine';
+import { FileEvent, FileType, Rule, SyncSettings } from '../types';
+import { nodeFileSystem } from './file-system-adapter';
+import { 
+  createAssetRule, 
+  createBasePathRule, 
+  createContentPathRule, 
+  createLanguageRule, 
+  createMetaSlugRule 
+} from '../rules/generic-rules';
 
-export class ObsidianAdapter {
-  private app: App;
-  private plugin: Plugin;
-  private syncManager: SyncManager;
+export function setupObsidianSync(plugin: Plugin, app: App, settings: SyncSettings): SyncEngine {
+  // Create rules
+  const rules: Rule[] = [
+    createBasePathRule(),
+    createContentPathRule(),
+    createLanguageRule(),
+    createMetaSlugRule(),
+    createAssetRule()
+  ];
+
+  app.vault.cachedRead
   
-  constructor(plugin: Plugin, app: App, settings: Partial<SyncSettings> = {}) {
-    this.plugin = plugin;
-    this.app = app;
-    this.syncManager = new SyncManager(settings);
-    console.log('Sync manager initialized');
-    
-    // Automatically set up file watchers in constructor
-    this.registerEventListeners();
-  }
+  // Create sync engine
+  const syncEngine = new SyncEngine(nodeFileSystem, settings, rules);
   
-  // Register all event listeners for file changes
-  private registerEventListeners(): void {
-    console.log('Setting up file watchers');
-    
-    // File modified
-    this.plugin.registerEvent(
-      this.app.vault.on('modify', async (file: TAbstractFile) => {
-        console.log('File modified', file.name);
-        if (file instanceof TFile) {
-          await this.handleFileEvent(file, 'modify');
-        }
-      })
-    );
-    
-    // File created
-    this.plugin.registerEvent(
-      this.app.vault.on('create', async (file: TAbstractFile) => {
-        console.log('File created', file.name);
-        if (file instanceof TFile) {
-          await this.handleFileEvent(file, 'create');
-        }
-      })
-    );
-    
-    // File deleted
-    this.plugin.registerEvent(
-      this.app.vault.on('delete', async (file: TAbstractFile) => {
-        console.log('File deleted', file.name);
-        if (file instanceof TFile) {
-          await this.handleFileEvent(file, 'delete');
-        }
-      })
-    );
-    
-    // File renamed
-    this.plugin.registerEvent(
-      this.app.vault.on('rename', async (file: TAbstractFile, oldPath: string) => {
-        console.log('File renamed', file.name, oldPath);
-        if (file instanceof TFile) {
-          await this.handleRenameEvent(file, oldPath);
-        }
-      })
-    );
-  }
+  // Set up event listeners
+  setupEventListeners(plugin, app, syncEngine);
   
-  private async handleFileEvent(
-    file: TFile, 
-    action: 'create' | 'modify' | 'delete'
-  ): Promise<void> {
-    
-    // Create sync event
-    const event: SyncEvent = {
-      name: file.name,
-      path: file.path,
-      action,
-      timestamp: Date.now()
-    };
-    
-    // Add content for markdown and meta files
-    if (file.name.endsWith('.md') && action !== 'delete') {
-      try {
-        event.content = await this.app.vault.cachedRead(file);
-      } catch (error) {
-        console.error(`Error reading file content: ${error}`);
+  return syncEngine;
+}
+
+function setupEventListeners(plugin: Plugin, app: App, syncEngine: SyncEngine): void {
+  // File creation
+  plugin.registerEvent(
+    app.vault.on('create', async (file: TAbstractFile) => {
+      if (file instanceof TFile) {
+        await handleFileEvent(app, file, 'create', syncEngine);
       }
-    }
-    
-    // Queue the event for processing
-    await this.syncManager.queueEvent(event);
-  }
+    })
+  );
   
-  private async handleRenameEvent(file: TFile, oldPath: string): Promise<void> {
-
-    // Create sync event
-    const event: SyncEvent = {
-      name: file.name,
-      path: file.path,
-      action: 'rename',
-      oldPath,
-      timestamp: Date.now()
-    };
-    
-    // Add content for markdown and meta files
-    if (file.name.endsWith('.md')) {
-      try {
-        event.content = await this.app.vault.cachedRead(file);
-      } catch (error) {
-        console.error(`Error reading file content: ${error}`);
+  // File modification
+  plugin.registerEvent(
+    app.vault.on('modify', async (file: TAbstractFile) => {
+      if (file instanceof TFile) {
+        await handleFileEvent(app, file, 'modify', syncEngine);
       }
-    }
-    
-    // Queue the event for processing
-    await this.syncManager.queueEvent(event);
-  }
+    })
+  );
   
+  // File deletion
+  plugin.registerEvent(
+    app.vault.on('delete', async (file: TAbstractFile) => {
+      if (file instanceof TFile) {
+        await handleFileEvent(app, file, 'delete', syncEngine);
+      }
+    })
+  );
+  
+  // File rename
+  plugin.registerEvent(
+    app.vault.on('rename', async (file: TAbstractFile, oldPath: string) => {
+      if (file instanceof TFile) {
+        await handleRenameEvent(app, file, oldPath, syncEngine);
+      }
+    })
+  );
+}
 
+async function handleFileEvent(
+  app: App, 
+  file: TFile, 
+  action: 'create' | 'modify' | 'delete',
+  syncEngine: SyncEngine
+): Promise<void> {
+  // Determine file type
+  const fileType = getFileType(file);
   
-  // Method to register a custom rule
-  registerRule(rule: any): void {
-    this.syncManager.registerRule(rule);
+  // Create event object
+  const event: FileEvent = {
+    name: file.name,
+    path: file.path,
+    type: fileType,
+    action,
+    timestamp: Date.now()
+  };
+  
+  // Add content for appropriate file types
+  if ((fileType === 'markdown' || fileType === 'meta') && action !== 'delete') {
+    try {
+      event.content = await app.vault.read(file);
+    } catch (error) {
+      console.error(`Error reading file content: ${error}`);
+    }
   }
   
-  // Update settings
-  updateSettings(settings: Partial<SyncSettings>): void {
-    this.syncManager.updateSettings(settings);
+  // Queue event for processing
+  syncEngine.queueEvent(event);
+}
+
+async function handleRenameEvent(
+  app: App,
+  file: TFile,
+  oldPath: string,
+  syncEngine: SyncEngine
+): Promise<void> {
+  // Determine file type
+  const fileType = getFileType(file);
+  
+  // Create event object
+  const event: FileEvent = {
+    name: file.name,
+    path: file.path,
+    type: fileType,
+    action: 'rename',
+    oldPath,
+    timestamp: Date.now()
+  };
+  
+  // Add content for appropriate file types
+  if (fileType === 'markdown' || fileType === 'meta') {
+    try {
+      event.content = await app.vault.read(file);
+    } catch (error) {
+      console.error(`Error reading file content: ${error}`);
+    }
   }
+  
+  // Queue event for processing
+  syncEngine.queueEvent(event);
+}
+
+function getFileType(file: TFile): FileType {
+  if (file.name.endsWith('_meta.md')) {
+    return 'meta';
+  }
+  
+  if (file.extension === 'md') {
+    return 'markdown';
+  }
+  
+  if (file.path.includes('/_assets/')) {
+    return 'asset';
+  }
+  
+  return 'unknown';
 }
