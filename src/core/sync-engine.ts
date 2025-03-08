@@ -9,6 +9,7 @@ import {
   updateMetaCache 
 } from './rule-engine';
 import { parseMetaContent, transformContent } from '../rules/generic-rules';
+import { Logger } from '../utils/logger';
 
 // Main sync engine - this remains a class for organizational purposes
 export class SyncEngine {
@@ -20,11 +21,18 @@ export class SyncEngine {
   private eventQueue: FileEvent[] = [];
   private processing = false;
   private timeoutId: NodeJS.Timeout | null = null;
+  private logger: Logger;
   
-  constructor(fs: FileSystem, settings: SyncSettings, rules: Rule[] = []) {
+  constructor(
+    fs: FileSystem, 
+    settings: SyncSettings, 
+    rules: Rule[] = [],
+    logger: Logger
+  ) {
     this.fs = fs;
     this.settings = settings;
     this.rules = [...rules];
+    this.logger = logger;
     
     // Initialize transform context
     this.context = {
@@ -32,22 +40,25 @@ export class SyncEngine {
       assetMap: new Map(),
       settings
     };
+    
+    this.logger.debug('sync-engine.ts', 'SyncEngine initialized');
   }
   
   // Add a rule
   addRule(rule: Rule): void {
     this.rules.push(rule);
+    this.logger.debug('sync-engine.ts', `Added rule: ${rule.name}`);
   }
   
   // Queue an event for processing
   queueEvent(event: FileEvent): void {
     // Skip excluded paths
     if (this.shouldExclude(event.path)) {
-      this.log(`Skipping excluded path: ${event.path}`);
+      this.logger.debug('sync-engine.ts', `Skipping excluded path: ${event.path}`);
       return;
     }
     
-    this.log(`Queuing ${event.action} event for ${event.path}`);
+    this.logger.debug('sync-engine.ts', `Queuing ${event.action} event for ${event.path}`);
     this.eventQueue.push(event);
     
     if (this.timeoutId) {
@@ -64,7 +75,7 @@ export class SyncEngine {
     }
     
     this.processing = true;
-    this.log(`Processing ${this.eventQueue.length} events`);
+    this.logger.info('sync-engine.ts', `Processing ${this.eventQueue.length} events`);
     
     try {
       // Sort by timestamp
@@ -85,7 +96,7 @@ export class SyncEngine {
       // Clear queue
       this.eventQueue = [];
     } catch (error) {
-      this.log(`Error processing queue: ${error}`, 'error');
+      this.logger.error('sync-engine.ts', `Error processing queue: ${error}`);
     } finally {
       this.processing = false;
       this.timeoutId = null;
@@ -105,6 +116,7 @@ export class SyncEngine {
       newContext.metaCache.delete(dirPath);
       this.context = newContext;
       
+      this.logger.debug('sync-engine.ts', `Removed meta cache for ${dirPath}`);
       return;
     }
     
@@ -120,6 +132,8 @@ export class SyncEngine {
     // Update meta cache
     this.context = updateMetaCache(dirPath, newMeta, this.context);
     
+    this.logger.debug('sync-engine.ts', `Updated meta cache for ${dirPath}`);
+    
     // If slug changed, update affected files
     if (oldMeta?.slug !== newMeta.slug && oldMeta?.slug && newMeta.slug) {
       await this.handleSlugChange(dirPath, oldMeta.slug, newMeta.slug);
@@ -132,7 +146,7 @@ export class SyncEngine {
     oldSlug: string, 
     newSlug: string
   ): Promise<void> {
-    this.log(`Slug changed for ${dirPath}: ${oldSlug} -> ${newSlug}`);
+    this.logger.info('sync-engine.ts', `Slug changed for ${dirPath}: ${oldSlug} -> ${newSlug}`);
     
     // Find affected source paths
     const affectedPaths = findAffectedPaths(dirPath, this.pathMap);
@@ -194,7 +208,7 @@ export class SyncEngine {
           break;
       }
     } catch (error) {
-      this.log(`Error processing event: ${error}`, 'error');
+      this.logger.error('sync-engine.ts', `Error processing event: ${error}`);
     }
   }
   
@@ -212,16 +226,26 @@ export class SyncEngine {
       this.context = updateAssetMap(event.path, targetPath, this.context);
     }
     
-    // Ensure directory exists
-    await this.fs.createDirectory(path.dirname(targetPath));
-    
-    // Write file
-    await this.fs.writeFile(targetPath, content);
-    
-    // Update path mapping
-    this.pathMap.set(event.path, targetPath);
-    
-    this.log(`${event.action === 'create' ? 'Created' : 'Updated'} file: ${targetPath}`);
+    try {
+      // Make sure targetPath is absolute
+      const absoluteTargetPath = path.isAbsolute(targetPath) ? targetPath : path.resolve(targetPath);
+      
+      // Ensure directory exists
+      const dirPath = path.dirname(absoluteTargetPath);
+      this.logger.debug('sync-engine.ts', `Ensuring directory exists: ${dirPath}`);
+      await this.fs.createDirectory(dirPath);
+      
+      // Write file
+      await this.fs.writeFile(absoluteTargetPath, content);
+      
+      // Update path mapping
+      this.pathMap.set(event.path, absoluteTargetPath);
+      
+      this.logger.info('sync-engine.ts', `${event.action === 'create' ? 'Created' : 'Updated'} file: ${absoluteTargetPath}`);
+    } catch (error) {
+      this.logger.error('sync-engine.ts', `Error creating/updating file ${targetPath}: ${error}`);
+      throw error;
+    }
   }
   
   // Delete a file
@@ -232,7 +256,7 @@ export class SyncEngine {
     const exists = await this.fs.exists(targetPath);
     if (exists) {
       await this.fs.deleteFile(targetPath);
-      this.log(`Deleted file: ${targetPath}`);
+      this.logger.info('sync-engine.ts', `Deleted file: ${targetPath}`);
     }
     
     // Remove from path mapping
@@ -268,21 +292,94 @@ export class SyncEngine {
     // Move file
     await this.fs.moveFile(oldPath, newPath);
     
-    this.log(`Moved file: ${oldPath} -> ${newPath}`);
+    this.logger.info('sync-engine.ts', `Moved file: ${oldPath} -> ${newPath}`);
   }
   
-  // Check if a path should be excluded
   private shouldExclude(filePath: string): boolean {
-    return this.settings.excludePaths.some(excludePath => 
-      filePath.startsWith(excludePath)
-    );
+    const normalizedPath = path.normalize(filePath);
+    const fileName = path.basename(normalizedPath);
+    
+    // Check excluded paths
+    if (this.settings.excludePaths) {
+      for (const excludePath of this.settings.excludePaths) {
+        const normalizedExcludePath = path.normalize(excludePath).replace(/\/$/, '');
+        
+        if (normalizedExcludePath.includes('*')) {
+          const pattern = this.wildcardToRegExp(normalizedExcludePath);
+          
+          // Handle leading wildcard patterns differently
+          if (normalizedExcludePath.startsWith('*')) {
+            // Check if pattern matches any path component or full path
+            const pathComponents = normalizedPath.split(path.sep);
+            if (pathComponents.some(component => pattern.test(component)) || 
+                pattern.test(normalizedPath)) {
+              this.logger.debug('sync-engine.ts', `Path ${filePath} excluded by pattern ${excludePath}`);
+              return true;
+            }
+          } else if (pattern.test(normalizedPath)) {
+            this.logger.debug('sync-engine.ts', `Path ${filePath} excluded by pattern ${excludePath}`);
+            return true;
+          }
+        } 
+        // Simple path matching (exact or prefix)
+        else if (normalizedPath === normalizedExcludePath || 
+                 normalizedPath.startsWith(normalizedExcludePath + path.sep)) {
+          this.logger.debug('sync-engine.ts', `Path ${filePath} excluded by path ${excludePath}`);
+          return true;
+        }
+      }
+    }
+    
+    // Check excluded files
+    if (this.settings.excludeFiles) {
+      for (const excludeFile of this.settings.excludeFiles) {
+        // Handle file paths (containing slashes)
+        if (excludeFile.includes('/') || excludeFile.includes('\\')) {
+          const normalizedExcludeFile = path.normalize(excludeFile);
+          
+          if (normalizedExcludeFile.includes('*')) {
+            const pattern = this.wildcardToRegExp(normalizedExcludeFile);
+            if (pattern.test(normalizedPath)) {
+              this.logger.debug('sync-engine.ts', `Path ${filePath} excluded by file pattern ${excludeFile}`);
+              return true;
+            }
+          } else if (normalizedPath.endsWith(normalizedExcludeFile)) {
+            this.logger.debug('sync-engine.ts', `Path ${filePath} excluded by file path ${excludeFile}`);
+            return true;
+          }
+        } 
+        // Handle filenames or patterns
+        else {
+          if (excludeFile.includes('*')) {
+            const pattern = this.wildcardToRegExp(excludeFile);
+            if (pattern.test(fileName)) {
+              this.logger.debug('sync-engine.ts', `File ${fileName} excluded by pattern ${excludeFile}`);
+              return true;
+            }
+          } else if (fileName === excludeFile) {
+            this.logger.debug('sync-engine.ts', `File ${fileName} excluded by name ${excludeFile}`);
+            return true;
+          }
+        }
+      }
+    }
+    
+    return false;
   }
   
-  // Logging helper
-  private log(message: string, level: 'info' | 'error' = 'info'): void {
-    if (this.settings.debug || level === 'error') {
-      const prefix = level === 'error' ? '[ERROR]' : '[INFO]';
-      console.log(`${prefix} SyncEngine: ${message}`);
+  private wildcardToRegExp(pattern: string): RegExp {
+    // Escape RegExp special characters except asterisk
+    const escapedPattern = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+    
+    // Replace * with non-greedy wildcard matcher
+    const regexPattern = escapedPattern.replace(/\*/g, '.*?');
+    
+    // For patterns with leading wildcard, don't force start of string
+    if (pattern.startsWith('*')) {
+      return new RegExp(regexPattern, 'i');
     }
+    
+    // For other patterns, match the entire string
+    return new RegExp(`^${regexPattern}$`, 'i');
   }
 }

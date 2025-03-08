@@ -2,7 +2,7 @@
 import { App, Plugin, TAbstractFile, TFile } from 'obsidian';
 import { SyncEngine } from '../core/sync-engine';
 import { FileEvent, FileType, Rule, SyncSettings } from '../types';
-import { nodeFileSystem } from './file-system-adapter';
+import { createNodeFileSystem } from '../utils/file-system';
 import { 
   createAssetRule, 
   createBasePathRule, 
@@ -10,34 +10,52 @@ import {
   createLanguageRule, 
   createMetaSlugRule 
 } from '../rules/generic-rules';
+import { Logger } from '../utils/logger';
 
-export function setupObsidianSync(plugin: Plugin, app: App, settings: SyncSettings): SyncEngine {
+export function setupObsidianSync(
+  plugin: Plugin, 
+  app: App, 
+  settings: SyncSettings,
+  logger: Logger
+): SyncEngine {
+  logger.info('obsidian-adapter.ts', 'Setting up Obsidian sync');
+  
   // Create rules
   const rules: Rule[] = [
-    createBasePathRule(),
-    createContentPathRule(),
-    createLanguageRule(),
-    createMetaSlugRule(),
-    createAssetRule()
+    // createBasePathRule(),
+    // createContentPathRule(),
+    // createLanguageRule(),
+    // createMetaSlugRule(),
+    // createAssetRule()
   ];
-
-  app.vault.cachedRead
+  
+  // Create file system with logging
+  const fileSystem = createNodeFileSystem(logger);
   
   // Create sync engine
-  const syncEngine = new SyncEngine(nodeFileSystem, settings, rules);
+  const syncEngine = new SyncEngine(fileSystem, settings, rules, logger);
   
   // Set up event listeners
-  setupEventListeners(plugin, app, syncEngine);
+  setupEventListeners(plugin, app, syncEngine, logger);
   
+  logger.info('obsidian-adapter.ts', 'Obsidian sync setup complete');
   return syncEngine;
 }
 
-function setupEventListeners(plugin: Plugin, app: App, syncEngine: SyncEngine): void {
+function setupEventListeners(
+  plugin: Plugin, 
+  app: App, 
+  syncEngine: SyncEngine,
+  logger: Logger
+): void {
+  logger.debug('obsidian-adapter.ts', 'Setting up event listeners');
+  
   // File creation
   plugin.registerEvent(
     app.vault.on('create', async (file: TAbstractFile) => {
       if (file instanceof TFile) {
-        await handleFileEvent(app, file, 'create', syncEngine);
+        logger.debug('obsidian-adapter.ts', `File created: ${file.path}`);
+        await handleFileEvent(app, file, 'create', syncEngine, logger);
       }
     })
   );
@@ -46,7 +64,8 @@ function setupEventListeners(plugin: Plugin, app: App, syncEngine: SyncEngine): 
   plugin.registerEvent(
     app.vault.on('modify', async (file: TAbstractFile) => {
       if (file instanceof TFile) {
-        await handleFileEvent(app, file, 'modify', syncEngine);
+        logger.debug('obsidian-adapter.ts', `File modified: ${file.path}`);
+        await handleFileEvent(app, file, 'modify', syncEngine, logger);
       }
     })
   );
@@ -55,7 +74,8 @@ function setupEventListeners(plugin: Plugin, app: App, syncEngine: SyncEngine): 
   plugin.registerEvent(
     app.vault.on('delete', async (file: TAbstractFile) => {
       if (file instanceof TFile) {
-        await handleFileEvent(app, file, 'delete', syncEngine);
+        logger.debug('obsidian-adapter.ts', `File deleted: ${file.path}`);
+        await handleFileEvent(app, file, 'delete', syncEngine, logger);
       }
     })
   );
@@ -64,17 +84,21 @@ function setupEventListeners(plugin: Plugin, app: App, syncEngine: SyncEngine): 
   plugin.registerEvent(
     app.vault.on('rename', async (file: TAbstractFile, oldPath: string) => {
       if (file instanceof TFile) {
-        await handleRenameEvent(app, file, oldPath, syncEngine);
+        logger.debug('obsidian-adapter.ts', `File renamed: ${oldPath} -> ${file.path}`);
+        await handleRenameEvent(app, file, oldPath, syncEngine, logger);
       }
     })
   );
+  
+  logger.debug('obsidian-adapter.ts', 'Event listeners setup complete');
 }
 
 async function handleFileEvent(
   app: App, 
   file: TFile, 
   action: 'create' | 'modify' | 'delete',
-  syncEngine: SyncEngine
+  syncEngine: SyncEngine,
+  logger: Logger
 ): Promise<void> {
   // Determine file type
   const fileType = getFileType(file);
@@ -91,21 +115,25 @@ async function handleFileEvent(
   // Add content for appropriate file types
   if ((fileType === 'markdown' || fileType === 'meta') && action !== 'delete') {
     try {
-      event.content = await app.vault.read(file);
+      // Use cachedRead for better performance
+      event.content = await app.vault.cachedRead(file);
     } catch (error) {
-      console.error(`Error reading file content: ${error}`);
+      logger.error('obsidian-adapter.ts', `Error reading file content: ${error}`);
     }
   }
   
   // Queue event for processing
   syncEngine.queueEvent(event);
+  
+  logger.debug('obsidian-adapter.ts', `Queued ${action} event for ${file.path}`);
 }
 
 async function handleRenameEvent(
   app: App,
   file: TFile,
   oldPath: string,
-  syncEngine: SyncEngine
+  syncEngine: SyncEngine,
+  logger: Logger
 ): Promise<void> {
   // Determine file type
   const fileType = getFileType(file);
@@ -123,17 +151,20 @@ async function handleRenameEvent(
   // Add content for appropriate file types
   if (fileType === 'markdown' || fileType === 'meta') {
     try {
-      event.content = await app.vault.read(file);
+      event.content = await app.vault.cachedRead(file);
     } catch (error) {
-      console.error(`Error reading file content: ${error}`);
+      logger.error('obsidian-adapter.ts', `Error reading file content: ${error}`);
     }
   }
   
   // Queue event for processing
   syncEngine.queueEvent(event);
+  
+  logger.debug('obsidian-adapter.ts', `Queued rename event: ${oldPath} -> ${file.path}`);
 }
 
-function getFileType(file: TFile): FileType {
+// Export function to determine file type
+export function getFileType(file: TFile): FileType {
   if (file.name.endsWith('_meta.md')) {
     return 'meta';
   }

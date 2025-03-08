@@ -26,7 +26,9 @@ export interface SyncSettings {
   contentPath: string;
   assetsPath: string;
   excludePaths: string[];
+  excludeFiles: string[];
   debug: boolean;
+  logToDisk: boolean; // New setting for disk logging
 }
 
 // Function type for path transformations
@@ -55,5 +57,7 @@ export const DEFAULT_SETTINGS: SyncSettings = {
   contentPath: 'content',
   assetsPath: 'public/_assets',
   excludePaths: ['.obsidian', '.git', 'node_modules'],
-  debug: false
+  excludeFiles: [],
+  debug: false,
+  logToDisk: false // Disabled by default
 };

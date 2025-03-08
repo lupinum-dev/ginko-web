@@ -1,24 +1,45 @@
 // src/main.ts
-import { Plugin, PluginSettingTab, App, Setting } from 'obsidian';
+import { Plugin, PluginSettingTab, App, Setting, Notice } from 'obsidian';
 import { setupObsidianSync } from './adapters/obsidian-adapter';
 import { SyncEngine } from './core/sync-engine';
 import { DEFAULT_SETTINGS, SyncSettings } from './types';
+import { Logger } from './utils/logger';
+import { resetVault } from './core/reset-vault';
 
 export default class VaultSyncPlugin extends Plugin {
   settings: SyncSettings;
   private syncEngine: SyncEngine;
+  private logger: Logger;
   
   async onload() {
     // Load settings
     await this.loadSettings();
     
+    // Initialize logger
+    this.logger = new Logger(this.settings);
+    this.logger.info('main.ts', 'Initializing Vault Sync Plugin');
+    
     // Initialize sync engine
-    this.syncEngine = setupObsidianSync(this, this.app, this.settings);
+    this.syncEngine = setupObsidianSync(this, this.app, this.settings, this.logger);
+    
+    // Add ribbon icon for reset
+    this.addRibbonIcon('reset', 'Reset Vault Sync', () => {
+      this.resetVault();
+    });
+    
+    // Add command for reset
+    this.addCommand({
+      id: 'reset-vault-sync',
+      name: 'Reset Vault Sync',
+      callback: () => {
+        this.resetVault();
+      }
+    });
     
     // Add settings tab
     this.addSettingTab(new VaultSyncSettingsTab(this.app, this));
     
-    console.log('Vault Sync Plugin loaded');
+    this.logger.info('main.ts', 'Vault Sync Plugin loaded');
   }
   
   async loadSettings() {
@@ -27,6 +48,39 @@ export default class VaultSyncPlugin extends Plugin {
   
   async saveSettings() {
     await this.saveData(this.settings);
+    
+    // Update logger when settings change
+    if (this.logger) {
+      this.logger = new Logger(this.settings);
+    }
+  }
+  
+  async resetVault() {
+    try {
+      this.logger.info('main.ts', 'Starting vault reset...');
+      
+      // Show notice
+      new Notice('Resetting vault sync... This may take a moment.');
+      
+      // Call reset function
+      await resetVault(this.app, this.syncEngine, this.settings, this.logger);
+      
+      // Show success notice
+      new Notice('Vault sync reset complete!');
+      
+      this.logger.info('main.ts', 'Vault reset completed successfully');
+    } catch (error) {
+      this.logger.error('main.ts', `Failed to reset vault: ${error}`);
+      new Notice(`Failed to reset vault: ${error}`);
+    }
+  }
+  
+  onunload() {
+    // Clean up
+    if (this.logger) {
+      this.logger.dispose();
+    }
+    this.logger.info('main.ts', 'Vault Sync Plugin unloaded');
   }
 }
 
@@ -113,5 +167,17 @@ class VaultSyncSettingsTab extends PluginSettingTab {
           });
       });
       
+    // Log to disk
+    new Setting(containerEl)
+      .setName('Log to Disk')
+      .setDesc('Save logs to a file in the target directory')
+      .addToggle(toggle => {
+        toggle
+          .setValue(this.plugin.settings.logToDisk)
+          .onChange(async (value) => {
+            this.plugin.settings.logToDisk = value;
+            await this.plugin.saveSettings();
+          });
+      });
   }
 }

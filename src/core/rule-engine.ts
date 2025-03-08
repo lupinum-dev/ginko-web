@@ -1,31 +1,70 @@
-// src/core/rules-engine.ts
+// src/core/rule-engine.ts
 import { FileEvent, Rule, TransformContext } from '../types';
+import * as path from 'path';
 
-// Apply a sequence of rules to transform a path
+/**
+ * Apply all rules that should apply to an event
+ */
 export function applyRules(
-  event: FileEvent, 
-  rules: Rule[], 
+  event: FileEvent,
+  rules: Rule[],
   context: TransformContext
 ): string {
-  let targetPath = event.path;
+  let resultPath = event.path;
   
-  // Apply each applicable rule in sequence
   for (const rule of rules) {
     if (rule.shouldApply(event, context)) {
-      targetPath = rule.transform(targetPath, context);
+      resultPath = rule.transform(resultPath, context);
     }
   }
   
-  return targetPath;
+  // Ensure the path is absolute and using correct directory separators
+  const absolutePath = path.isAbsolute(resultPath) 
+    ? resultPath 
+    : path.resolve(path.normalize(resultPath));
+    
+  return absolutePath;
 }
 
-// Update meta cache when a meta file changes
+/**
+ * Find all paths that start with a given directory path
+ */
+export function findAffectedPaths(
+  dirPath: string,
+  pathMap: Map<string, string>
+): string[] {
+  const normalizedDirPath = path.normalize(dirPath);
+  
+  return Array.from(pathMap.keys()).filter(sourcePath => {
+    return path.normalize(sourcePath).startsWith(normalizedDirPath);
+  });
+}
+
+/**
+ * Recalculate a target path using the rules
+ */
+export function recalculateTargetPath(
+  sourcePath: string,
+  event: FileEvent,
+  rules: Rule[],
+  context: TransformContext
+): string {
+  const modifiedEvent: FileEvent = {
+    ...event,
+    path: sourcePath
+  };
+  
+  return applyRules(modifiedEvent, rules, context);
+}
+
+/**
+ * Update the meta cache with new metadata
+ */
 export function updateMetaCache(
-  dirPath: string, 
-  meta: any, 
+  dirPath: string,
+  meta: any,
   context: TransformContext
 ): TransformContext {
-  // Create new context with updated cache (immutable approach)
   const newMetaCache = new Map(context.metaCache);
   newMetaCache.set(dirPath, meta);
   
@@ -35,13 +74,14 @@ export function updateMetaCache(
   };
 }
 
-// Add an asset mapping
+/**
+ * Update the asset map with a new mapping
+ */
 export function updateAssetMap(
-  sourcePath: string, 
-  targetPath: string, 
+  sourcePath: string,
+  targetPath: string,
   context: TransformContext
 ): TransformContext {
-  // Create new asset map with the addition
   const newAssetMap = new Map(context.assetMap);
   newAssetMap.set(sourcePath, targetPath);
   
@@ -49,31 +89,4 @@ export function updateAssetMap(
     ...context,
     assetMap: newAssetMap
   };
-}
-
-// Find paths affected by a slug change
-export function findAffectedPaths(
-  dirPath: string,
-  pathMap: Map<string, string>
-): string[] {
-  return Array.from(pathMap.keys())
-    .filter(sourcePath => sourcePath.startsWith(dirPath));
-}
-
-// Calculate new target path for an affected file
-export function recalculateTargetPath(
-  sourcePath: string,
-  event: FileEvent,
-  rules: Rule[],
-  context: TransformContext
-): string {
-  // Create a new event for the source path
-  const pathEvent: FileEvent = {
-    ...event,
-    path: sourcePath,
-    name: sourcePath.split('/').pop() || '',
-  };
-  
-  // Apply rules to get the new target path
-  return applyRules(pathEvent, rules, context);
 }
