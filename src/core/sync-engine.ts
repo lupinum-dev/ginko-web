@@ -1,6 +1,10 @@
 // src/core/sync-engine.ts
 import { FileEvent, Logger, QueueState, Rule, SORT_ORDER, SyncSettings } from '../types';
 import * as path from 'path';
+import { processEvent } from './process-event';
+
+// Re-export processEvent for convenience
+export { processEvent } from './process-event';
 
 /**
  * Converts a wildcard pattern to a RegExp object
@@ -153,40 +157,6 @@ export const sortEvents = (events: ReadonlyArray<FileEvent>): ReadonlyArray<File
     // Then sort by timestamp within same type
     return a.timestamp - b.timestamp;
   });
-};
-
-/**
- * Processes a single event through the provided rules
- */
-export const processEvent = async (
-  event: FileEvent,
-  settings: SyncSettings,
-  rules: ReadonlyArray<Rule>,
-  logger?: Logger
-): Promise<void> => {
-  logger?.debug('sync-engine', `Processing ${event.action} event for ${event.path}`);
-  
-  // TODO: Apply rules and perform actual file operations
-  // This is a placeholder implementation
-  const context = {
-    metaCache: new Map(),
-    assetMap: new Map(),
-    settings
-  };
-  
-  // Apply the first matching rule (if any)
-  for (const rule of rules) {
-    if (rule.shouldApply(event, context)) {
-      logger?.debug('sync-engine', `Applying rule ${rule.name} to ${event.path}`);
-      // In a real implementation, this would perform the actual transformations
-      break;
-    }
-  }
-
-
-  console.warn('Done');
-  
-  logger?.debug('sync-engine', `Completed processing event for ${event.path}`);
 };
 
 /**

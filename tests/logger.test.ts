@@ -13,14 +13,16 @@ vi.mock('fs/promises', () => ({
 }));
 
 describe('logger - createLogger', () => {
-  const settings: SyncSettings = {
+  const settings: Partial<SyncSettings> = {
+    obsidianRoot: '/Users/obsidian/vault/demo/',
     targetBasePath: './target',
     contentPath: 'content',
     assetsPath: 'assets',
     excludePaths: [],
     excludeFiles: [],
     debug: false,
-    logToDisk: false
+    logToDisk: false,
+    logFilePath: '.obsidian/plugins/ginko/log.txt'
   };
 
   // Setup and teardown for console.log mocking
@@ -42,7 +44,7 @@ describe('logger - createLogger', () => {
   });
 
   it('should create a logger with the correct interface', () => {
-    const logger = createLogger(settings);
+    const logger = createLogger(settings as SyncSettings);
     
     expect(logger).toHaveProperty('debug');
     expect(logger).toHaveProperty('info');
@@ -58,7 +60,7 @@ describe('logger - createLogger', () => {
   });
 
   it('should not log debug messages when debug is disabled', () => {
-    const logger = createLogger({ ...settings, debug: false });
+    const logger = createLogger({ ...settings, debug: false } as SyncSettings);
     
     logger.debug('test-module', 'Debug message');
     
@@ -66,7 +68,7 @@ describe('logger - createLogger', () => {
   });
 
   it('should log debug messages when debug is enabled', () => {
-    const logger = createLogger({ ...settings, debug: true });
+    const logger = createLogger({ ...settings, debug: true } as SyncSettings);
     
     logger.debug('test-module', 'Debug message');
     
@@ -76,7 +78,7 @@ describe('logger - createLogger', () => {
   });
 
   it('should always log error messages regardless of debug setting', () => {
-    const logger = createLogger({ ...settings, debug: false });
+    const logger = createLogger({ ...settings, debug: false } as SyncSettings);
     
     logger.error('test-module', 'Error message');
     
@@ -86,7 +88,7 @@ describe('logger - createLogger', () => {
   });
 
   it('should log info messages', () => {
-    const logger = createLogger(settings);
+    const logger = createLogger(settings as SyncSettings);
     
     logger.info('test-module', 'Info message');
     
@@ -97,7 +99,7 @@ describe('logger - createLogger', () => {
   });
 
   it('should log warn messages', () => {
-    const logger = createLogger(settings);
+    const logger = createLogger(settings as SyncSettings);
     
     logger.warn('test-module', 'Warning message');
     
@@ -113,7 +115,7 @@ describe('logger - createLogger', () => {
       logToDisk: true 
     };
     
-    const logger = createLogger(logSettings);
+    const logger = createLogger(logSettings as SyncSettings);
     
     // Wait for pending writes to complete
     await logger.dispose();
@@ -137,7 +139,7 @@ describe('logger - createLogger', () => {
       logToDisk: true 
     };
     
-    const logger = createLogger(logSettings);
+    const logger = createLogger(logSettings as SyncSettings);
     
     // No need to wait for timers since we're mocking fs functions
     
@@ -149,13 +151,13 @@ describe('logger - createLogger', () => {
     await logger.dispose();
     
     expect(fs.appendFile).toHaveBeenCalledWith(
-      path.join(logSettings.targetBasePath, 'sync-log.txt'),
+      path.join(logSettings.obsidianRoot, logSettings.logFilePath, 'log.txt'),
       expect.stringMatching(/\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z\] \[INFO\] \[test-module\] Info message\n/)
     );
   });
 
   it('should not interact with the file system when logToDisk is disabled', () => {
-    const logger = createLogger({ ...settings, logToDisk: false });
+    const logger = createLogger({ ...settings, logToDisk: false } as SyncSettings);
     
     logger.info('test-module', 'Info message');
     

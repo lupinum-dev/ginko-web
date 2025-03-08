@@ -2,6 +2,7 @@
 import { App, Plugin, TAbstractFile, TFile } from 'obsidian';
 import { createSyncEngine } from '../core/sync-engine';
 import { FileEvent, FileType, Logger, Rule, SyncSettings } from '../types';
+import { createSyncRules } from '../core/rules-engine';
 
 /**
  * Determines the file type based on the file
@@ -15,7 +16,10 @@ export const getFileType = (file: TFile): FileType => {
     return 'markdown';
   }
   
-  if (file.path.includes('/_assets/')) {
+  if (file.path.includes('/_assets/') || 
+      file.path.includes('/assets/') ||
+      file.path.includes('/attachments/') ||
+      ['png', 'jpg', 'jpeg', 'gif', 'svg', 'pdf', 'mp3', 'mp4'].includes(file.extension)) {
     return 'asset';
   }
   
@@ -80,11 +84,8 @@ export const setupEventListeners = (
       
       logger?.debug('obsidian-adapter', `File created: ${file.path}`);
       const event = await createFileEvent(app, file, 'create', undefined, logger);
-      ;
       
-      if (event.type !== 'unknown') {
-        syncEngine.queueEvent(event);
-      }
+      syncEngine.queueEvent(event);
     })
   );
   
@@ -96,9 +97,7 @@ export const setupEventListeners = (
       logger?.debug('obsidian-adapter', `File modified: ${file.path}`);
       const event = await createFileEvent(app, file, 'modify', undefined, logger);
       
-      if (event.type !== 'unknown') {
-        syncEngine.queueEvent(event);
-      }
+      syncEngine.queueEvent(event);
     })
   );
   
@@ -110,9 +109,7 @@ export const setupEventListeners = (
       logger?.debug('obsidian-adapter', `File deleted: ${file.path}`);
       const event = await createFileEvent(app, file, 'delete', undefined, logger);
       
-      if (event.type !== 'unknown') {
-        syncEngine.queueEvent(event);
-      }
+      syncEngine.queueEvent(event);
     })
   );
   
@@ -124,27 +121,11 @@ export const setupEventListeners = (
       logger?.debug('obsidian-adapter', `File renamed: ${oldPath} -> ${file.path}`);
       const event = await createFileEvent(app, file, 'modify', oldPath, logger);
       
-      if (event.type !== 'unknown') {
-        syncEngine.queueEvent(event);
-      }
+      syncEngine.queueEvent(event);
     })
   );
   
   logger?.debug('obsidian-adapter', 'Event listeners setup complete');
-};
-
-/**
- * Creates rules for the sync engine
- */
-export const createSyncRules = (settings: SyncSettings): Rule[] => {
-  // This is a placeholder implementation
-  return [
-    {
-      name: 'Placeholder Rule',
-      shouldApply: () => false,
-      transform: (path) => path
-    }
-  ];
 };
 
 /**
@@ -158,8 +139,19 @@ export const setupObsidianSync = (
 ) => {
   logger?.info('obsidian-adapter', 'Setting up Obsidian sync');
   
-  // Create rules
-  const rules = createSyncRules(settings);
+  // Create rules using our rules system
+  const ruleOptions = {
+    enableLocalizedMarkdown: true,
+    excludePatterns: settings.excludeFiles
+  };
+  
+  const rules = createSyncRules(ruleOptions);
+  
+  // Log the rules being used
+  logger?.info('obsidian-adapter', `Created ${rules.length} sync rules`);
+  rules.forEach(rule => {
+    logger?.debug('obsidian-adapter', `Loaded rule: ${rule.name}`);
+  });
   
   // Create sync engine
   const syncEngine = createSyncEngine(settings, rules, logger);

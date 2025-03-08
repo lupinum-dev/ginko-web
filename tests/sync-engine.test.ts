@@ -20,95 +20,104 @@ describe('sync-engine - shouldExclude', () => {
   });
 
   it('should exclude paths that match excluded path patterns', () => {
-    const settings: SyncSettings = {
+    const settings: Partial<SyncSettings> = {
+      obsidianRoot: '/Users/obsidian/vault/demo/',
       targetBasePath: './target',
       contentPath: 'content',
       assetsPath: 'assets',
       excludePaths: ['/temp', '/node_modules'],
       excludeFiles: ['test.md', '_assets/img1.png', '*.custom'],
       debug: false,
-      logToDisk: false
+      logToDisk: false,
+      logFilePath: '.obsidian/plugins/ginko'
     };
     
     // Exclude paths that start with excluded paths
-    expect(shouldExclude('/temp/file.txt', settings, mockLogger)).toBe(true);
-    expect(shouldExclude('/node_modules/package/file.js', settings, mockLogger)).toBe(true);
+    expect(shouldExclude('/temp/file.txt', settings as SyncSettings, mockLogger)).toBe(true);
+    expect(shouldExclude('/node_modules/package/file.js', settings as SyncSettings, mockLogger)).toBe(true);
     
     // Exclude exact files
-    expect(shouldExclude('/dir/test.md', settings, mockLogger)).toBe(true);
-    expect(shouldExclude('/_assets/img1.png', settings, mockLogger)).toBe(true);
+    expect(shouldExclude('/dir/test.md', settings as SyncSettings, mockLogger)).toBe(true);
+    expect(shouldExclude('/_assets/img1.png', settings as SyncSettings, mockLogger)).toBe(true);
     
     // Exclude files with wildcard patterns
-    expect(shouldExclude('/path/to/file.custom', settings, mockLogger)).toBe(true);
+    expect(shouldExclude('/path/to/file.custom', settings as SyncSettings, mockLogger)).toBe(true);
     
     // Test non-excluded paths
-    expect(shouldExclude('/src/file.txt', settings, mockLogger)).toBe(false);
-    expect(shouldExclude('/assets/temp.png', settings, mockLogger)).toBe(false);
+    expect(shouldExclude('/src/file.txt', settings as SyncSettings, mockLogger)).toBe(false);
+    expect(shouldExclude('/assets/temp.png', settings as SyncSettings, mockLogger)).toBe(false);
   });
   
   it('should handle wildcards in path exclusions', () => {
-    const settings: SyncSettings = {
+    const settings: Partial<SyncSettings> = {
+      obsidianRoot: '/Users/obsidian/vault/demo/',
       targetBasePath: './target',
       contentPath: 'content',
       assetsPath: 'assets',
       excludePaths: ['*_work', '*temp*'],
       excludeFiles: ['*report.md', '*custom_string*'],
       debug: false,
-      logToDisk: false
+      logToDisk: false,
+      logFilePath: '.obsidian/plugins/ginko'
     };
     
     // Wildcard at the start of path
-    expect(shouldExclude('/xyz_work/file.txt', settings, mockLogger)).toBe(true);
-    expect(shouldExclude('/my_work/docs/notes.md', settings, mockLogger)).toBe(true);
+    expect(shouldExclude('/xyz_work/file.txt', settings as SyncSettings, mockLogger)).toBe(true);
+    expect(shouldExclude('/my_work/docs/notes.md', settings as SyncSettings, mockLogger)).toBe(true);
     
     // Wildcard in the middle of path
-    expect(shouldExclude('/path/temp/files', settings, mockLogger)).toBe(true);
-    expect(shouldExclude('/users/tempdata/config.json', settings, mockLogger)).toBe(true);
+    expect(shouldExclude('/path/temp/files', settings as SyncSettings, mockLogger)).toBe(true);
+    expect(shouldExclude('/users/tempdata/config.json', settings as SyncSettings, mockLogger)).toBe(true);
     
     // Wildcard in file pattern
-    expect(shouldExclude('/path/monthly_report.md', settings, mockLogger)).toBe(true);
-    expect(shouldExclude('/docs/annual_report.md', settings, mockLogger)).toBe(true);
-    expect(shouldExclude('/folder/xcustom_stringx.txt', settings, mockLogger)).toBe(true);
+    expect(shouldExclude('/path/monthly_report.md', settings as SyncSettings, mockLogger)).toBe(true);
+    expect(shouldExclude('/docs/annual_report.md', settings as SyncSettings, mockLogger)).toBe(true);
+    expect(shouldExclude('/folder/xcustom_stringx.txt', settings as SyncSettings, mockLogger)).toBe(true);
     
     // Non-matching paths
-    expect(shouldExclude('/work/file.txt', settings, mockLogger)).toBe(false);
-    expect(shouldExclude('/tmp/data.json', settings, mockLogger)).toBe(false);
-    expect(shouldExclude('/path/notes.md', settings, mockLogger)).toBe(false);
+    expect(shouldExclude('/work/file.txt', settings as SyncSettings, mockLogger)).toBe(false);
+    expect(shouldExclude('/tmp/data.json', settings as SyncSettings, mockLogger)).toBe(false);
+    expect(shouldExclude('/path/notes.md', settings as SyncSettings, mockLogger)).toBe(false);
   });
 
   it('should handle empty exclude arrays', () => {
-    const settings: SyncSettings = {
+    const settings: Partial<SyncSettings> = {
+      obsidianRoot: '/Users/obsidian/vault/demo/',
       targetBasePath: './target',
       contentPath: 'content',
       assetsPath: 'assets',
       excludePaths: [],
       excludeFiles: [],
       debug: false,
-      logToDisk: false
+      logToDisk: false,
+      logFilePath: '.obsidian/plugins/ginko'
     };
     
-    expect(shouldExclude('/any/path/file.txt', settings, mockLogger)).toBe(false);
+    expect(shouldExclude('/any/path/file.txt', settings as SyncSettings, mockLogger)).toBe(false);
   });
 
   it('should match paths both with and without trailing slashes', () => {
-    const settings: SyncSettings = {
+    const settings: Partial<SyncSettings> = {
+      obsidianRoot: '/Users/obsidian/vault/demo/',
       targetBasePath: './target',
       contentPath: 'content',
       assetsPath: 'assets',
       excludePaths: ['/exact/path/'],
       excludeFiles: [],
       debug: false,
-      logToDisk: false
+      logToDisk: false,
+      logFilePath: '.obsidian/plugins/ginko'
     };
     
-    expect(shouldExclude('/exact/path', settings, mockLogger)).toBe(true);
-    expect(shouldExclude('/exact/path/', settings, mockLogger)).toBe(true);
-    expect(shouldExclude('/exact/path/file.txt', settings, mockLogger)).toBe(true);
-    expect(shouldExclude('/exact/pathother', settings, mockLogger)).toBe(false);
+    expect(shouldExclude('/exact/path', settings as SyncSettings, mockLogger)).toBe(true);
+    expect(shouldExclude('/exact/path/', settings as SyncSettings, mockLogger)).toBe(true);
+    expect(shouldExclude('/exact/path/file.txt', settings as SyncSettings, mockLogger)).toBe(true);
+    expect(shouldExclude('/exact/pathother', settings as SyncSettings, mockLogger)).toBe(false);
   });
   
   it('should handle undefined excludeFiles', () => {
-    const settings: SyncSettings = {
+    const settings: Partial<SyncSettings> = {
+      obsidianRoot: '/Users/obsidian/vault/demo/',
       targetBasePath: './target',
       contentPath: 'content',
       assetsPath: 'assets',
@@ -121,7 +130,7 @@ describe('sync-engine - shouldExclude', () => {
     // Mock implementation to simulate undefined excludeFiles
     const mockShouldExclude = (path: string): boolean => {
       const mockSettings = { ...settings, excludeFiles: undefined as any };
-      return shouldExclude(path, mockSettings, mockLogger);
+      return shouldExclude(path, mockSettings as SyncSettings, mockLogger);
     };
     
     expect(mockShouldExclude('/temp/file.txt')).toBe(true);
@@ -198,8 +207,9 @@ describe('sync-engine - Event Queue', () => {
     vi.restoreAllMocks();
   });
   
-  it('should process events after batch delay', async () => {
-    const settings: SyncSettings = {
+  it('should process events after batch delay', async () => { 
+    const settings: Partial<SyncSettings> = {
+      obsidianRoot: '/Users/obsidian/vault/demo/',
       targetBasePath: './target',
       contentPath: 'content',
       assetsPath: 'assets',
@@ -217,7 +227,7 @@ describe('sync-engine - Event Queue', () => {
     processEventSpy.mockImplementation(() => Promise.resolve());
     
     // Create queue handler
-    const queueEvent = createEventQueueHandler(settings, mockRules, mockLogger);
+    const queueEvent = createEventQueueHandler(settings as SyncSettings, mockRules, mockLogger);
     
     // Queue two events
     const event1: FileEvent = { 
@@ -255,7 +265,8 @@ describe('sync-engine - Event Queue', () => {
   });
   
   it('should exclude events for excluded paths', () => {
-    const settings: SyncSettings = {
+    const settings: Partial<SyncSettings> = {
+      obsidianRoot: '/Users/obsidian/vault/demo/',
       targetBasePath: './target',
       contentPath: 'content',
       assetsPath: 'assets',
@@ -266,7 +277,7 @@ describe('sync-engine - Event Queue', () => {
     };
     
     // Create queue handler
-    const queueEvent = createEventQueueHandler(settings, [], mockLogger);
+    const queueEvent = createEventQueueHandler(settings as SyncSettings, [], mockLogger);
     
     // Queue event for excluded path
     const event: FileEvent = { 
@@ -287,18 +298,20 @@ describe('sync-engine - Event Queue', () => {
   });
   
   it('should reset timeout when new events are queued', async () => {
-    const settings: SyncSettings = {
+    const settings: Partial<SyncSettings> = {
+      obsidianRoot: '/Users/obsidian/vault/demo/',
       targetBasePath: './target',
       contentPath: 'content',
       assetsPath: 'assets',
       excludePaths: [],
       excludeFiles: [],
       debug: false,
-      logToDisk: false
+      logToDisk: false,
+      logFilePath: '.obsidian/plugins/ginko'
     };
     
     // Create queue handler
-    const queueEvent = createEventQueueHandler(settings, [], mockLogger);
+    const queueEvent = createEventQueueHandler(settings as SyncSettings, [], mockLogger);
     
     // Queue first event
     const event1: FileEvent = { 
@@ -349,106 +362,3 @@ describe('sync-engine - Event Queue', () => {
   });
 });
 
-describe('sync-engine - processEvent', () => {
-  let mockLogger: Logger;
-  
-  beforeEach(() => {
-    mockLogger = createMockLogger();
-  });
-  
-  it('should log event processing', async () => {
-    const settings: SyncSettings = {
-      targetBasePath: './target',
-      contentPath: 'content',
-      assetsPath: 'assets',
-      excludePaths: [],
-      excludeFiles: [],
-      debug: false,
-      logToDisk: false
-    };
-    
-    const event: FileEvent = { 
-      name: 'file.md', 
-      path: '/file.md', 
-      type: 'markdown', 
-      action: 'create', 
-      timestamp: 1 
-    };
-    
-    const mockRules: Rule[] = [
-      {
-        name: 'Test Rule',
-        shouldApply: vi.fn().mockReturnValue(true),
-        transform: vi.fn(path => path)
-      }
-    ];
-    
-    await processEvent(event, settings, mockRules, mockLogger);
-    
-    expect(mockLogger.debug).toHaveBeenCalledWith(
-      'sync-engine', 
-      expect.stringContaining('Processing create event')
-    );
-    expect(mockLogger.debug).toHaveBeenCalledWith(
-      'sync-engine', 
-      expect.stringContaining('Completed processing event')
-    );
-    
-    // Check that rule was checked
-    expect(mockRules[0].shouldApply).toHaveBeenCalled();
-  });
-  
-  it('should apply the first matching rule', async () => {
-    const settings: SyncSettings = {
-      targetBasePath: './target',
-      contentPath: 'content',
-      assetsPath: 'assets',
-      excludePaths: [],
-      excludeFiles: [],
-      debug: false,
-      logToDisk: false
-    };
-    
-    const event: FileEvent = { 
-      name: 'file.md', 
-      path: '/file.md', 
-      type: 'markdown', 
-      action: 'create', 
-      timestamp: 1 
-    };
-    
-    // First rule doesn't match, second rule does
-    const mockRules: Rule[] = [
-      {
-        name: 'Rule 1',
-        shouldApply: vi.fn().mockReturnValue(false),
-        transform: vi.fn(path => path + '-rule1')
-      },
-      {
-        name: 'Rule 2',
-        shouldApply: vi.fn().mockReturnValue(true),
-        transform: vi.fn(path => path + '-rule2')
-      },
-      {
-        name: 'Rule 3',
-        shouldApply: vi.fn().mockReturnValue(true),
-        transform: vi.fn(path => path + '-rule3')
-      }
-    ];
-    
-    await processEvent(event, settings, mockRules, mockLogger);
-    
-    // All rules should be checked until a match is found
-    expect(mockRules[0].shouldApply).toHaveBeenCalled();
-    expect(mockRules[1].shouldApply).toHaveBeenCalled();
-    
-    // Rule 2 should match and be applied
-    expect(mockLogger.debug).toHaveBeenCalledWith(
-      'sync-engine', 
-      expect.stringContaining('Applying rule Rule 2')
-    );
-    
-    // Rule 3 should not be checked since Rule 2 matched
-    expect(mockRules[2].shouldApply).not.toHaveBeenCalled();
-  });
-});

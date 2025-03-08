@@ -44,12 +44,12 @@ export const createLogger = (settings: SyncSettings): Logger => {
   
   // Initialize log file if needed
   if (settings.logToDisk) {
-    logFile = path.join(settings.targetBasePath, 'sync-log.txt');
-    
-    // Create initial log file header
+    logFile = path.join(settings.obsidianRoot, settings.logFilePath, 'log.txt');
+    // Initialize file system asynchronously
     const header = `=== Vault Sync Log Started at ${getTimestamp()} ===\n`;
     pendingWrites = fs.mkdir(path.dirname(logFile), { recursive: true })
-      .then(() => fs.writeFile(logFile!, header));
+      .then(() => fs.writeFile(logFile!, header))
+      .catch(err => console.error(`Failed to initialize log file: ${err}`));
   }
   
   // Function to append to log file, managing async queue

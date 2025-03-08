@@ -28,6 +28,7 @@ export interface SyncSettings {
   readonly excludeFiles: string[];
   readonly debug: boolean;
   readonly logToDisk: boolean;
+  readonly logFilePath: string;
 }
 
 // Default settings
@@ -42,7 +43,8 @@ export const DEFAULT_SETTINGS: SyncSettings = {
   excludePaths: ['.obsidian', '.git', 'node_modules'],
   excludeFiles: [],
   debug: false,
-  logToDisk: false
+  logToDisk: false,
+  logFilePath: '.obsidian/plugins/ginko/log.txt'
 };
 
 // Processing order for file types
