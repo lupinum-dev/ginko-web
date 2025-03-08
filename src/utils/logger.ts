@@ -1,121 +1,85 @@
 // src/utils/logger.ts
-import { SyncSettings } from '../types';
+import { Logger, LogLevel, SyncSettings } from '../types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+/**
+ * Creates a timestamp string for log messages
+ */
+const getTimestamp = (): string => new Date().toISOString();
 
-interface LogEntry {
-  timestamp: Date;
-  level: LogLevel;
-  source: string;
-  message: string;
-}
+/**
+ * Formats a log message with timestamp, level, and module
+ */
+const formatLogMessage = (level: LogLevel, module: string, message: string): string =>
+  `[${getTimestamp()}] [${level.toUpperCase()}] [${module}] ${message}`;
 
-export class Logger {
-  private settings: SyncSettings;
-  private logBuffer: LogEntry[] = [];
-  private logPath: string;
-  private flushInterval: NodeJS.Timeout | null = null;
+/**
+ * Creates a logger function for a specific log level
+ */
+const createLoggerForLevel = (
+  level: LogLevel,
+  shouldLog: boolean,
+  logToConsole: (message: string) => void,
+  logToFile: (message: string) => Promise<void>
+) => (module: string, message: string): void => {
+  if (!shouldLog) return;
   
-  constructor(settings: SyncSettings) {
-    this.settings = settings;
-    this.logPath = path.join(settings.targetBasePath, 'sync.log');
+  const formattedMessage = formatLogMessage(level, module, message);
+  logToConsole(formattedMessage);
+  
+  // Don't await the file write to avoid blocking
+  logToFile(formattedMessage).catch(err => {
+    console.error(`Failed to write to log file: ${err}`);
+  });
+};
+
+/**
+ * Creates a logger instance based on the provided settings
+ */
+export const createLogger = (settings: SyncSettings): Logger => {
+  // Set up logging to file if enabled
+  let logFile: string | null = null;
+  let pendingWrites: Promise<void> = Promise.resolve();
+  
+  // Initialize log file if needed
+  if (settings.logToDisk) {
+    logFile = path.join(settings.targetBasePath, 'sync-log.txt');
     
-    // Set up log flushing if log to disk is enabled
-    if (settings.logToDisk) {
-      this.flushInterval = setInterval(() => this.flushLogs(), 30000); // Flush every 30 seconds
-    }
+    // Create initial log file header
+    const header = `=== Vault Sync Log Started at ${getTimestamp()} ===\n`;
+    pendingWrites = fs.mkdir(path.dirname(logFile), { recursive: true })
+      .then(() => fs.writeFile(logFile!, header));
   }
   
-  log(level: LogLevel, source: string, message: string): void {
-    const entry: LogEntry = {
-      timestamp: new Date(),
-      level,
-      source,
-      message
-    };
+  // Function to append to log file, managing async queue
+  const appendToLogFile = (message: string): Promise<void> => {
+    if (!logFile) return Promise.resolve();
     
-    // Add to buffer
-    this.logBuffer.push(entry);
+    // Chain the write to previous pending writes
+    pendingWrites = pendingWrites
+      .then(() => fs.appendFile(logFile!, message + '\n'))
+      .catch(err => console.error(`Failed to write to log file: ${err}`));
     
-    // Log to console if debug is enabled or level is higher than debug
-    if (this.settings.debug || level !== 'debug') {
-      const formattedMessage = this.formatLogEntry(entry);
-      
-      switch (level) {
-        case 'debug':
-        case 'info':
-          console.log(formattedMessage);
-          break;
-        case 'warn':
-          console.warn(formattedMessage);
-          break;
-        case 'error':
-          console.error(formattedMessage);
-          break;
-      }
+    return pendingWrites;
+  };
+  
+  // Function for console output that logs all levels except debug when debug is disabled
+  const logToConsole = (level: LogLevel) => (message: string): void => {
+    if (level !== 'debug' || settings.debug) {
+      console.log(message);
     }
-  }
+  };
   
-  // Helper methods for each log level
-  debug(source: string, message: string): void {
-    this.log('debug', source, message);
-  }
-  
-  info(source: string, message: string): void {
-    this.log('info', source, message);
-  }
-  
-  warn(source: string, message: string): void {
-    this.log('warn', source, message);
-  }
-  
-  error(source: string, message: string): void {
-    this.log('error', source, message);
-  }
-  
-  // Format a log entry for display
-  private formatLogEntry(entry: LogEntry): string {
-    const timestamp = entry.timestamp.toISOString();
-    return `[${timestamp}] [${entry.level.toUpperCase()}] [${entry.source}] ${entry.message}`;
-  }
-  
-  // Flush logs to disk
-  async flushLogs(): Promise<void> {
-    if (!this.settings.logToDisk || this.logBuffer.length === 0) {
-      return;
+  // Create logger functions for each level
+  return {
+    debug: createLoggerForLevel('debug', settings.debug, logToConsole('debug'), appendToLogFile),
+    info: createLoggerForLevel('info', true, logToConsole('info'), appendToLogFile),
+    warn: createLoggerForLevel('warn', true, logToConsole('warn'), appendToLogFile),
+    error: createLoggerForLevel('error', true, logToConsole('error'), appendToLogFile),
+    dispose: async (): Promise<void> => {
+      // Wait for any pending writes to complete
+      return pendingWrites;
     }
-    
-    try {
-      // Ensure directory exists
-      await fs.mkdir(path.dirname(this.logPath), { recursive: true });
-      
-      // Format logs
-      const logContent = this.logBuffer
-        .map(entry => this.formatLogEntry(entry))
-        .join('\n') + '\n';
-      
-      // Append to file
-      await fs.appendFile(this.logPath, logContent, 'utf-8');
-      
-      // Clear buffer
-      this.logBuffer = [];
-    } catch (error) {
-      console.error(`Failed to write logs to disk: ${error}`);
-    }
-  }
-  
-  // Clean up
-  dispose(): void {
-    if (this.flushInterval) {
-      clearInterval(this.flushInterval);
-      this.flushInterval = null;
-    }
-    
-    // Flush any remaining logs
-    this.flushLogs().catch(err => {
-      console.error(`Failed to flush logs on dispose: ${err}`);
-    });
-  }
-}
+  };
+};

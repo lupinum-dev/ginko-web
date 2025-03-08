@@ -1,23 +1,22 @@
 // src/main.ts
-import { Plugin, PluginSettingTab, App, Setting, Notice } from 'obsidian';
+import { App, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { setupObsidianSync } from './adapters/obsidian-adapter';
-import { SyncEngine } from './core/sync-engine';
-import { DEFAULT_SETTINGS, SyncSettings } from './types';
-import { Logger } from './utils/logger';
 import { resetVault } from './core/reset-vault';
+import { DEFAULT_SETTINGS, Logger, SyncSettings } from './types';
+import { createLogger } from './utils/logger';
 
 export default class VaultSyncPlugin extends Plugin {
   settings: SyncSettings;
-  private syncEngine: SyncEngine;
-  private logger: Logger;
+  private syncEngine: ReturnType<typeof setupObsidianSync> | null = null;
+  private logger: Logger | null = null;
   
   async onload() {
     // Load settings
     await this.loadSettings();
     
     // Initialize logger
-    this.logger = new Logger(this.settings);
-    this.logger.info('main.ts', 'Initializing Vault Sync Plugin');
+    this.logger = createLogger(this.settings);
+    this.logger.info('main', 'Initializing Vault Sync Plugin');
     
     // Initialize sync engine
     this.syncEngine = setupObsidianSync(this, this.app, this.settings, this.logger);
@@ -39,7 +38,7 @@ export default class VaultSyncPlugin extends Plugin {
     // Add settings tab
     this.addSettingTab(new VaultSyncSettingsTab(this.app, this));
     
-    this.logger.info('main.ts', 'Vault Sync Plugin loaded');
+    this.logger.info('main', 'Vault Sync Plugin loaded');
   }
   
   async loadSettings() {
@@ -51,13 +50,19 @@ export default class VaultSyncPlugin extends Plugin {
     
     // Update logger when settings change
     if (this.logger) {
-      this.logger = new Logger(this.settings);
+      // Dispose old logger if needed
+      await this.logger.dispose();
+      this.logger = createLogger(this.settings);
     }
   }
   
   async resetVault() {
     try {
-      this.logger.info('main.ts', 'Starting vault reset...');
+      if (!this.syncEngine || !this.logger) {
+        return;
+      }
+      
+      this.logger.info('main', 'Starting vault reset...');
       
       // Show notice
       new Notice('Resetting vault sync... This may take a moment.');
@@ -68,19 +73,21 @@ export default class VaultSyncPlugin extends Plugin {
       // Show success notice
       new Notice('Vault sync reset complete!');
       
-      this.logger.info('main.ts', 'Vault reset completed successfully');
+      this.logger.info('main', 'Vault reset completed successfully');
     } catch (error) {
-      this.logger.error('main.ts', `Failed to reset vault: ${error}`);
+      if (this.logger) {
+        this.logger.error('main', `Failed to reset vault: ${error}`);
+      }
       new Notice(`Failed to reset vault: ${error}`);
     }
   }
   
-  onunload() {
+  async onunload() {
     // Clean up
     if (this.logger) {
-      this.logger.dispose();
+      this.logger.info('main', 'Vault Sync Plugin unloaded');
+      await this.logger.dispose();
     }
-    this.logger.info('main.ts', 'Vault Sync Plugin unloaded');
   }
 }
 
@@ -107,7 +114,7 @@ class VaultSyncSettingsTab extends PluginSettingTab {
           .setPlaceholder('./target')
           .setValue(this.plugin.settings.targetBasePath)
           .onChange(async (value) => {
-            this.plugin.settings.targetBasePath = value;
+            this.plugin.settings = { ...this.plugin.settings, targetBasePath: value };
             await this.plugin.saveSettings();
           });
       });
@@ -121,7 +128,7 @@ class VaultSyncSettingsTab extends PluginSettingTab {
           .setPlaceholder('content')
           .setValue(this.plugin.settings.contentPath)
           .onChange(async (value) => {
-            this.plugin.settings.contentPath = value;
+            this.plugin.settings = { ...this.plugin.settings, contentPath: value };
             await this.plugin.saveSettings();
           });
       });
@@ -135,7 +142,7 @@ class VaultSyncSettingsTab extends PluginSettingTab {
           .setPlaceholder('public/_assets')
           .setValue(this.plugin.settings.assetsPath)
           .onChange(async (value) => {
-            this.plugin.settings.assetsPath = value;
+            this.plugin.settings = { ...this.plugin.settings, assetsPath: value };
             await this.plugin.saveSettings();
           });
       });
@@ -149,7 +156,21 @@ class VaultSyncSettingsTab extends PluginSettingTab {
           .setPlaceholder('.obsidian,.git,node_modules')
           .setValue(this.plugin.settings.excludePaths.join(','))
           .onChange(async (value) => {
-            this.plugin.settings.excludePaths = value.split(',').map(p => p.trim());
+            this.plugin.settings = { ...this.plugin.settings, excludePaths: value.split(',').map(p => p.trim()) };
+            await this.plugin.saveSettings();
+          });
+      });
+
+      // Exlcuded files
+      new Setting(containerEl)
+      .setName('Excluded Files')
+      .setDesc('Comma-separated list of files to exclude from syncing')
+      .addText(text => {
+        text
+          .setPlaceholder('*.md,*.png,*.jpg')
+          .setValue(this.plugin.settings.excludeFiles.join(','))
+          .onChange(async (value) => {
+            this.plugin.settings = { ...this.plugin.settings, excludeFiles: value.split(',').map(p => p.trim()) };
             await this.plugin.saveSettings();
           });
       });
@@ -162,7 +183,7 @@ class VaultSyncSettingsTab extends PluginSettingTab {
         toggle
           .setValue(this.plugin.settings.debug)
           .onChange(async (value) => {
-            this.plugin.settings.debug = value;
+            this.plugin.settings = { ...this.plugin.settings, debug: value };
             await this.plugin.saveSettings();
           });
       });
@@ -175,7 +196,7 @@ class VaultSyncSettingsTab extends PluginSettingTab {
         toggle
           .setValue(this.plugin.settings.logToDisk)
           .onChange(async (value) => {
-            this.plugin.settings.logToDisk = value;
+            this.plugin.settings = { ...this.plugin.settings, logToDisk: value };
             await this.plugin.saveSettings();
           });
       });
