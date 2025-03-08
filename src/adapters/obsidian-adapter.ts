@@ -103,6 +103,11 @@ async function handleFileEvent(
   // Determine file type
   const fileType = getFileType(file);
   
+  if (fileType === 'unknown') {
+    logger.error('obsidian-adapter.ts', `Unknown file type: ${file.path}`);
+    return;
+  }
+  
   // Create event object
   const event: FileEvent = {
     name: file.name,
@@ -138,6 +143,11 @@ async function handleRenameEvent(
   // Determine file type
   const fileType = getFileType(file);
   
+  if (fileType === 'unknown') {
+    logger.error('obsidian-adapter.ts', `Unknown file type: ${file.path}`);
+    return;
+  }
+  
   // Create event object
   const event: FileEvent = {
     name: file.name,
@@ -164,6 +174,7 @@ async function handleRenameEvent(
 }
 
 // Export function to determine file type
+// TODO: Make this so we can add custom file types
 export function getFileType(file: TFile): FileType {
   if (file.name.endsWith('_meta.md')) {
     return 'meta';

@@ -61,3 +61,5 @@ export const DEFAULT_SETTINGS: SyncSettings = {
   debug: false,
   logToDisk: false // Disabled by default
 };
+
+export const SORT_ORDER: FileType[] = ['meta', 'markdown', 'asset', 'unknown'];

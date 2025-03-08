@@ -1,5 +1,5 @@
 // src/core/sync-engine.ts
-import { FileEvent, FileSystem, Rule, SyncSettings, TransformContext } from '../types';
+import { FileEvent, FileSystem, FileType, Rule, SyncSettings, TransformContext, SORT_ORDER } from '../types';
 import * as path from 'path';
 import { 
   applyRules, 
@@ -10,6 +10,8 @@ import {
 } from './rule-engine';
 import { parseMetaContent, transformContent } from '../rules/generic-rules';
 import { Logger } from '../utils/logger';
+
+
 
 // Main sync engine - this remains a class for organizational purposes
 export class SyncEngine {
@@ -78,8 +80,8 @@ export class SyncEngine {
     this.logger.info('sync-engine.ts', `Processing ${this.eventQueue.length} events`);
     
     try {
-      // Sort by timestamp
-      this.eventQueue.sort((a, b) => a.timestamp - b.timestamp);
+      // Sort the queue by event type 
+      this.eventQueue = await this.sortQueue(this.eventQueue);
       
       // Process meta files first to update context
       const metaEvents = this.eventQueue.filter(e => e.type === 'meta');
@@ -101,6 +103,22 @@ export class SyncEngine {
       this.processing = false;
       this.timeoutId = null;
     }
+  }
+
+  private async sortQueue(events: FileEvent[]): Promise<FileEvent[]> {
+    const sortedEvents = events.sort((a, b) => {
+      const aIndex = SORT_ORDER.indexOf(a.type);
+      const bIndex = SORT_ORDER.indexOf(b.type);
+      
+      // First sort by type according to SORT_ORDER
+      if (aIndex !== bIndex) {
+        return aIndex - bIndex;
+      }
+      
+      // Then sort by timestamp within same type
+      return a.timestamp - b.timestamp;
+    });
+    return sortedEvents;
   }
   
   // Process a meta file event
