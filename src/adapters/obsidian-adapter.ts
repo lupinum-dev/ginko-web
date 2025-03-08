@@ -3,13 +3,6 @@ import { App, Plugin, TAbstractFile, TFile } from 'obsidian';
 import { SyncEngine } from '../core/sync-engine';
 import { FileEvent, FileType, Rule, SyncSettings } from '../types';
 import { createNodeFileSystem } from '../utils/file-system';
-import { 
-  createAssetRule, 
-  createBasePathRule, 
-  createContentPathRule, 
-  createLanguageRule, 
-  createMetaSlugRule 
-} from '../rules/generic-rules';
 import { Logger } from '../utils/logger';
 
 export function setupObsidianSync(
@@ -22,20 +15,11 @@ export function setupObsidianSync(
   
   // Create rules
   const rules: Rule[] = [
-    // createBasePathRule(),
-    // createContentPathRule(),
-    // createLanguageRule(),
-    // createMetaSlugRule(),
-    // createAssetRule()
+    // add rules here
   ];
   
-  // Create file system with logging
   const fileSystem = createNodeFileSystem(logger);
-  
-  // Create sync engine
   const syncEngine = new SyncEngine(fileSystem, settings, rules, logger);
-  
-  // Set up event listeners
   setupEventListeners(plugin, app, syncEngine, logger);
   
   logger.info('obsidian-adapter.ts', 'Obsidian sync setup complete');
