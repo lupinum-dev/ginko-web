@@ -66,7 +66,5 @@ describe('', () => {
   const requiredFilesTargetAfter = ['content/a.md', 'content/b__de.md'] // Arrays of files from the target
   const requiredMetaCacheAfter = [] // Map
   const requiredAssetCacheAfter = [] // Map
-
-
   
 }

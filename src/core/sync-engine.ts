@@ -173,7 +173,8 @@ export const processBatch = async (
   
   logger?.info('sync-engine', `Processing batch of ${events.length} events`);
   
-  console.warn('events', events);
+  // For debugging only
+  // console.warn('events', events);
   // Sort events
   const sortedEvents = sortEvents(events);
   

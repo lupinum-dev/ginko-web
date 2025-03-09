@@ -6,11 +6,15 @@ import * as path from 'path';
  * Creates a rule for handling asset files (images, attachments, etc.)
  * 
  * This rule transforms assets by placing them in the assets directory
- * while maintaining a simplified path structure
+ * while maintaining a simplified path structure. Assets are stored
+ * in a central location for easier management.
  * 
  * @returns Rule for handling asset files
  */
 export const createAssetRule = (): Rule => {
+  // Create a local cache to avoid duplicate work
+  const pathCache = new Map<string, string>();
+
   return {
     name: 'Asset Rule',
     
@@ -30,38 +34,39 @@ export const createAssetRule = (): Rule => {
     },
     
     transform: (filePath: string, context: TransformContext): string => {
+      // Check if we have this path in the cache from previous operations
+      if (pathCache.has(filePath)) {
+        return pathCache.get(filePath)!;
+      }
+      
+      // Check if we already know the target path from a previous run (persistence)
+      if (context.metaCache.has(filePath)) {
+        return context.metaCache.get(filePath);
+      }
+      
       // Extract the filename
       const filename = path.basename(filePath);
       
-      // Create a simpler path structure for assets
-      // First, remove leading slash if present
-      const normalizedPath = filePath.startsWith('/') 
-        ? filePath.substring(1) 
-        : filePath;
+      // For assets, we'll store them all in a central assets directory
+      // regardless of their original location, simplifying the structure
       
-      // Get the directory path without leading slash
-      const dirPath = path.dirname(normalizedPath);
-      
-      // If the file is in an assets directory, simplify the path by removing 
-      // the explicit 'assets', 'attachments', etc. part from the path
-      let assetSubPath = dirPath;
-      
-      // Replace various asset directory patterns with empty string
-      // to flatten the structure somewhat
-      assetSubPath = assetSubPath
-        .replace(/\b_?assets\b\/?/i, '')
-        .replace(/\battachments\b\/?/i, '');
-      
-      // Remove any leading or trailing slashes from the subpath
-      assetSubPath = assetSubPath.replace(/^\/+|\/+$/g, '');
-      
-      // Build the final target path
-      return path.join(
+      // Build the final target path - store all assets in the root of the assets directory
+      const targetPath = path.join(
         context.settings.targetBasePath,
         context.settings.assetsPath,
-        assetSubPath,
         filename
       );
+      
+      // Store in our local cache for this session
+      pathCache.set(filePath, targetPath);
+      
+      // Store the path mapping in the metaCache for future use and for tests
+      if (context.metaCache instanceof Map) {
+        const metaCache = context.metaCache as Map<string, string>;
+        metaCache.set(filePath, targetPath);
+      }
+      
+      return targetPath;
     }
   };
 };

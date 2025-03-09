@@ -4,6 +4,12 @@
 export type EventType = 'create' | 'modify' | 'delete' | 'rename';
 export type FileType = 'markdown' | 'meta' | 'asset' | 'unknown';
 
+// For testing - allows injection of context
+export interface MetaContext {
+  metaCache: Map<string, string>;
+  assetMap?: Map<string, string>;
+}
+
 // Event representing a file change
 export interface FileEvent {
   name: string;
@@ -13,6 +19,7 @@ export interface FileEvent {
   oldPath?: string;
   content?: string;
   timestamp: number;
+  metaContext?: MetaContext; // For testing
 }
 
 // Plugin settings

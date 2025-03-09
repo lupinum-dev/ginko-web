@@ -35,10 +35,24 @@ export const processEvent = async (
 
   logger?.debug('sync-engine', `Processing ${event.action} event for ${event.path}`);
   
+  // Use the provided metaCache or create a new one
+  // This special handling is for testing purposes
+  let metaCache: Map<string, string>;
+  let assetMap: Map<string, string>;
+  
+  // Check if we have a metaContext from testing
+  if ('metaContext' in event && event.metaContext) {
+    metaCache = event.metaContext.metaCache;
+    assetMap = event.metaContext.assetMap || new Map();
+  } else {
+    metaCache = new Map<string, string>();
+    assetMap = new Map<string, string>();
+  }
+  
   // Create context for rule application
   const context: TransformContext = {
-    metaCache: new Map(),
-    assetMap: new Map(),
+    metaCache,
+    assetMap,
     settings
   };
   

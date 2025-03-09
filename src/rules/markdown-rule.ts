@@ -16,14 +16,7 @@ export const createMarkdownRule = (): Rule => {
     
     shouldApply: (event: FileEvent, context: TransformContext): boolean => {
       // Apply to all markdown files that aren't already handled by more specific rules
-      // Don't apply to files with special naming patterns that other rules handle
-      const filename = path.basename(event.path);
-      
-      return (
-        event.type === 'markdown' && 
-        !filename.endsWith('_meta.md') && // Don't apply to metadata files
-        !filename.match(/__[a-z]{2}\.md$/) // Don't apply to localized files
-      );
+      return event.type === 'markdown';
     },
     
     transform: (filePath: string, context: TransformContext): string => {
