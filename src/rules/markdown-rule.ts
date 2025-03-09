@@ -19,7 +19,7 @@ export const createMarkdownRule = (): Rule => {
       return event.type === 'markdown';
     },
     
-    transform: (filePath: string, context: TransformContext): string => {
+    transformPath: (filePath: string, context: TransformContext): string => {
       // Get the path relative to the vault root
       const relativePath = filePath.startsWith('/') 
         ? filePath.substring(1) // Remove leading slash

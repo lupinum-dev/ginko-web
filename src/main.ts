@@ -76,7 +76,12 @@ export default class VaultSyncPlugin extends Plugin {
       new Notice('Resetting vault sync... This may take a moment.');
       
       // Call reset function
-      await resetVault(this.app, this.syncEngine, this.settings, this.logger);
+      await resetVault({
+        app: this.app,
+        syncEngine: this.syncEngine,
+        settings: this.settings,
+        logger: this.logger
+      });
 
 
       

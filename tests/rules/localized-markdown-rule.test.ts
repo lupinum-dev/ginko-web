@@ -5,13 +5,10 @@ import { FileEvent, SyncSettings, TransformContext } from '../../src/types';
 
 describe('Localized Markdown Rules', () => {
   // Default settings for testing
-  const defaultSettings: SyncSettings = {
+  const defaultSettings: Partial<SyncSettings> = {
     obsidianRoot: '/obsidian',
-    targetBasePathUser: './target',
     targetBasePath: './target',
-    contentPathUser: 'content',
     contentPath: 'content',
-    assetsPathUser: 'public/assets',
     assetsPath: 'public/assets',
     excludePaths: [],
     excludeFiles: [],
@@ -22,8 +19,8 @@ describe('Localized Markdown Rules', () => {
   // Default context for testing
   const context: TransformContext = {
     metaCache: new Map(),
-    assetMap: new Map(),
-    settings: defaultSettings
+    assetCache: new Map(),
+    settings: defaultSettings as SyncSettings
   };
 
   describe('Generic Localized Markdown Rule', () => {
@@ -97,27 +94,27 @@ describe('Localized Markdown Rules', () => {
 
     describe('transform', () => {
       it('should transform German language paths correctly', () => {
-        const result = rule.transform('/article__de.md', context);
+        const result = rule.transformPath('/article__de.md', context);
         expect(result).toBe('target/content/de/article.md');
       });
 
       it('should transform French language paths correctly', () => {
-        const result = rule.transform('/article__fr.md', context);
+        const result = rule.transformPath('/article__fr.md', context);
         expect(result).toBe('target/content/fr/article.md');
       });
 
       it('should transform Spanish language paths correctly for nested files', () => {
-        const result = rule.transform('/notes/blog/article__es.md', context);
+        const result = rule.transformPath('/notes/blog/article__es.md', context);
         expect(result).toBe('target/content/es/notes/blog/article.md');
       });
 
       it('should handle paths without leading slash', () => {
-        const result = rule.transform('docs/article__en.md', context);
+        const result = rule.transformPath('docs/article__en.md', context);
         expect(result).toBe('target/content/en/docs/article.md');
       });
 
       it('should throw an error for invalid filenames', () => {
-        expect(() => rule.transform('/article_invalid.md', context)).toThrow();
+        expect(() => rule.transformPath('/article_invalid.md', context)).toThrow();
       });
     });
   });
@@ -157,12 +154,12 @@ describe('Localized Markdown Rules', () => {
 
     describe('transform', () => {
       it('should transform paths correctly for the specific language', () => {
-        const result = rule.transform('/article__de.md', context);
+        const result = rule.transformPath('/article__de.md', context);
         expect(result).toBe('target/content/de/article.md');
       });
 
       it('should handle nested paths correctly', () => {
-        const result = rule.transform('/blog/post__de.md', context);
+        const result = rule.transformPath('/blog/post__de.md', context);
         expect(result).toBe('target/content/de/blog/post.md');
       });
     });

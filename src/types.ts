@@ -82,18 +82,18 @@ export interface FileSystem {
 // Context for transform functions
 export interface TransformContext {
   readonly metaCache: ReadonlyMap<string, any>;
-  readonly assetMap: ReadonlyMap<string, string>;
+  readonly assetCache: ReadonlyMap<string, string>;
   readonly settings: SyncSettings;
 }
 
-// Path transformation function type
-export type PathTransform = (path: string, context: TransformContext) => string;
+
 
 // Rule for file transformations
 export interface Rule {
   readonly name: string;
   readonly shouldApply: (event: FileEvent, context: TransformContext) => boolean;
-  readonly transform: PathTransform;
+  readonly transformPath?: (content: string, context: TransformContext) => string;
+  readonly transformContent?: (content: string, context: TransformContext) => string;
 }
 
 // Queue state

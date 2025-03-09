@@ -2,6 +2,7 @@
 import { FileEvent, Logger, QueueState, Rule, SORT_ORDER, SyncSettings, FileSystem } from '../types';
 import * as path from 'path';
 import { processEvent } from './process-event';
+import { createBatchCacheManager } from './cache-engine';
 
 // Re-export processEvent for convenience
 export { processEvent } from './process-event';
@@ -173,14 +174,22 @@ export const processBatch = async (
   
   logger?.info('sync-engine', `Processing batch of ${events.length} events`);
   
-  // For debugging only
-  // console.warn('events', events);
-  // Sort events
-  const sortedEvents = sortEvents(events);
+  // Create cache manager and start batch
+  const cacheManager = createBatchCacheManager();
+  cacheManager.startBatch();
   
-  // Process each event sequentially
-  for (const event of sortedEvents) {
-    await processEvent(event, settings, rules, logger, fileSystem);
+  try {
+    // Process each event sequentially
+    for (const event of sortEvents(events)) {
+      await processEvent(event, settings, rules, cacheManager, logger, fileSystem);
+    }
+    
+    // Save caches after batch completion
+    cacheManager.completeBatch();
+  } catch (error) {
+    // Still try to save caches even if there was an error
+    cacheManager.completeBatch();
+    throw error;
   }
   
   logger?.info('sync-engine', `Completed processing batch of ${events.length} events`);

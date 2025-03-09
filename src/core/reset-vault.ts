@@ -7,61 +7,78 @@ import { createFileSystem } from '../utils/file-system';
 import { createFileEvent, getFileType } from '../adapters/obsidian-adapter';
 import { shouldExclude } from './sync-engine';
 
-/**
- * Resets the vault sync state
- */
-export const resetVault = async (
-  app: App,
-  syncEngine: ReturnType<typeof createSyncEngine>,
+interface ResetVaultOptions {
+  readonly app: App;
+  readonly syncEngine: ReturnType<typeof createSyncEngine>;
+  readonly settings: SyncSettings;
+  readonly logger?: Logger;
+}
+
+interface ResetVaultResult {
+  readonly success: boolean;
+  readonly processedCount: number;
+  readonly error?: Error;
+}
+
+const initializeDirectories = async (
   settings: SyncSettings,
+  fs: ReturnType<typeof createFileSystem>,
   logger?: Logger
 ): Promise<void> => {
+  const contentDirPath = path.join(settings.targetBasePath, settings.contentPath);
+  const assetsDirPath = path.join(settings.targetBasePath, settings.assetsPath);
+
+  logger?.info('reset-vault', `Ensuring directories exist`);
+  await fs.createDirectory(contentDirPath);
+  await fs.createDirectory(assetsDirPath);
+};
+
+const processVaultFiles = async (
+  options: ResetVaultOptions
+): Promise<number> => {
+  const { app, syncEngine, settings, logger } = options;
+  const allFiles = app.vault.getFiles();
+  let processedCount = 0;
+
+  for (const file of allFiles) {
+    if (shouldExclude(file.path, settings, logger)) {
+      logger?.debug('reset-vault', `Skipping excluded file: ${file.path}`);
+      continue;
+    }
+
+    const event = await createFileEvent(app, file, 'create', undefined, logger);
+    console.log('🔄 event', event);
+    syncEngine.queueEvent(event);
+    processedCount++;
+  }
+
+  return processedCount;
+};
+
+export const resetVault = async (options: ResetVaultOptions): Promise<ResetVaultResult> => {
+  const { logger } = options;
+  
   try {
     logger?.info('reset-vault', 'Starting vault reset process');
     
-    // Get file system
     const fs = createFileSystem(logger);
+    await initializeDirectories(options.settings, fs, logger);
     
-    // Define paths
-    const contentDirPath = path.join(settings.targetBasePath, settings.contentPath);
-    const assetsDirPath = path.join(settings.targetBasePath, settings.assetsPath);
-    const metaFilePath = path.join(settings.targetBasePath, '.sync-meta.json');
-    
-    // Create fresh content directory
-    logger?.info('reset-vault', `Ensuring content directory exists: ${contentDirPath}`);
-    await fs.createDirectory(contentDirPath);
-    
-    // Create fresh assets directory
-    logger?.info('reset-vault', `Ensuring assets directory exists: ${assetsDirPath}`);
-    await fs.createDirectory(assetsDirPath);
-    
-
-    
-    // Get all files from the vault
-    logger?.info('reset-vault', 'Creating creation events for all files in the vault');
-    const allFiles = app.vault.getFiles();
-    let processedCount = 0;
-    
-    // Process each file
-    for (const file of allFiles) {
-      // Skip files that should be excluded based on settings
-      if (shouldExclude(file.path, settings, logger)) {
-        logger?.debug('reset-vault', `Skipping excluded file: ${file.path}`);
-        continue;
-      }
-      
-      // Create a creation event for the file
-      const event = await createFileEvent(app, file, 'create', undefined, logger);
-      
-      // Queue the event for processing
-      syncEngine.queueEvent(event);
-      processedCount++;
-    }
+    const processedCount = await processVaultFiles(options);
     
     logger?.info('reset-vault', `Queued ${processedCount} files for processing`);
     logger?.info('reset-vault', 'Vault reset completed successfully');
+
+    return {
+      success: true,
+      processedCount
+    };
   } catch (error) {
     logger?.error('reset-vault', `Failed to reset vault: ${error}`);
-    throw error;
+    return {
+      success: false,
+      processedCount: 0,
+      error: error instanceof Error ? error : new Error(String(error))
+    };
   }
 };

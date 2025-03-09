@@ -12,8 +12,7 @@ import * as path from 'path';
  * @returns Rule for handling asset files
  */
 export const createAssetRule = (): Rule => {
-  // Create a local cache to avoid duplicate work
-  const pathCache = new Map<string, string>();
+
 
   return {
     name: 'Asset Rule',
@@ -33,23 +32,12 @@ export const createAssetRule = (): Rule => {
       );
     },
     
-    transform: (filePath: string, context: TransformContext): string => {
-      // Check if we have this path in the cache from previous operations
-      if (pathCache.has(filePath)) {
-        return pathCache.get(filePath)!;
-      }
-      
-      // Check if we already know the target path from a previous run (persistence)
-      if (context.metaCache.has(filePath)) {
-        return context.metaCache.get(filePath);
-      }
-      
+
+    transformPath: (filePath: string, context: TransformContext): string => {
+
+
       // Extract the filename
-      const filename = path.basename(filePath);
-      
-      // For assets, we'll store them all in a central assets directory
-      // regardless of their original location, simplifying the structure
-      
+      const filename = path.basename(filePath);                
       // Build the final target path - store all assets in the root of the assets directory
       const targetPath = path.join(
         context.settings.targetBasePath,
@@ -57,16 +45,14 @@ export const createAssetRule = (): Rule => {
         filename
       );
       
-      // Store in our local cache for this session
-      pathCache.set(filePath, targetPath);
+
       
-      // Store the path mapping in the metaCache for future use and for tests
-      if (context.metaCache instanceof Map) {
-        const metaCache = context.metaCache as Map<string, string>;
-        metaCache.set(filePath, targetPath);
-      }
-      
+
       return targetPath;
+    },
+
+    transformContent: (content: string, context: TransformContext): string => {
+      return content;
     }
   };
 };

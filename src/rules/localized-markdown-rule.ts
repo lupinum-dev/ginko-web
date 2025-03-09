@@ -26,7 +26,7 @@ export const createLocalizedMarkdownRule = (): Rule => {
       return /^.+__[a-z]{2}\.md$/.test(filename);
     },
     
-    transform: (filePath: string, context: TransformContext): string => {
+    transformPath: (filePath: string, context: TransformContext): string => {
       // Extract filename and directory
       const dirname = path.dirname(filePath);
       const filename = path.basename(filePath);
@@ -81,7 +81,7 @@ export const createLanguageSpecificRule = (languageCode: string): Rule => {
       return filename.endsWith(`__${languageCode}.md`);
     },
     
-    transform: (filePath: string, context: TransformContext): string => {
+    transformPath: (filePath: string, context: TransformContext): string => {
       // Extract filename and directory
       const dirname = path.dirname(filePath);
       const filename = path.basename(filePath);

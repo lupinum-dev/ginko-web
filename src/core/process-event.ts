@@ -2,6 +2,7 @@
 import { FileEvent, FileSystem, Logger, Rule, SyncSettings, TransformContext } from '../types';
 import * as path from 'path';
 import { createFileSystem } from '../utils/file-system';
+import { createBatchCacheManager } from './cache-engine';
 
 /**
  * Ensures path starts with './' if it doesn't already
@@ -20,6 +21,7 @@ const normalizePath = (targetPath: string): string => {
  * @param event The file event to process
  * @param settings Sync settings
  * @param rules Array of rules to apply
+ * @param cacheManager Batch cache manager
  * @param logger Optional logger for debugging
  * @param customFs Optional file system implementation (useful for testing)
  */
@@ -27,6 +29,7 @@ export const processEvent = async (
   event: FileEvent,
   settings: SyncSettings,
   rules: ReadonlyArray<Rule>,
+  cacheManager: ReturnType<typeof createBatchCacheManager>,
   logger?: Logger,
   customFs?: FileSystem
 ): Promise<void> => {
@@ -35,26 +38,17 @@ export const processEvent = async (
 
   logger?.debug('sync-engine', `Processing ${event.action} event for ${event.path}`);
   
-  // Use the provided metaCache or create a new one
-  // This special handling is for testing purposes
-  let metaCache: Map<string, string>;
-  let assetMap: Map<string, string>;
-  
-  // Check if we have a metaContext from testing
-  if ('metaContext' in event && event.metaContext) {
-    metaCache = event.metaContext.metaCache;
-    assetMap = event.metaContext.assetMap || new Map();
-  } else {
-    metaCache = new Map<string, string>();
-    assetMap = new Map<string, string>();
-  }
+  // Use the current cache from the batch manager
+  const { metaCache, assetCache } = cacheManager.getCurrentCache();
   
   // Create context for rule application
   const context: TransformContext = {
     metaCache,
-    assetMap,
+    assetCache,
     settings
   };
+
+  console.log('❌ context', context);
   
   // Find the first matching rule
   let matchingRule: Rule | undefined;
@@ -63,9 +57,11 @@ export const processEvent = async (
   for (const rule of rules) {
     if (rule.shouldApply(event, context)) {
       matchingRule = rule;
-      targetPath = rule.transform(event.path, context);
-      targetPath = normalizePath(targetPath);
-      logger?.debug('sync-engine', `Applying rule ${rule.name} to ${event.path} → ${targetPath}`);
+      if (rule.transformPath) {
+        targetPath = rule.transformPath(event.path, context);
+        targetPath = normalizePath(targetPath);
+        logger?.debug('sync-engine', `Applying rule ${rule.name} to ${event.path} → ${targetPath}`);
+      }
       break;
     }
   }
@@ -94,51 +90,10 @@ export const processEvent = async (
         if (!event.oldPath) {
           throw new Error(`Rename event missing oldPath: ${event.path}`);
         }
+                
+
         
-        // Special handling for rename across different rule categories
-        // For the "rename from regular markdown to localized markdown" test
-        if (event.path.includes('__de.md') && event.oldPath.endsWith('.md') && !event.oldPath.endsWith('__de.md')) {
-          // Direct handling for the test case
-          if (event.path.endsWith('article__de.md') && event.oldPath.endsWith('article.md')) {
-            const oldTargetPath = normalizePath(path.join(settings.targetBasePath, settings.contentPath, 'notes', 'article.md'));
-            const newTargetPath = normalizePath(path.join(settings.targetBasePath, settings.contentPath, 'de', 'notes', 'article.md'));
-            await handleRenameEvent(event, oldTargetPath, newTargetPath, fs, logger);
-            break;
-          }
-        }
-        
-        // Normal rename handling
-        // Determine the old target path
-        let oldTargetPath = '';
-        
-        // Try to find the right rule for the old path
-        let oldPathRule: Rule | undefined;
-        for (const rule of rules) {
-          // Create a temporary event for the old path to test rule application
-          const tempEvent: FileEvent = {
-            ...event,
-            path: event.oldPath,
-            name: path.basename(event.oldPath)
-          };
-          
-          if (rule.shouldApply(tempEvent, context)) {
-            oldPathRule = rule;
-            oldTargetPath = rule.transform(event.oldPath, context);
-            oldTargetPath = normalizePath(oldTargetPath);
-            break;
-          }
-        }
-        
-        // If no rule matches for old path, use default behavior
-        if (!oldPathRule) {
-          const oldRelativePath = event.oldPath.startsWith('/') 
-            ? event.oldPath.substring(1) 
-            : event.oldPath;
-          oldTargetPath = path.join(settings.targetBasePath, oldRelativePath);
-          oldTargetPath = normalizePath(oldTargetPath);
-        }
-        
-        await handleRenameEvent(event, oldTargetPath, targetPath, fs, logger);
+        await handleRenameEvent(event, event.oldPath, targetPath, fs, logger);
         break;
         
       case 'modify':
@@ -233,36 +188,10 @@ const handleRenameEvent = async (
   logger?.debug('sync-engine', `Handling rename event: ${oldTargetPath} → ${newTargetPath}`);
   
   try {
-    // Check if old file exists
-    const exists = await fs.exists(oldTargetPath);
-    if (!exists) {
-      logger?.warn('sync-engine', `Source file for rename doesn't exist: ${oldTargetPath}`);
-      
-      // Try to handle as a create event instead
-      if (event.content !== undefined) {
-        await ensureParentDirectoryExists(newTargetPath, fs, logger);
-        await fs.writeFile(newTargetPath, event.content);
-        logger?.debug('sync-engine', `Created file instead of rename: ${newTargetPath}`);
-        return;
-      }
-      
-      // If no content in event, try to read from source file
-      try {
-        const content = await fs.readFile(event.path);
-        await ensureParentDirectoryExists(newTargetPath, fs, logger);
-        await fs.writeFile(newTargetPath, content);
-        logger?.debug('sync-engine', `Created file instead of rename: ${newTargetPath}`);
-      } catch (error) {
-        logger?.error('sync-engine', `Failed to create file as fallback for rename: ${newTargetPath}`);
-        throw error;
-      }
-      return;
-    }
-    
     // Ensure the target directory exists
     await ensureParentDirectoryExists(newTargetPath, fs, logger);
     
-    // Move the file
+    // Move the file - if old file doesn't exist, fs.moveFile should throw appropriate error
     await fs.moveFile(oldTargetPath, newTargetPath);
     logger?.debug('sync-engine', `Renamed file: ${oldTargetPath} → ${newTargetPath}`);
   } catch (error) {

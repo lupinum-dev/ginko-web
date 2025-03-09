@@ -95,32 +95,32 @@ describe('Asset Rule', () => {
 
   describe('transform', () => {
     it('should transform paths correctly for root level assets', () => {
-      const result = rule.transform('/image.png', context);
+      const result = rule.transformPath('/image.png', context);
       expect(result).toBe('target/public/_assets/image.png');
     });
 
     it('should simplify paths for files in _assets directory', () => {
-      const result = rule.transform('/notes/_assets/profile.jpg', context);
+      const result = rule.transformPath('/notes/_assets/profile.jpg', context);
       expect(result).toBe('target/public/_assets/profile.jpg');
     });
 
     it('should simplify paths for files in assets directory', () => {
-      const result = rule.transform('/assets/logo.svg', context);
+      const result = rule.transformPath('/assets/logo.svg', context);
       expect(result).toBe('target/public/_assets/logo.svg');
     });
 
     it('should simplify paths for files in attachments directory', () => {
-      const result = rule.transform('/notes/attachments/document.pdf', context);
+      const result = rule.transformPath('/notes/attachments/document.pdf', context);
       expect(result).toBe('target/public/_assets/document.pdf');
     });
 
     it('should preserve nested directory structure within assets', () => {
-      const result = rule.transform('/assets/icons/social/twitter.png', context);
+      const result = rule.transformPath('/assets/icons/social/twitter.png', context);
       expect(result).toBe('target/public/_assets/twitter.png');
     });
 
     it('should handle paths without leading slash', () => {
-      const result = rule.transform('assets/banner.jpg', context);
+      const result = rule.transformPath('assets/banner.jpg', context);
       expect(result).toBe('target/public/_assets/banner.jpg');
     });
   });
