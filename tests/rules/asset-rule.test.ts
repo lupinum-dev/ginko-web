@@ -160,7 +160,6 @@ describe('Asset Rule', () => {
         rules: [assetRule],
         eventBatches,
         initialState: {
-          filesSource: ['_assets/image.png', 'A/_assets/B/image2.png'], // Add source files
           filesTarget: [],
           metaCache: new Map(),
           assetCache: new Map()
@@ -168,126 +167,165 @@ describe('Asset Rule', () => {
         expectedState: {
           // Make sure that assets are stored together in the same directory
           filesTarget: ['public/_assets/image.png', 'public/_assets/image2.png'],
-          metaCache: new Map([
+          metaCache: new Map(),
+          assetCache: new Map([
             ['_assets/image.png', 'target/public/_assets/image.png'],
             ['A/_assets/B/image2.png', 'target/public/_assets/image2.png']
           ]),
-          assetCache: new Map()
         }
       });
     });
   
-// IGNORE FOR NOW!
-  // it('Should handle file renames correctly', async () => {
-  //   const assetRule = createAssetRule();
 
-  //   const eventBatches: FileEvent[][] = [[
-  //     {
-  //       name: "new.md",
-  //       path: "new.md",
-  //       type: "markdown",
-  //       action: "rename",
-  //       oldPath: "old.md",
-  //       timestamp: 1741498953213,
-  //       content: "content"
-  //     }
-  //   ]];
+  it('Should handle file renames correctly', async () => {
+    const assetRule = createAssetRule();
 
-  //   await createRuleTest({
-  //     settings: {
-  //       obsidianRoot: '/obsidian',
-  //       targetBasePathUser: './target',
-  //       targetBasePath: './target',
-  //       contentPathUser: 'content',
-  //       contentPath: 'content'
-  //     },
-  //     rules: [assetRule],
-  //     eventBatches,
-  //     initialState: {
-  //       filesTarget: ['content/old.md'],
-  //       metaCache: new Map(),
-  //       assetCache: new Map()
-  //     },
-  //     expectedState: {
-  //       filesTarget: ['content/new.md'],
-  //       metaCache: new Map(),
-  //       assetCache: new Map()
-  //     }
-  //   });
-  // });
+    const eventBatches: FileEvent[][] = [[
+      {
+        name: "image.png",
+        path: "_assets/image.png",
+        type: "asset",
+        action: "rename",
+        oldPath: "image_old.png",
+        timestamp: 1741498953213,
+        content: "image data" // Add content to avoid file read
+      },
+      {
+        name: "image2.png",
+        path: "A/_assets/B/image2.png",
+        type: "asset",
+        action: "rename",
+        oldPath: "image2_old.png",
+        timestamp: 1741498953213,
+        content: "image2 data" // Add content to avoid file read
+      }
+    ]];
 
-  // it('Should handle file deletion correctly', async () => {
-  //   const assetRule = createAssetRule();
+    await createRuleTest({
+      settings: {
+        obsidianRoot: '/obsidian',
+        targetBasePath: './target',
+        contentPath: 'content',
+        assetsPath: 'public/_assets'
+      },
+      rules: [assetRule],
+      eventBatches,
+      initialState: {
+        filesTarget: ['public/_assets/image.png', 'public/_assets/image2.png'],
+        metaCache: new Map(),
+        assetCache: new Map([
+          ['_assets/image.png', 'public/_assets/image_old.png'],
+          ['A/_assets/B/image2.png', 'public/_assets/image2_old.png']
+        ])
+      },
+      expectedState: {
+        filesTarget: ['public/_assets/image.png', 'public/_assets/image2.png'],
+        metaCache: new Map(),
+        assetCache: new Map([
+          ['_assets/image.png', 'public/_assets/image.png'],
+          ['A/_assets/B/image2.png', 'public/_assets/image2.png']
+        ])
+      }
+    });
+  });
 
-  //   const eventBatches: FileEvent[][] = [[
-  //     {
-  //       name: "old.md",
-  //       path: "old.md",
-  //       type: "markdown",
-  //       action: "delete",
-  //       timestamp: 1741498953213,
-  //       content: "content"
-  //     }
-  //   ]];
+  it('Should handle file deletion correctly', async () => {
+    const assetRule = createAssetRule();
 
-  //   await createRuleTest({
-  //     settings: {
-  //       obsidianRoot: '/obsidian',
-  //       targetBasePathUser: './target',
-  //       targetBasePath: './target',
-  //       contentPathUser: 'content',
-  //       contentPath: 'content'
-  //     },
-  //     rules: [assetRule],
-  //     eventBatches,
-  //     initialState: {
-  //       filesTarget: ['content/old.md'],
-  //       metaCache: new Map(),
-  //       assetCache: new Map()
-  //     },
-  //     expectedState: {
-  //       filesTarget: [],
-  //       metaCache: new Map(),
-  //       assetCache: new Map()
-  //     }
-  //   });
-  // });
+  
+    const eventBatches: FileEvent[][] = [[
+      {
+        name: "image.png",
+        path: "_assets/image.png",
+        type: "asset",
+        action: "delete",
+        timestamp: 1741498953213,
+        content: "image data" // Add content to avoid file read
+      },
+      {
+        name: "image2.png",
+        path: "A/_assets/B/image2.png",
+        type: "asset",
+        action: "delete",
+        timestamp: 1741498953213,
+        content: "image2 data" // Add content to avoid file read
+      }
+    ]];
 
-  // it('Should handle file updates correctly', async () => {
-  //   const assetRule = createAssetRule();
+    await createRuleTest({
+      settings: {
+        obsidianRoot: '/obsidian',
+        targetBasePath: './target',
+        contentPath: 'content',
+        assetsPath: 'public/_assets'
+      },
+      rules: [assetRule],
+      eventBatches,
+      initialState: {
+        filesTarget: ['public/_assets/image.png', 'public/_assets/image2.png'],
+        metaCache: new Map(),
+        assetCache: new Map([
+          ['_assets/image.png', 'public/_assets/image.png'],
+          ['A/_assets/B/image2.png', 'public/_assets/image2.png']
+        ])
+      },
+      expectedState: {
+        filesTarget: [],
+        metaCache: new Map(),
+        assetCache: new Map()
+      }
+    });
+  });
 
-  //   const eventBatches: FileEvent[][] = [[
-  //     {
-  //       name: "file.md",
-  //       path: "file.md",
-  //       type: "markdown",
-  //       action: "modify",
-  //       timestamp: 1741498953213,
-  //       content: "new content"
-  //     }
-  //   ]];
+  it('Should handle file updates correctly', async () => {
+    const assetRule = createAssetRule();
 
-  //   await createRuleTest({
-  //     settings: {
-  //       obsidianRoot: '/obsidian',
-  //       targetBasePathUser: './target',
-  //       targetBasePath: './target',
-  //       contentPathUser: 'content',
-  //       contentPath: 'content'
-  //     },
-  //     rules: [assetRule],  
-  //     eventBatches,
-  //     initialState: {
-  //       filesTarget: [{ path: 'content/file.md', content: 'old content' }],
-  //       metaCache: new Map(),
-  //       assetCache: new Map() 
-  //     },
-  //     expectedState: {
-  //       filesTarget: [{ path: 'content/file.md', content: 'new content' }],
-  //       metaCache: new Map(),
-  //       assetCache: new Map()
-  //     }
-  //   });
-  // });
+  
+    const eventBatches: FileEvent[][] = [[
+      {
+        name: "image.png",
+        path: "_assets/image.png",
+        type: "asset",
+        action: "modify",
+        timestamp: 1741498953213,
+        content: "image data" 
+      },
+      {
+        name: "image2.png",
+        path: "A/_assets/B/image2.png",
+        type: "asset",
+        action: "modify",
+        timestamp: 1741498953213,
+        content: "image2 data" 
+      }
+    ]];
+
+    await createRuleTest({
+      settings: {
+        obsidianRoot: '/obsidian',
+        targetBasePath: './target',
+        contentPath: 'content',
+        assetsPath: 'public/_assets'
+      },
+      rules: [assetRule],  
+      eventBatches,
+      initialState: {
+        filesTarget: ['public/_assets/image.png', 'public/_assets/image2.png'],
+        metaCache: new Map(),
+        assetCache: new Map([
+          ['_assets/image.png', 'public/_assets/image.png'],
+          ['A/_assets/B/image2.png', 'public/_assets/image2.png']
+        ])
+      },
+      expectedState: {
+        filesTarget: ['public/_assets/image.png', 'public/_assets/image2.png'],
+        metaCache: new Map(),
+        assetCache: new Map([
+          ['_assets/image.png', 'public/_assets/image.png'],
+          ['A/_assets/B/image2.png', 'public/_assets/image2.png']
+        ])
+      }
+    });
+  });
 
 });
