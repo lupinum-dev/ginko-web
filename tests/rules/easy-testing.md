@@ -1,4 +1,4 @@
-// src/rules/asset-rule.test.ts
+
 import { describe, it, expect } from 'vitest';
 import { createAssetRule } from '../../src/rules/asset-rule';
 import { FileEvent, SyncSettings, TransformContext } from '../../src/types';
