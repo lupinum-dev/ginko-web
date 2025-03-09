@@ -1,9 +1,11 @@
 // src/core/reset-vault.ts
-import { App } from 'obsidian';
+import { App, TFile } from 'obsidian';
 import { createSyncEngine } from './sync-engine';
 import { Logger, SyncSettings } from '../types';
 import * as path from 'path';
 import { createFileSystem } from '../utils/file-system';
+import { createFileEvent, getFileType } from '../adapters/obsidian-adapter';
+import { shouldExclude } from './sync-engine';
 
 /**
  * Resets the vault sync state
@@ -33,15 +35,30 @@ export const resetVault = async (
     logger?.info('reset-vault', `Ensuring assets directory exists: ${assetsDirPath}`);
     await fs.createDirectory(assetsDirPath);
     
-    // Create metadata file
-    const metaData = {
-      resetTimestamp: Date.now(),
-      version: '1.0.0'
-    };
+
     
-    await fs.writeFile(metaFilePath, JSON.stringify(metaData, null, 2));
-    logger?.info('reset-vault', `Created metadata file: ${metaFilePath}`);
+    // Get all files from the vault
+    logger?.info('reset-vault', 'Creating creation events for all files in the vault');
+    const allFiles = app.vault.getFiles();
+    let processedCount = 0;
     
+    // Process each file
+    for (const file of allFiles) {
+      // Skip files that should be excluded based on settings
+      if (shouldExclude(file.path, settings, logger)) {
+        logger?.debug('reset-vault', `Skipping excluded file: ${file.path}`);
+        continue;
+      }
+      
+      // Create a creation event for the file
+      const event = await createFileEvent(app, file, 'create', undefined, logger);
+      
+      // Queue the event for processing
+      syncEngine.queueEvent(event);
+      processedCount++;
+    }
+    
+    logger?.info('reset-vault', `Queued ${processedCount} files for processing`);
     logger?.info('reset-vault', 'Vault reset completed successfully');
   } catch (error) {
     logger?.error('reset-vault', `Failed to reset vault: ${error}`);
